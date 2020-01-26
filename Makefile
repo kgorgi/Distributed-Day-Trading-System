@@ -37,7 +37,6 @@ docker-deploy:
 docker-teardown:  
 	docker-compose down
 
-
 # Docker Container Commands
 .phony docker-list:
 docker-list: 
