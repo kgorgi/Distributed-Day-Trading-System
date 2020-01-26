@@ -21,7 +21,7 @@ const StatusSystemError = "SYSTEM_ERROR"
 // ClientSendRequest sends a request to a server and then returns
 // the response from the server (status, message/error, exception)
 func ClientSendRequest(conn net.Conn, payload string) (string, string, error) {
-	_, err := conn.Write([]byte(payload + string('\x04')))
+	_, err := conn.Write([]byte(payload + string(eotChar)))
 	if err != nil {
 		return "", "", err
 	}
