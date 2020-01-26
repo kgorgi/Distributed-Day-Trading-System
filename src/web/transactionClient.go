@@ -19,6 +19,9 @@ type TransactionClient struct {
 func (transactionClient *TransactionClient) ConnectSocket() (net.Conn, error) {
 	var err error
 	transactionClient.Socket, err = net.Dial(transactionClient.Network, transactionClient.RemoteAddress)
+	if err != nil {
+		fmt.Println(err)
+	}
 	return transactionClient.Socket, err
 }
 

@@ -1,33 +1,60 @@
 version: "3"
 services:
-    web:
-        container_name: "web-server"
-        build:
-            context: .
-            dockerfile: docker-files/Dockerfile.web
-        ports:
-            - "8080:8080"
+  web:
+    container_name: "web-server"
+    depends_on:
+      - transaction
+      - auditDB
+    build:
+      context: .
+      dockerfile: docker-files/Dockerfile.web
+    ports:
+      - "8080:8080"
 
-    transaction:
-        container_name: "transaction-server"
-        build:
-            context: .
-            dockerfile: docker-files/Dockerfile.web
-        ports:
-            - "5000:5000"
+  transaction:
+    container_name: "transaction-server"
+    depends_on:
+      - data
+      - auditDB
+    build:
+      context: .
+      dockerfile: docker-files/Dockerfile.transaction
+    ports:
+      - "5000:5000"
 
-    audit:
-        container_name: "audit-server"
-        build:
-            context: .
-            dockerfile: docker-files/Dockerfile.audit
-        ports:
-            - "5002:5002"
+  data:
+    container_name: "data-server"
+    depends_on:
+      - dataDB
+      - auditDB
+    build:
+      context: .
+      dockerfile: docker-files/Dockerfile.data
+    ports:
+      - "5001:5001"
 
-    auditDB:
-        image: mongo:latest
-        container_name: "audit-mongoDB"
-        ports:
-            - "27017-27019"
-        environment:
-            MONGO_INITDB_DATABASE: audit
+  dataDB:
+    image: mongo:latest
+    container_name: "data-mongoDB"
+    ports:
+      - "27017-27019:27017-27019"
+    environment:
+      MONGO_INITDB_DATABASE: data
+
+  audit:
+    container_name: "audit-server"
+    depends_on:
+      - auditDB
+    build:
+      context: .
+      dockerfile: docker-files/Dockerfile.audit
+    ports:
+      - "5002:5002"
+
+  auditDB:
+    image: mongo:latest
+    container_name: "audit-mongoDB"
+    ports:
+      - "27017-27019"
+    environment:
+      MONGO_INITDB_DATABASE: audit
