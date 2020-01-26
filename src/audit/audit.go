@@ -85,12 +85,8 @@ func handleLog(payload string) error {
 		return err
 	}
 
-	return writeToMongo(result)
-}
-
-func writeToMongo(obj interface{}) error {
 	collection := client.Database("audit").Collection("logs")
-	_, err := collection.InsertOne(context.TODO(), obj)
+	_, err = collection.InsertOne(context.TODO(), result)
 	if err != nil {
 		return err
 	}
