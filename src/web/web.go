@@ -65,9 +65,9 @@ func main() {
 
 	transactionClient := TransactionClient{
 		Network:       "tcp",
-		RemoteAddress: ":8081",
+		RemoteAddress: ":5000",
 	}
 	transactionClient.ConnectSocket()
 	fmt.Println("start server")
-	http.ListenAndServe(":9090", getRouter(transactionClient))
+	http.ListenAndServe(":8080", getRouter(transactionClient))
 }

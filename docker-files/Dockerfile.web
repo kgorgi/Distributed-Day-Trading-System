@@ -1,0 +1,15 @@
+FROM golang:latest
+
+WORKDIR ./server
+COPY ./src/web ./web
+COPY ./src/lib ./lib
+COPY ./src/go.mod .
+COPY ./src/go.sum .
+
+RUN go mod download
+
+RUN cd ./web && go build
+
+EXPOSE 8080 
+
+CMD ["./web/web"]
