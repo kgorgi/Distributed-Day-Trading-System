@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// InvalidData unexpected value for data
 type InvalidData struct {
 	What string
 }

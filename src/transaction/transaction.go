@@ -10,52 +10,30 @@ import (
 
 var dataConn net.Conn
 
-func isUseridValid(userid string) (bool, error) {
-	if true {
-		return true, nil
-	}
-	return false, &InvalidData{userid + " is not a valid userid"}
-}
-
-func isAmountValid(amount string) (bool, error) {
-	return true, nil
-}
-
-func isUserExist(userid string) (bool, error) {
-	return true, nil
-}
-
-func createUser(userid string) (bool, error) {
-	return true, nil
-}
-
-func addAmount(userid string, amount string) (bool, error) {
-	return true, nil
-}
-
 func processTransaction(transactionRequest string) (int, string) {
-	// COMMAND, USERNAME, P1, ...
-	transactionCommand := strings.Split(transactionRequest, ",")
-	userid := transactionCommand[1]
-	isValid, err := isUseridValid(userid)
+	var transactionCommand Command
+	CommandFromJSON(transactionRequest, &transactionCommand)
+	fmt.Printf("%+v\n", transactionCommand)
+
+	isValid, err := transactionCommand.isUseridValid()
 	if !isValid {
 		return lib.StatusUserError, err.Error()
 	}
 
-	switch strings.ToUpper(transactionCommand[0]) {
+	isValid, err = transactionCommand.isAmountValid()
+	if !isValid {
+		return lib.StatusUserError, err.Error()
+	}
+
+	switch strings.ToUpper(transactionCommand.Command) {
 	case "ADD":
-		// check if amount is valid
-		isValid, err = isAmountValid(transactionCommand[2])
-		if !isValid {
-			return lib.StatusUserError, err.Error()
-		}
 		// if not userid create user
-		isValid, err = isUserExist(transactionCommand[2])
+		isValid, err = IsUserExist(transactionCommand.Userid)
 		if !isValid {
-			createUser(userid)
+			CreateUser(transactionCommand.Userid)
 		}
 		// add amount
-		addAmount(userid, transactionCommand[2])
+		AddAmount(transactionCommand.Userid, transactionCommand.Amount)
 		return lib.StatusOk, "add processed"
 	}
 
@@ -101,7 +79,7 @@ func handleWebConnection(conn net.Conn) {
 func main() {
 	fmt.Println("Establishing Connection")
 	var err error
-	dataConn, err = net.Dial("tcp", "data-server:5001")
+	// dataConn, err = net.Dial("tcp", "data-server:5001")
 	if err != nil {
 		return
 	}

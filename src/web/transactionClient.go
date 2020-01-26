@@ -1,10 +1,10 @@
 package main
 
 import (
+	"encoding/json"
+	"extremeWorkload.com/daytrader/lib"
 	"fmt"
 	"net"
-
-	"extremeWorkload.com/daytrader/lib"
 )
 
 // TransactionClient client for transaction server
@@ -25,12 +25,18 @@ func (transactionClient *TransactionClient) ConnectSocket() (net.Conn, error) {
 	return transactionClient.Socket, err
 }
 
-func (transactionClient TransactionClient) sendCommand(command string) (int, string, error) {
-	status, message, err := lib.ClientSendRequest(transactionClient.Socket, command)
+func (transactionClient TransactionClient) sendCommand(command map[string]string) (int, string, error) {
+	commandJSON, err := json.Marshal(command)
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	status, message, err2 := lib.ClientSendRequest(transactionClient.Socket, string(commandJSON))
 
 	//handle reconnect here
-	if err != nil {
-		fmt.Print(err)
+	if err2 != nil {
+		fmt.Println(err2)
 	}
 	return status, message, err
 }
