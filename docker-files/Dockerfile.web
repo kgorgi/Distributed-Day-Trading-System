@@ -1,15 +1,15 @@
 FROM golang:latest
 
 WORKDIR ./server
-COPY ./src/audit ./audit
+COPY ./src/web ./web
 COPY ./src/lib ./lib
 COPY ./src/go.mod .
 COPY ./src/go.sum .
 
 RUN go mod download
 
-RUN cd ./audit && go build
+RUN cd ./web && go build
 
-EXPOSE 5002
+EXPOSE 8080 
 
-CMD ["./audit/audit"]
+CMD ["./web/web"]

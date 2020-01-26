@@ -26,7 +26,7 @@ func main() {
 
 	fmt.Println("launching server...")
 
-	ln, _ := net.Listen("tcp", ":8081")
+	ln, _ := net.Listen("tcp", ":5000")
 
 	for {
 		conn, _ := ln.Accept()
