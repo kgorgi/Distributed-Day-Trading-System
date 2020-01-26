@@ -3,6 +3,7 @@ package lib
 import (
 	"bufio"
 	"net"
+	"strconv"
 	"strings"
 )
 
@@ -10,35 +11,41 @@ const eotChar = '\x04'
 const seperatorChar = "|"
 
 // StatusOk (HTTP 200)
-const StatusOk = "OK"
+const StatusOk = 200
 
 // StatusUserERROR (HTTP 400)
-const StatusUserERROR = "USER_ERROR"
+const StatusUserERROR = 400
 
 // StatusSystemError (HTTP 500)
-const StatusSystemError = "SYSTEM_ERROR"
+const StatusSystemError = 500
 
 // ClientSendRequest sends a request to a server and then returns
 // the response from the server (status, message/error, exception)
-func ClientSendRequest(conn net.Conn, payload string) (string, string, error) {
+func ClientSendRequest(conn net.Conn, payload string) (int, string, error) {
 	_, err := conn.Write([]byte(payload + string(eotChar)))
 	if err != nil {
-		return "", "", err
+		return StatusSystemError, "", err
 	}
 
 	rawRespPayload, err := bufio.NewReader(conn).ReadString(eotChar)
 	if err != nil {
-		return "", "", err
+		return StatusSystemError, "", err
 	}
 
 	respPayload := strings.TrimRight(rawRespPayload, string(eotChar))
 
 	data := strings.Split(respPayload, seperatorChar)
-	if len(data) == 2 {
-		return data[0], data[1], nil
+
+	statusCode, err := strconv.Atoi(data[0])
+	if err != nil {
+		return StatusSystemError, "", err
 	}
 
-	return data[0], "", nil
+	if len(data) == 2 {
+		return statusCode, data[1], nil
+	}
+
+	return statusCode, "", nil
 }
 
 // ServerReceiveRequest processes a request from a client
@@ -54,14 +61,14 @@ func ServerReceiveRequest(conn net.Conn) (string, error) {
 
 // ServerSendOKResponse sends an OK response
 func ServerSendOKResponse(conn net.Conn) error {
-	payload := StatusOk + seperatorChar + string(eotChar)
+	payload := strconv.Itoa(StatusOk) + seperatorChar + string(eotChar)
 	_, err := conn.Write([]byte(payload))
 	return err
 }
 
 // ServerSendResponse sends a response to a client
-func ServerSendResponse(conn net.Conn, status string, message string) error {
-	payload := status + seperatorChar + message + string(eotChar)
+func ServerSendResponse(conn net.Conn, status int, message string) error {
+	payload := strconv.Itoa(status) + seperatorChar + message + string(eotChar)
 	_, err := conn.Write([]byte(payload))
 	return err
 }
