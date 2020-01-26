@@ -24,13 +24,13 @@ func main() {
 		return
 	}
 
-	ln, err := net.Listen("tcp", ":5000")
+	ln, err := net.Listen("tcp", ":5002")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Println("Started Server on Port 5000")
+	fmt.Println("Started Server on Port 5002")
 
 	for {
 		conn, err := ln.Accept()
