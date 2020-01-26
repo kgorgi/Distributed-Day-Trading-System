@@ -13,8 +13,8 @@ const seperatorChar = "|"
 // StatusOk (HTTP 200)
 const StatusOk = 200
 
-// StatusUserERROR (HTTP 400)
-const StatusUserERROR = 400
+// StatusUserError (HTTP 400)
+const StatusUserError = 400
 
 // StatusSystemError (HTTP 500)
 const StatusSystemError = 500
