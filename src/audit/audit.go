@@ -99,7 +99,7 @@ func handleDumpLog(payload string) {
 }
 
 func connectToMongo() (*mongo.Client, error) {
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/mongodb")
+	clientOptions := options.Client().ApplyURI("mongodb://audit-mongoDB:27017/mongodb")
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		return nil, err

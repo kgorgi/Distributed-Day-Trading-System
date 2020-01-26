@@ -1,0 +1,15 @@
+version: "3"
+services:
+    audit:
+        build:
+            context: .
+            dockerfile: docker-files/Dockerfile.audit
+        ports:
+            - "5000:5000"
+    auditDB:
+        image: mongo:latest
+        container_name: "audit-mongoDB"
+        ports:
+            - "27017:27017"
+        environment:
+            MONGO_INITDB_DATABASE: audit
