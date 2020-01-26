@@ -1,6 +1,8 @@
-package main
+package quote
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func main() {
 	fmt.Println("Hello, world.")
