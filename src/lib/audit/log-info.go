@@ -1,5 +1,13 @@
 package auditclient
 
+// InternalLogInfo is not be used directly. Only by the audit
+// client or audit server
+type InternalLogInfo struct {
+	LogType   string `json:"logType" bson:"logType"`
+	Timestamp int32  `json:"timestamp" bson:"timestamp"`
+	Server    string `json:"server" bson:"server"`
+}
+
 // UserCommandInfo audit message for user commands
 type UserCommandInfo struct {
 	TransactionNum   int    `json:"transactionNum" bson:"transactionNum"`

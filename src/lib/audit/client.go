@@ -19,37 +19,80 @@ type AuditClient struct {
 
 // LogUserCommandRequest sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) {
-	payload := client.attachAdditionalInfo(info, "UserCommandType")
+	var internalInfo = client.generateInternalInfo("UserCommandType")
+	payload := struct {
+		*InternalLogInfo
+		*UserCommandInfo
+	}{
+		&internalInfo,
+		&info,
+	}
+
 	client.sendLogs(payload)
 }
 
 // LogQuoteServerResponse sends a UserCommandType to the audit server
 func (client *AuditClient) LogQuoteServerResponse(info QuoteServerResponseInfo) {
-	payload := client.attachAdditionalInfo(info, "QuoteServerType")
+	var internalInfo = client.generateInternalInfo("QuoteServerType")
+	payload := struct {
+		*InternalLogInfo
+		*QuoteServerResponseInfo
+	}{
+		&internalInfo,
+		&info,
+	}
 	client.sendLogs(payload)
 }
 
 // LogAccountTransaction sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogAccountTransaction(info AccountTransactionInfo) {
-	payload := client.attachAdditionalInfo(info, "AccountTransactionType")
+	var internalInfo = client.generateInternalInfo("AccountTransactionType")
+	payload := struct {
+		*InternalLogInfo
+		*AccountTransactionInfo
+	}{
+		&internalInfo,
+		&info,
+	}
 	client.sendLogs(payload)
 }
 
 // LogSystemEvent sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogSystemEvent(info SystemEventInfo) {
-	payload := client.attachAdditionalInfo(info, "SystemEventType")
+	var internalInfo = client.generateInternalInfo("SystemEventType")
+	payload := struct {
+		*InternalLogInfo
+		*SystemEventInfo
+	}{
+		&internalInfo,
+		&info,
+	}
 	client.sendLogs(payload)
 }
 
 // LogErrorEvent sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogErrorEvent(info ErrorEventInfo) {
-	payload := client.attachAdditionalInfo(info, "ErrorEventType")
+	var internalInfo = client.generateInternalInfo("ErrorEventType")
+	payload := struct {
+		*InternalLogInfo
+		*ErrorEventInfo
+	}{
+		&internalInfo,
+		&info,
+	}
 	client.sendLogs(payload)
 }
 
 // LogDebugEvent sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogDebugEvent(info DebugEventInfo) {
-	payload := client.attachAdditionalInfo(info, "DebutEventType")
+	var internalInfo = client.generateInternalInfo("DebugEventType")
+	payload := struct {
+		*InternalLogInfo
+		*DebugEventInfo
+	}{
+		&internalInfo,
+		&info,
+	}
 	client.sendLogs(payload)
 }
 
@@ -64,7 +107,7 @@ func (client *AuditClient) sendLogs(data interface{}) {
 	payload := "LOG|" + string(jsonText)
 
 	// Establish Connection to Audit Server
-	conn, err := net.Dial("tcp", auditServerDockerAddress)
+	conn, err := net.Dial("tcp", auditServerLocalAddress)
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
 		return
@@ -86,18 +129,10 @@ func (client *AuditClient) sendLogs(data interface{}) {
 	}
 }
 
-func (client *AuditClient) attachAdditionalInfo(data interface{}, logType string) interface{} {
-	tmp := struct {
-		data      interface{}
-		LogType   string `json:"logType" bson:"logType"`
-		Timestamp int32  `json:"timestamp" bson:"timestamp"`
-		Server    string `json:"server" bson:"server"`
-	}{
-		data:      data,
+func (client *AuditClient) generateInternalInfo(logType string) InternalLogInfo {
+	return InternalLogInfo{
 		LogType:   logType,
 		Timestamp: int32(time.Now().Unix()),
 		Server:    client.Server,
 	}
-
-	return tmp
 }
