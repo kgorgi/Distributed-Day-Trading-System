@@ -67,8 +67,8 @@ func main() {
 
 	transactionClient := TransactionClient{
 		Network: "tcp",
-		// RemoteAddress: "transaction-server:5000",
-		RemoteAddress: ":5000",
+		RemoteAddress: "transaction-server:5000",
+		// RemoteAddress: ":5000",
 	}
 	transactionClient.ConnectSocket()
 	fmt.Println("start server")

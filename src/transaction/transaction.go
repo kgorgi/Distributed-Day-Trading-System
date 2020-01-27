@@ -33,7 +33,7 @@ func processTransaction(transactionRequest string) (int, string) {
 		}
 		// add amount
 		AddAmount(transactionCommand.Userid, transactionCommand.Cents)
-		return lib.StatusOk, "add processed"
+		return lib.StatusOk, ""
 	}
 
 	return lib.StatusUserError, "command doesn't exist"
@@ -78,7 +78,7 @@ func handleWebConnection(conn net.Conn) {
 func main() {
 	fmt.Println("Establishing Connection")
 	var err error
-	// dataConn, err = net.Dial("tcp", "data-server:5001")
+	dataConn, err = net.Dial("tcp", "data-server:5001")
 	if err != nil {
 		return
 	}
