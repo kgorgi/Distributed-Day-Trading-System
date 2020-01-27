@@ -13,10 +13,44 @@ const auditServerDockerAddress = "audit-server:5002"
 const auditServerLocalAddress = "localhost:5002"
 
 // AuditClient send requests to the audit server
-type AuditClient struct{}
+type AuditClient struct {
+	Server string
+}
 
-func unixTimestamp() int32 {
-	return int32(time.Now().Unix())
+// LogUserCommandRequest sends a log of UserCommandType to the audit server
+func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) {
+	payload := client.attachAdditionalInfo(info, "UserCommandType")
+	client.sendLogs(payload)
+}
+
+// LogQuoteServerResponse sends a UserCommandType to the audit server
+func (client *AuditClient) LogQuoteServerResponse(info QuoteServerResponseInfo) {
+	payload := client.attachAdditionalInfo(info, "QuoteServerType")
+	client.sendLogs(payload)
+}
+
+// LogAccountTransaction sends a log of UserCommandType to the audit server
+func (client *AuditClient) LogAccountTransaction(info AccountTransactionInfo) {
+	payload := client.attachAdditionalInfo(info, "AccountTransactionType")
+	client.sendLogs(payload)
+}
+
+// LogSystemEvent sends a log of UserCommandType to the audit server
+func (client *AuditClient) LogSystemEvent(info SystemEventInfo) {
+	payload := client.attachAdditionalInfo(info, "SystemEventType")
+	client.sendLogs(payload)
+}
+
+// LogErrorEvent sends a log of UserCommandType to the audit server
+func (client *AuditClient) LogErrorEvent(info ErrorEventInfo) {
+	payload := client.attachAdditionalInfo(info, "ErrorEventType")
+	client.sendLogs(payload)
+}
+
+// LogDebugEvent sends a log of UserCommandType to the audit server
+func (client *AuditClient) LogDebugEvent(info DebugEventInfo) {
+	payload := client.attachAdditionalInfo(info, "DebutEventType")
+	client.sendLogs(payload)
 }
 
 func (client *AuditClient) sendLogs(data interface{}) {
@@ -52,50 +86,18 @@ func (client *AuditClient) sendLogs(data interface{}) {
 	}
 }
 
-// LogUserCommandRequest sends a log of UserCommandType to the audit server
-func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) {
-	info.LogType = "UserCommandType"
-	info.Timestamp = unixTimestamp()
+func (client *AuditClient) attachAdditionalInfo(data interface{}, logType string) interface{} {
+	tmp := struct {
+		data      interface{}
+		LogType   string `json:"logType" bson:"logType"`
+		Timestamp int32  `json:"timestamp" bson:"timestamp"`
+		Server    string `json:"server" bson:"server"`
+	}{
+		data:      data,
+		LogType:   logType,
+		Timestamp: int32(time.Now().Unix()),
+		Server:    client.Server,
+	}
 
-	client.sendLogs(info)
-}
-
-// LogQuoteServerResponse sends a UserCommandType to the audit server
-func (client *AuditClient) LogQuoteServerResponse(info QuoteServerResponseInfo) {
-	info.LogType = "QuoteServerType"
-	info.Timestamp = unixTimestamp()
-
-	client.sendLogs(info)
-}
-
-// LogAccountTransaction sends a log of UserCommandType to the audit server
-func (client *AuditClient) LogAccountTransaction(info AccountTransactionInfo) {
-	info.LogType = "AccountTransactionType"
-	info.Timestamp = unixTimestamp()
-
-	client.sendLogs(info)
-}
-
-// LogSystemEvent sends a log of UserCommandType to the audit server
-func (client *AuditClient) LogSystemEvent(info SystemEventInfo) {
-	info.LogType = "SystemEventType"
-	info.Timestamp = unixTimestamp()
-
-	client.sendLogs(info)
-}
-
-// LogErrorEvent sends a log of UserCommandType to the audit server
-func (client *AuditClient) LogErrorEvent(info ErrorEventInfo) {
-	info.LogType = "ErrorEventType"
-	info.Timestamp = unixTimestamp()
-
-	client.sendLogs(info)
-}
-
-// LogDebugEvent sends a log of UserCommandType to the audit server
-func (client *AuditClient) LogDebugEvent(info DebugEventInfo) {
-	info.LogType = "DebutEventType"
-	info.Timestamp = unixTimestamp()
-
-	client.sendLogs(info)
+	return tmp
 }

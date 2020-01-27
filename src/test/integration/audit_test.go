@@ -10,24 +10,24 @@ import (
 // version of the audit server is required.
 func TestAuditServerIntegration(t *testing.T) {
 
-	var auditClient auditclient.AuditClient
+	var auditClient = auditclient.AuditClient{
+		Server: "audit-test",
+	}
 
 	var funds = 55
 	auditClient.LogUserCommandRequest(
 		auditclient.UserCommandInfo{
-			Server:         "audit-test",
-			TransactionNum: 1,
-			Command:        "TEST",
-			Username:       "testUser",
-			Filename:       "testFile",
-			Funds:          &funds,
+			TransactionNum:   1,
+			Command:          "TEST",
+			OptionalUsername: "testUser",
+			OptionalFilename: "testFile",
+			OptionalFunds:    &funds,
 		},
 	)
 
 	auditClient.LogQuoteServerResponse(
 		auditclient.QuoteServerResponseInfo{
-			Server:          "audit-test",
-			TransactionNum:  1,
+			TransactionNum:  2,
 			Price:           2,
 			StockSymbol:     "ABC",
 			Username:        "testUser",
@@ -38,8 +38,7 @@ func TestAuditServerIntegration(t *testing.T) {
 
 	auditClient.LogAccountTransaction(
 		auditclient.AccountTransactionInfo{
-			Server:         "audit-test",
-			TransactionNum: 1,
+			TransactionNum: 3,
 			Action:         "TEST",
 			Username:       "testUser",
 			Funds:          5,
@@ -48,36 +47,33 @@ func TestAuditServerIntegration(t *testing.T) {
 
 	auditClient.LogSystemEvent(
 		auditclient.SystemEventInfo{
-			Server:         "audit-test",
-			TransactionNum: 1,
-			Command:        "TEST",
-			Username:       "testUser",
-			Filename:       "testFile",
-			Funds:          &funds,
+			TransactionNum:   4,
+			Command:          "TEST",
+			OptionalUsername: "testUser",
+			OptionalFilename: "testFile",
+			OptionalFunds:    &funds,
 		},
 	)
 
 	auditClient.LogErrorEvent(
 		auditclient.ErrorEventInfo{
-			Server:         "audit-test",
-			TransactionNum: 1,
-			Command:        "TEST",
-			Username:       "testUser",
-			Filename:       "testFile",
-			Funds:          &funds,
-			ErrorMessage:   "This is an error event",
+			TransactionNum:       5,
+			Command:              "TEST",
+			OptionalUsername:     "testUser",
+			OptionalFilename:     "testFile",
+			OptionalFunds:        &funds,
+			OptionalErrorMessage: "This is an error event",
 		},
 	)
 
 	auditClient.LogDebugEvent(
 		auditclient.DebugEventInfo{
-			Server:         "audit-test",
-			TransactionNum: 1,
-			Command:        "TEST",
-			Username:       "testUser",
-			Filename:       "testFile",
-			Funds:          &funds,
-			DebugMessage:   "This is an debug event",
+			TransactionNum:       6,
+			Command:              "TEST",
+			Username:             "testUser",
+			OptionalFilename:     "testFile",
+			OptionalFunds:        &funds,
+			OptionalDebugMessage: "This is an debug event",
 		},
 	)
 }

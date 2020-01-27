@@ -2,21 +2,15 @@ package auditclient
 
 // UserCommandInfo audit message for user commands
 type UserCommandInfo struct {
-	LogType        string `json:"logType" bson:"logType"`
-	Timestamp      int32  `json:"timestamp" bson:"timestamp"`
-	Server         string `json:"server" bson:"server"`
-	TransactionNum int    `json:"transactionNum" bson:"transactionNum"`
-	Command        string `json:"command" bson:"command"`
-	Username       string `json:"username,omitempty" bson:"username"`
-	Filename       string `json:"filename,omitempty" bson:"filename,omitempty"`
-	Funds          *int   `json:"funds,omitempty" bson:"funds,omitempty"`
+	TransactionNum   int    `json:"transactionNum" bson:"transactionNum"`
+	Command          string `json:"command" bson:"command"`
+	OptionalUsername string `json:"username,omitempty" bson:"username"`
+	OptionalFilename string `json:"filename,omitempty" bson:"filename,omitempty"`
+	OptionalFunds    *int   `json:"funds,omitempty" bson:"funds,omitempty"`
 }
 
 // QuoteServerResponseInfo audit message for quote server responses
 type QuoteServerResponseInfo struct {
-	LogType         string `json:"logType" bson:"logType"`
-	Timestamp       int32  `json:"timestamp" bson:"timestamp"`
-	Server          string `json:"server" bson:"server"`
 	TransactionNum  int    `json:"transactionNum" bson:"transactionNum"`
 	Price           int    `json:"price" bson:"price"`
 	StockSymbol     string `json:"stockSymbol" bson:"stockSymbol"`
@@ -27,9 +21,6 @@ type QuoteServerResponseInfo struct {
 
 // AccountTransactionInfo audit message for account transactions
 type AccountTransactionInfo struct {
-	LogType        string `json:"logType" bson:"logType"`
-	Timestamp      int32  `json:"timestamp" bson:"timestamp"`
-	Server         string `json:"server" bson:"server"`
 	TransactionNum int    `json:"transactionNum" bson:"transactionNum"`
 	Action         string `json:"action" bson:"action"`
 	Username       string `json:"username" bson:"username"`
@@ -38,41 +29,32 @@ type AccountTransactionInfo struct {
 
 // SystemEventInfo audit message for any system events
 type SystemEventInfo struct {
-	LogType        string `json:"logType" bson:"logType"`
-	Timestamp      int32  `json:"timestamp" bson:"timestamp"`
-	Server         string `json:"server" bson:"server"`
-	TransactionNum int    `json:"transactionNum" bson:"transactionNum"`
-	Command        string `json:"command" bson:"command"`
-	Username       string `json:"username,omitempty" bson:"username,omitempty"`
-	StockSymbol    string `json:"stockSymbol,omitempty" bson:"stockSymbol,omitempty"`
-	Filename       string `json:"filename,omitempty" bson:"filename,omitempty"`
-	Funds          *int   `json:"funds,omitempty" bson:"funds,omitempty"`
+	TransactionNum      int    `json:"transactionNum" bson:"transactionNum"`
+	Command             string `json:"command" bson:"command"`
+	OptionalUsername    string `json:"username,omitempty" bson:"username,omitempty"`
+	OptionalStockSymbol string `json:"stockSymbol,omitempty" bson:"stockSymbol,omitempty"`
+	OptionalFilename    string `json:"filename,omitempty" bson:"filename,omitempty"`
+	OptionalFunds       *int   `json:"funds,omitempty" bson:"funds,omitempty"`
 }
 
 // ErrorEventInfo audit message for any system error events
 type ErrorEventInfo struct {
-	LogType        string `json:"logType" bson:"logType"`
-	Timestamp      int32  `json:"timestamp" bson:"timestamp"`
-	Server         string `json:"server" bson:"server"`
-	TransactionNum int    `json:"transactionNum" bson:"transactionNum"`
-	Command        string `json:"command" bson:"command"`
-	Username       string `json:"username,omitempty" bson:"username,omitempty"`
-	StockSymbol    string `json:"stockSymbol,omitempty" bson:"stockSymbol,omitempty"`
-	Filename       string `json:"filename,omitempty" bson:"filename,omitempty"`
-	Funds          *int   `json:"funds,omitempty" bson:"funds,omitempty"`
-	ErrorMessage   string `json:"errorMessage,omitempty" bson:"errorMessage,omitempty"`
+	TransactionNum       int    `json:"transactionNum" bson:"transactionNum"`
+	Command              string `json:"command" bson:"command"`
+	OptionalUsername     string `json:"username,omitempty" bson:"username,omitempty"`
+	OptionalStockSymbol  string `json:"stockSymbol,omitempty" bson:"stockSymbol,omitempty"`
+	OptionalFilename     string `json:"filename,omitempty" bson:"filename,omitempty"`
+	OptionalFunds        *int   `json:"funds,omitempty" bson:"funds,omitempty"`
+	OptionalErrorMessage string `json:"errorMessage,omitempty" bson:"errorMessage,omitempty"`
 }
 
 // DebugEventInfo audit message for any system debug events
 type DebugEventInfo struct {
-	LogType        string `json:"logType" bson:"logType"`
-	Timestamp      int32  `json:"timestamp" bson:"timestamp"`
-	Server         string `json:"server" bson:"server"`
-	TransactionNum int    `json:"transactionNum" bson:"transactionNum"`
-	Command        string `json:"command" bson:"command"`
-	Username       string `json:"username,omitempty" bson:"username,omitempty"`
-	StockSymbol    string `json:"stockSymbol,omitempty" bson:"stockSymbol,omitempty"`
-	Filename       string `json:"filename,omitempty" bson:"filename,omitempty"`
-	Funds          *int   `json:"funds,omitempty" bson:"funds,omitempty"`
-	DebugMessage   string `json:"debugMessage,omitempty" bson:"debugMessage,omitempty"`
+	TransactionNum       int    `json:"transactionNum" bson:"transactionNum"`
+	Command              string `json:"command" bson:"command"`
+	Username             string `json:"username,omitempty" bson:"username,omitempty"`
+	OptionalStockSymbol  string `json:"stockSymbol,omitempty" bson:"stockSymbol,omitempty"`
+	OptionalFilename     string `json:"filename,omitempty" bson:"filename,omitempty"`
+	OptionalFunds        *int   `json:"funds,omitempty" bson:"funds,omitempty"`
+	OptionalDebugMessage string `json:"debugMessage,omitempty" bson:"debugMessage,omitempty"`
 }
