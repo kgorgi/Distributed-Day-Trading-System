@@ -17,6 +17,17 @@ type AuditClient struct {
 	Server string
 }
 
+// DumpLogAll get all logs from audit server
+func (client *AuditClient) DumpLogAll() (string, error) {
+	return client.DumpLog("")
+}
+
+// DumpLog get all logs from audit server
+func (client *AuditClient) DumpLog(userID string) (string, error) {
+	_, message, err := client.sendRequest("DUMPLOG|" + userID)
+	return message, err
+}
+
 // LogUserCommandRequest sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) {
 	var internalInfo = client.generateInternalInfo("UserCommandType")
@@ -106,11 +117,23 @@ func (client *AuditClient) sendLogs(data interface{}) {
 
 	payload := "LOG|" + string(jsonText)
 
+	client.sendRequest(payload)
+}
+
+func (client *AuditClient) generateInternalInfo(logType string) InternalLogInfo {
+	return InternalLogInfo{
+		LogType:   logType,
+		Timestamp: int32(time.Now().Unix()),
+		Server:    client.Server,
+	}
+}
+
+func (client *AuditClient) sendRequest(payload string) (int, string, error) {
 	// Establish Connection to Audit Server
 	conn, err := net.Dial("tcp", auditServerLocalAddress)
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
-		return
+		return -1, "", err
 	}
 
 	// Send Payload
@@ -120,19 +143,13 @@ func (client *AuditClient) sendLogs(data interface{}) {
 
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
-		return
+		return -1, "", err
 	}
 
 	if status != lib.StatusOk {
 		log.Println("Response Error: Status " + string(status) + message)
-		return
+		return status, message, nil
 	}
-}
 
-func (client *AuditClient) generateInternalInfo(logType string) InternalLogInfo {
-	return InternalLogInfo{
-		LogType:   logType,
-		Timestamp: int32(time.Now().Unix()),
-		Server:    client.Server,
-	}
+	return status, message, nil
 }

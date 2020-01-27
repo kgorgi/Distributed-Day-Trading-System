@@ -8,8 +8,11 @@ import (
 	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
 var client *mongo.Client
@@ -61,18 +64,29 @@ func handleConnection(conn net.Conn) {
 				lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 				return
 			}
+			lib.ServerSendOKResponse(conn)
+			return
 		} else if data[0] == "DUMPLOG" {
-			handleDumpLog(payload)
+			var logs string
+			var err error
+			if len(data) == 3 {
+				logs, err = handleDumpLog(data[2])
+			} else {
+				logs, err = handleDumpLog("")
+			}
+
 			if err != nil {
 				lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 				return
 			}
+
+			lib.ServerSendResponse(conn, lib.StatusOk, logs)
+			return
 		} else {
 			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
 			return
 		}
 
-		lib.ServerSendOKResponse(conn)
 	}
 
 }
@@ -94,8 +108,20 @@ func handleLog(payload string) error {
 	return nil
 }
 
-func handleDumpLog(payload string) {
+func handleDumpLog(userID string) (string, error) {
+	collection := client.Database("audit").Collection("logs")
+	cursor, _ := collection.Find(context.TODO(), bson.D{})
 
+	var results []auditclient.InternalLogInfo
+	cursor.All(context.TODO(), &results)
+
+	var builder strings.Builder
+
+	for _, element := range results {
+		fmt.Fprintln(&builder, element)
+	}
+
+	return builder.String(), nil
 }
 
 func connectToMongo() (*mongo.Client, error) {

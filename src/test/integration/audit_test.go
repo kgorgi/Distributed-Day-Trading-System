@@ -1,6 +1,7 @@
 package auditclienttest
 
 import (
+	"fmt"
 	"testing"
 
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
@@ -76,4 +77,8 @@ func TestAuditServerIntegration(t *testing.T) {
 			OptionalDebugMessage: "This is an debug event",
 		},
 	)
+
+	logs, _ := auditClient.DumpLogAll()
+
+	fmt.Println(logs)
 }
