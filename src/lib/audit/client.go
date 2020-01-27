@@ -9,11 +9,8 @@ import (
 	"extremeWorkload.com/daytrader/lib"
 )
 
-// AuditServerDockerAddress used for docker deployment
-const AuditServerDockerAddress = "audit-server:5002"
-
-// AuditServerLocalAddress used for local development
-const AuditServerLocalAddress = "localhost:5002"
+const auditServerDockerAddress = "audit-server:5002"
+const auditServerLocalAddress = "localhost:5002"
 
 // AuditClient send requests to the audit server
 type AuditClient struct {
@@ -22,7 +19,7 @@ type AuditClient struct {
 
 func (client *AuditClient) connect() error {
 	var err error
-	client.conn, err = net.Dial("tcp", AuditServerLocalAddress)
+	client.conn, err = net.Dial("tcp", auditServerDockerAddress)
 	return err
 }
 
