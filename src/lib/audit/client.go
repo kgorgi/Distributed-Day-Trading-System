@@ -13,41 +13,36 @@ const auditServerDockerAddress = "audit-server:5002"
 const auditServerLocalAddress = "localhost:5002"
 
 // AuditClient send requests to the audit server
-type AuditClient struct {
-	conn net.Conn
-}
-
-func (client *AuditClient) connect() error {
-	var err error
-	client.conn, err = net.Dial("tcp", auditServerDockerAddress)
-	return err
-}
-
-func (client *AuditClient) disconnect() error {
-	return client.conn.Close()
-}
+type AuditClient struct{}
 
 func unixTimestamp() int32 {
 	return int32(time.Now().Unix())
 }
 
 func (client *AuditClient) sendLogs(data interface{}) {
+	// Convert JSON to Payload
 	jsonText, err := json.Marshal(data)
 	if err != nil {
-		log.Fatal("JSON stringify error: " + err.Error())
+		log.Println("JSON stringify error: " + err.Error())
 		return
 	}
 
 	payload := "LOG|" + string(jsonText)
 
-	client.connect()
+	// Establish Connection to Audit Server
+	conn, err := net.Dial("tcp", auditServerDockerAddress)
+	if err != nil {
+		log.Println("Connection Error: " + err.Error())
+		return
+	}
 
-	status, message, err := lib.ClientSendRequest(client.conn, payload)
+	// Send Payload
+	status, message, err := lib.ClientSendRequest(conn, payload)
 
-	client.disconnect()
+	conn.Close()
 
 	if err != nil {
-		log.Println("Network Error: " + err.Error())
+		log.Println("Connection Error: " + err.Error())
 		return
 	}
 
