@@ -11,6 +11,6 @@ func CreateUser(userid string) (bool, error) {
 }
 
 // AddAmount add money to user balance
-func AddAmount(userid string, amount string) (bool, error) {
+func AddAmount(userid string, cents int) (bool, error) {
 	return true, nil
 }

@@ -20,20 +20,19 @@ func processTransaction(transactionRequest string) (int, string) {
 		return lib.StatusUserError, err.Error()
 	}
 
-	isValid, err = transactionCommand.isAmountValid()
-	if !isValid {
-		return lib.StatusUserError, err.Error()
-	}
-
 	switch strings.ToUpper(transactionCommand.Command) {
 	case "ADD":
+		_, err = transactionCommand.GetCents()
+		if err != nil {
+			return lib.StatusUserError, err.Error()
+		}
 		// if not userid create user
 		isValid, err = IsUserExist(transactionCommand.Userid)
 		if !isValid {
 			CreateUser(transactionCommand.Userid)
 		}
 		// add amount
-		AddAmount(transactionCommand.Userid, transactionCommand.Amount)
+		AddAmount(transactionCommand.Userid, transactionCommand.Cents)
 		return lib.StatusOk, "add processed"
 	}
 
