@@ -7,6 +7,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const webServerAddress = ":8080"
+
 func parseCommandRequest(r *http.Request) map[string]string {
 
 	command := make(map[string]string)
@@ -61,5 +63,5 @@ func getRouter() http.Handler {
 func main() {
 
 	fmt.Println("start server")
-	http.ListenAndServe(":8080", getRouter())
+	http.ListenAndServe(webServerAddress, getRouter())
 }
