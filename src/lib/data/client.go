@@ -74,7 +74,7 @@ func (client *DataClient) DeleteTrigger(userID string, stockName string) error {
 
 func (client *DataClient) sendRequest(payload string) (int, string, error) {
 	//connect to data server
-	conn, err := net.Dial("tcp", dataServerDockerAddress)
+	conn, err := net.Dial("tcp", dataServerLocalAddress)
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
 		return -1, "", err
