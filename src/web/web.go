@@ -7,6 +7,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const webServerAddress = ":8080"
+
 func parseCommandRequest(r *http.Request) map[string]string {
 
 	command := make(map[string]string)
@@ -22,21 +24,17 @@ func parseCommandRequest(r *http.Request) map[string]string {
 }
 
 // Creates a route method. Whenever the route is called, it always uses the same socket
-func createCommandRoute(transactionClient TransactionClient) func(w http.ResponseWriter, r *http.Request) {
+func commandRoute(w http.ResponseWriter, r *http.Request) {
+	command := parseCommandRequest(r)
+	var transactionClient TransactionClient
+	status, message, err := transactionClient.SendCommand(command)
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		command := parseCommandRequest(r)
-		status, message, err := transactionClient.sendCommand(command)
-
-		w.WriteHeader(status)
-		if err != nil {
-			w.Write([]byte(err.Error()))
-		} else {
-			w.Write([]byte(message))
-		}
-
+	w.WriteHeader(status)
+	if err != nil {
+		w.Write([]byte(err.Error()))
+	} else {
+		w.Write([]byte(message))
 	}
-
 }
 
 func heartbeat(w http.ResponseWriter, r *http.Request) {
@@ -50,10 +48,9 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func getRouter(transactionClient TransactionClient) http.Handler {
+func getRouter() http.Handler {
 	myRouter := mux.NewRouter().StrictSlash(true)
 
-	commandRoute := createCommandRoute(transactionClient)
 	myRouter.HandleFunc("/command/{command_name}", commandRoute)
 
 	myRouter.HandleFunc("/heartbeat", heartbeat)
@@ -65,12 +62,6 @@ func getRouter(transactionClient TransactionClient) http.Handler {
 
 func main() {
 
-	transactionClient := TransactionClient{
-		Network: "tcp",
-		RemoteAddress: "transaction-server:5000",
-		// RemoteAddress: ":5000",
-	}
-	transactionClient.ConnectSocket()
 	fmt.Println("start server")
-	http.ListenAndServe(":8080", getRouter(transactionClient))
+	http.ListenAndServe(webServerAddress, getRouter())
 }
