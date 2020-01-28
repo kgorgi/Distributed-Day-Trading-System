@@ -5,7 +5,13 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+
+	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
+
+var auditClient = auditclient.AuditClient{
+	Server: "web",
+}
 
 func parseCommandRequest(r *http.Request) map[string]string {
 
@@ -65,8 +71,14 @@ func getRouter(transactionClient TransactionClient) http.Handler {
 
 func main() {
 
+	auditClient.LogDebugEvent(auditclient.DebugEventInfo{
+		TransactionNum:       -1,
+		Command:              "N/A",
+		OptionalDebugMessage: "Starting Web Server",
+	})
+
 	transactionClient := TransactionClient{
-		Network: "tcp",
+		Network:       "tcp",
 		RemoteAddress: "transaction-server:5000",
 		// RemoteAddress: ":5000",
 	}

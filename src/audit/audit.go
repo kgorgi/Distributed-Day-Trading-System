@@ -16,13 +16,6 @@ var client *mongo.Client
 func main() {
 	fmt.Println("Starting audit server...")
 
-	var err error
-	client, err = connectToMongo()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
 	ln, err := net.Listen("tcp", ":5002")
 	if err != nil {
 		fmt.Println(err)
@@ -30,6 +23,12 @@ func main() {
 	}
 
 	fmt.Println("Started Server on Port 5002")
+
+	client, err = connectToMongo()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	for {
 		conn, err := ln.Accept()
@@ -40,15 +39,15 @@ func main() {
 
 		fmt.Println("Connection Established")
 
-		go handleConnection(&conn)
+		go handleConnection(conn)
 	}
 }
 
-func handleConnection(conn *net.Conn) {
+func handleConnection(conn net.Conn) {
 	for {
-		payload, err := lib.ServerReceiveRequest(*conn)
+		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
-			lib.ServerSendResponse(*conn, lib.StatusSystemError, err.Error())
+			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 			return
 		}
 
@@ -56,11 +55,11 @@ func handleConnection(conn *net.Conn) {
 
 		switch data[0] {
 		case "LOG":
-			handleLog(conn, data[1])
+			handleLog(&conn, data[1])
 		case "DUMPLOG":
-			handleDumpLog(conn, data[1])
+			handleDumpLog(&conn, data[1])
 		default:
-			lib.ServerSendResponse(*conn, lib.StatusUserError, "Invalid Audit Command")
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
 		}
 	}
 }

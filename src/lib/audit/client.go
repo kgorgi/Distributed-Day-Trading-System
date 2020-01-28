@@ -2,7 +2,6 @@ package auditclient
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -123,8 +122,6 @@ func (client *AuditClient) sendLogs(data interface{}) {
 }
 
 func (client *AuditClient) generateInternalInfo(logType string) InternalLogInfo {
-	fmt.Printf("%.2d\n", time.Now().UnixNano()/int64(time.Millisecond))
-
 	return InternalLogInfo{
 		LogType:   logType,
 		Timestamp: time.Now().UnixNano() / int64(time.Millisecond),
@@ -134,7 +131,7 @@ func (client *AuditClient) generateInternalInfo(logType string) InternalLogInfo 
 
 func (client *AuditClient) sendRequest(payload string) (int, string, error) {
 	// Establish Connection to Audit Server
-	conn, err := net.Dial("tcp", auditServerLocalAddress)
+	conn, err := net.Dial("tcp", auditServerDockerAddress)
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
 		return -1, "", err
