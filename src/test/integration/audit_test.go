@@ -1,4 +1,4 @@
-package auditclienttest
+package main
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 
 // Note to actually run this test a local/docker
 // version of the audit server is required.
-func TestAuditServerIntegration(t *testing.T) {
+func TestAuditServer(t *testing.T) {
 
 	var auditClient = auditclient.AuditClient{
 		Server: "audit-test",
@@ -71,14 +71,18 @@ func TestAuditServerIntegration(t *testing.T) {
 		auditclient.DebugEventInfo{
 			TransactionNum:       6,
 			Command:              "TEST",
-			Username:             "testUser",
+			OptionalUsername:     "testUser2",
 			OptionalFilename:     "testFile",
 			OptionalFunds:        &funds,
 			OptionalDebugMessage: "This is an debug event",
 		},
 	)
 
-	logs, _ := auditClient.DumpLogAll()
+	fmt.Println("Logs of testUser2")
+	logs, _ := auditClient.DumpLog("testUser2")
+	fmt.Println(logs)
 
+	fmt.Println("All Logs")
+	logs, _ = auditClient.DumpLogAll()
 	fmt.Println(logs)
 }

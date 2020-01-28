@@ -2,17 +2,13 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
 var client *mongo.Client
@@ -44,84 +40,29 @@ func main() {
 
 		fmt.Println("Connection Established")
 
-		go handleConnection(conn)
+		go handleConnection(&conn)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn *net.Conn) {
 	for {
-		payload, err := lib.ServerReceiveRequest(conn)
+		payload, err := lib.ServerReceiveRequest(*conn)
 		if err != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+			lib.ServerSendResponse(*conn, lib.StatusSystemError, err.Error())
 			return
 		}
 
 		data := strings.Split(payload, "|")
 
-		if data[0] == "LOG" {
-			err := handleLog(data[1])
-			if err != nil {
-				lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-				return
-			}
-			lib.ServerSendOKResponse(conn)
-			return
-		} else if data[0] == "DUMPLOG" {
-			var logs string
-			var err error
-			if len(data) == 3 {
-				logs, err = handleDumpLog(data[2])
-			} else {
-				logs, err = handleDumpLog("")
-			}
-
-			if err != nil {
-				lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-				return
-			}
-
-			lib.ServerSendResponse(conn, lib.StatusOk, logs)
-			return
-		} else {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
-			return
+		switch data[0] {
+		case "LOG":
+			handleLog(conn, data[1])
+		case "DUMPLOG":
+			handleDumpLog(conn, data[1])
+		default:
+			lib.ServerSendResponse(*conn, lib.StatusUserError, "Invalid Audit Command")
 		}
-
 	}
-
-}
-
-func handleLog(payload string) error {
-	var result interface{}
-
-	err := json.Unmarshal([]byte(payload), &result)
-	if err != nil {
-		return err
-	}
-
-	collection := client.Database("audit").Collection("logs")
-	_, err = collection.InsertOne(context.TODO(), result)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func handleDumpLog(userID string) (string, error) {
-	collection := client.Database("audit").Collection("logs")
-	cursor, _ := collection.Find(context.TODO(), bson.D{})
-
-	var results []auditclient.InternalLogInfo
-	cursor.All(context.TODO(), &results)
-
-	var builder strings.Builder
-
-	for _, element := range results {
-		fmt.Fprintln(&builder, element)
-	}
-
-	return builder.String(), nil
 }
 
 func connectToMongo() (*mongo.Client, error) {

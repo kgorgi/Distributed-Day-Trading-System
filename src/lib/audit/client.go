@@ -2,8 +2,10 @@ package auditclient
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
+	"strconv"
 	"time"
 
 	"extremeWorkload.com/daytrader/lib"
@@ -30,7 +32,7 @@ func (client *AuditClient) DumpLog(userID string) (string, error) {
 
 // LogUserCommandRequest sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) {
-	var internalInfo = client.generateInternalInfo("UserCommandType")
+	var internalInfo = client.generateInternalInfo("userCommand")
 	payload := struct {
 		*InternalLogInfo
 		*UserCommandInfo
@@ -44,7 +46,7 @@ func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) {
 
 // LogQuoteServerResponse sends a UserCommandType to the audit server
 func (client *AuditClient) LogQuoteServerResponse(info QuoteServerResponseInfo) {
-	var internalInfo = client.generateInternalInfo("QuoteServerType")
+	var internalInfo = client.generateInternalInfo("quoteServer")
 	payload := struct {
 		*InternalLogInfo
 		*QuoteServerResponseInfo
@@ -57,7 +59,7 @@ func (client *AuditClient) LogQuoteServerResponse(info QuoteServerResponseInfo) 
 
 // LogAccountTransaction sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogAccountTransaction(info AccountTransactionInfo) {
-	var internalInfo = client.generateInternalInfo("AccountTransactionType")
+	var internalInfo = client.generateInternalInfo("accountTransaction")
 	payload := struct {
 		*InternalLogInfo
 		*AccountTransactionInfo
@@ -70,7 +72,7 @@ func (client *AuditClient) LogAccountTransaction(info AccountTransactionInfo) {
 
 // LogSystemEvent sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogSystemEvent(info SystemEventInfo) {
-	var internalInfo = client.generateInternalInfo("SystemEventType")
+	var internalInfo = client.generateInternalInfo("systemEvent")
 	payload := struct {
 		*InternalLogInfo
 		*SystemEventInfo
@@ -83,7 +85,7 @@ func (client *AuditClient) LogSystemEvent(info SystemEventInfo) {
 
 // LogErrorEvent sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogErrorEvent(info ErrorEventInfo) {
-	var internalInfo = client.generateInternalInfo("ErrorEventType")
+	var internalInfo = client.generateInternalInfo("errorEvent")
 	payload := struct {
 		*InternalLogInfo
 		*ErrorEventInfo
@@ -96,7 +98,7 @@ func (client *AuditClient) LogErrorEvent(info ErrorEventInfo) {
 
 // LogDebugEvent sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogDebugEvent(info DebugEventInfo) {
-	var internalInfo = client.generateInternalInfo("DebugEventType")
+	var internalInfo = client.generateInternalInfo("debugEvent")
 	payload := struct {
 		*InternalLogInfo
 		*DebugEventInfo
@@ -121,9 +123,11 @@ func (client *AuditClient) sendLogs(data interface{}) {
 }
 
 func (client *AuditClient) generateInternalInfo(logType string) InternalLogInfo {
+	fmt.Printf("%.2d\n", time.Now().UnixNano()/int64(time.Millisecond))
+
 	return InternalLogInfo{
 		LogType:   logType,
-		Timestamp: int32(time.Now().Unix()),
+		Timestamp: time.Now().UnixNano() / int64(time.Millisecond),
 		Server:    client.Server,
 	}
 }
@@ -147,7 +151,7 @@ func (client *AuditClient) sendRequest(payload string) (int, string, error) {
 	}
 
 	if status != lib.StatusOk {
-		log.Println("Response Error: Status " + string(status) + message)
+		log.Println("Response Error: Status " + strconv.Itoa(status) + " " + message)
 		return status, message, nil
 	}
 

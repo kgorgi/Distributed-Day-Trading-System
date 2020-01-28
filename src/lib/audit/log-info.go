@@ -3,18 +3,19 @@ package auditclient
 // InternalLogInfo is not be used directly. Only by the audit
 // client or audit server
 type InternalLogInfo struct {
-	LogType   string `json:"logType" bson:"logType"`
-	Timestamp int32  `json:"timestamp" bson:"timestamp"`
-	Server    string `json:"server" bson:"server"`
+	LogType   string `json:"logType" bson:"logType" `
+	Timestamp int64  `json:"timestamp" bson:"timestamp" xml:"timestamp"`
+	Server    string `json:"server" bson:"server" xml:"server"`
 }
 
 // UserCommandInfo audit message for user commands
 type UserCommandInfo struct {
-	TransactionNum   int    `json:"transactionNum" bson:"transactionNum"`
-	Command          string `json:"command" bson:"command"`
-	OptionalUsername string `json:"username,omitempty" bson:"username"`
-	OptionalFilename string `json:"filename,omitempty" bson:"filename,omitempty"`
-	OptionalFunds    *int   `json:"funds,omitempty" bson:"funds,omitempty"`
+	TransactionNum      int    `json:"transactionNum" bson:"transactionNum"`
+	Command             string `json:"command" bson:"command"`
+	OptionalUsername    string `json:"username,omitempty" bson:"username"`
+	OptionalStockSymbol string `json:"stockSymbol,omitempty" bson:"stockSymbol,omitempty"`
+	OptionalFilename    string `json:"filename,omitempty" bson:"filename,omitempty"`
+	OptionalFunds       *int   `json:"funds,omitempty" bson:"funds,omitempty"`
 }
 
 // QuoteServerResponseInfo audit message for quote server responses
@@ -23,7 +24,7 @@ type QuoteServerResponseInfo struct {
 	Price           int    `json:"price" bson:"price"`
 	StockSymbol     string `json:"stockSymbol" bson:"stockSymbol"`
 	Username        string `json:"username" bson:"username"`
-	QuoteServerTime uint   `json:"quoteServerTime" bson:"quoteServerTime"`
+	QuoteServerTime int    `json:"quoteServerTime" bson:"quoteServerTime"`
 	CryptoKey       string `json:"cryptoKey" bson:"cryptoKey"`
 }
 
@@ -60,7 +61,7 @@ type ErrorEventInfo struct {
 type DebugEventInfo struct {
 	TransactionNum       int    `json:"transactionNum" bson:"transactionNum"`
 	Command              string `json:"command" bson:"command"`
-	Username             string `json:"username,omitempty" bson:"username,omitempty"`
+	OptionalUsername     string `json:"username,omitempty" bson:"username,omitempty"`
 	OptionalStockSymbol  string `json:"stockSymbol,omitempty" bson:"stockSymbol,omitempty"`
 	OptionalFilename     string `json:"filename,omitempty" bson:"filename,omitempty"`
 	OptionalFunds        *int   `json:"funds,omitempty" bson:"funds,omitempty"`
