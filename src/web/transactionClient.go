@@ -2,41 +2,34 @@ package main
 
 import (
 	"encoding/json"
-	"extremeWorkload.com/daytrader/lib"
-	"fmt"
 	"net"
+
+	"extremeWorkload.com/daytrader/lib"
 )
 
+const transactionServerDockerAddress = "transaction-server:5000"
+
+// const transactionServerDockerAddress = ":5000"
+
 // TransactionClient client for transaction server
-type TransactionClient struct {
-	Network          string
-	RemoteAddress    string
-	ConnectionStatus string
-	Socket           net.Conn
-}
+type TransactionClient struct{}
 
-// ConnectSocket creates a socket connection to remote address
-func (transactionClient *TransactionClient) ConnectSocket() (net.Conn, error) {
+// SendCommand send command to transaction server
+func (transactionClient *TransactionClient) SendCommand(command map[string]string) (int, string, error) {
 	var err error
-	transactionClient.Socket, err = net.Dial(transactionClient.Network, transactionClient.RemoteAddress)
-	if err != nil {
-		fmt.Println(err)
-	}
-	return transactionClient.Socket, err
-}
-
-func (transactionClient TransactionClient) sendCommand(command map[string]string) (int, string, error) {
 	commandJSON, err := json.Marshal(command)
-
 	if err != nil {
-		fmt.Println(err)
+		return lib.StatusSystemError, "", err
 	}
 
-	status, message, err2 := lib.ClientSendRequest(transactionClient.Socket, string(commandJSON))
-
-	//handle reconnect here
-	if err2 != nil {
-		fmt.Println(err2)
+	conn, err := net.Dial("tcp", transactionServerDockerAddress)
+	if err != nil {
+		return lib.StatusSystemError, "", err
 	}
+
+	status, message, err := lib.ClientSendRequest(conn, string(commandJSON))
+
+	conn.Close()
+
 	return status, message, err
 }
