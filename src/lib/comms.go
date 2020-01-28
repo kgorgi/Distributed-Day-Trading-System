@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const eotChar = '\x04'
+const eotChar = '\\'
 const seperatorChar = "|"
 
 // StatusOk (HTTP 200)

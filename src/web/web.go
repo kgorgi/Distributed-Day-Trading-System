@@ -5,7 +5,13 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+
+	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
+
+var auditClient = auditclient.AuditClient{
+	Server: "web",
+}
 
 const webServerAddress = ":8080"
 
@@ -61,6 +67,11 @@ func getRouter() http.Handler {
 }
 
 func main() {
+	auditClient.LogDebugEvent(auditclient.DebugEventInfo{
+		TransactionNum:       -1,
+		Command:              "N/A",
+		OptionalDebugMessage: "Starting Web Server",
+	})
 
 	fmt.Println("start server")
 	http.ListenAndServe(webServerAddress, getRouter())

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -17,13 +16,6 @@ var client *mongo.Client
 func main() {
 	fmt.Println("Starting audit server...")
 
-	var err error
-	client, err = connectToMongo()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
 	ln, err := net.Listen("tcp", ":5002")
 	if err != nil {
 		fmt.Println(err)
@@ -31,6 +23,12 @@ func main() {
 	}
 
 	fmt.Println("Started Server on Port 5002")
+
+	client, err = connectToMongo()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	for {
 		conn, err := ln.Accept()
@@ -55,47 +53,15 @@ func handleConnection(conn net.Conn) {
 
 		data := strings.Split(payload, "|")
 
-		if data[0] == "LOG" {
-			err := handleLog(data[1])
-			if err != nil {
-				lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-				return
-			}
-		} else if data[0] == "DUMPLOG" {
-			handleDumpLog(payload)
-			if err != nil {
-				lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-				return
-			}
-		} else {
+		switch data[0] {
+		case "LOG":
+			handleLog(&conn, data[1])
+		case "DUMPLOG":
+			handleDumpLog(&conn, data[1])
+		default:
 			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
-			return
 		}
-
-		lib.ServerSendOKResponse(conn)
 	}
-
-}
-
-func handleLog(payload string) error {
-	var result interface{}
-
-	err := json.Unmarshal([]byte(payload), &result)
-	if err != nil {
-		return err
-	}
-
-	collection := client.Database("audit").Collection("logs")
-	_, err = collection.InsertOne(context.TODO(), result)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func handleDumpLog(payload string) {
-
 }
 
 func connectToMongo() (*mongo.Client, error) {
