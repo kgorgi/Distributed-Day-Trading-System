@@ -33,6 +33,14 @@ type Trigger struct {
     isSell bool
 }
 
+func createTrigger(client *mongo.Client, trigger Trigger){
+    collection := client.Database("extremeworkload").Collection("triggers")
+    _, err := collection.InsertOne(context.TODO(), trigger);
+    if err != nil {
+        log.Fatal(err);
+    }
+}
+
 func readTriggers(client *mongo.Client) ([]Trigger, error) {
     collection := client.Database("extremeworkload").Collection("triggers")
     cursor, err := collection.Find(context.TODO(), bson.M{})
@@ -50,14 +58,6 @@ func readTriggers(client *mongo.Client) ([]Trigger, error) {
     }
 
     return triggers, nil
-}
-
-func createTrigger(client *mongo.Client, trigger Trigger){
-    collection := client.Database("extremeworkload").Collection("triggers")
-    _, err := collection.InsertOne(context.TODO(), trigger);
-    if err != nil {
-        log.Fatal(err);
-    }
 }
 
 func readTrigger(client *mongo.Client, user_command_ID string, stock string) (Trigger, error) {
@@ -85,6 +85,12 @@ func deleteTrigger(client *mongo.Client, user_command_ID string, stock string) e
     return err
 }
 
+func createUser(client *mongo.Client, user User) error{
+    collection := client.Database("extremeworkload").Collection("users")
+    _, err := collection.InsertOne(context.TODO(), user);
+    return err
+}
+
 func readUsers(client *mongo.Client) ([]User, error) {
     collection := client.Database("extremeworkload").Collection("users")
     cursor, err := collection.Find(context.TODO(), bson.M{})
@@ -102,12 +108,6 @@ func readUsers(client *mongo.Client) ([]User, error) {
     }
 
     return users, nil
-}
-
-func createUser(client *mongo.Client, user User) error{
-    collection := client.Database("extremeworkload").Collection("users")
-    _, err := collection.InsertOne(context.TODO(), user);
-    return err
 }
 
 func readUser(client *mongo.Client, command_ID string) (User, error) {
@@ -207,16 +207,81 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
             lib.ServerSendResponse(conn, 200, "everythings good my dude")
 
         case "DELETE_USER":
+            commandID := data[1];
+            deleteError := deleteUser(client, commandID)
+            
+            if deleteError != nil {
+                lib.ServerSendResponse(conn, 500, "something went wrong");
+                break;
+            }
 
+            lib.ServerSendResponse(conn, 200, "user has been deleted");
         case "CREATE_TRIGGER":
+            triggerJson := data[1]
+            var newTrigger Trigger
+            jsonError := json.Unmarshal([]byte(triggerJson), &newTrigger)
+            if jsonError != nil {
+                lib.ServerSendResponse(conn, 500, "something went wrong");
+                break;
+            }
 
+            lib.ServerSendResponse(conn, 200, "trigger created!")
         case "READ_TRIGGER":
+            userCommandID := data[1];
+            stock := data[2];
 
+            trigger, readError := readTrigger(client, userCommandID, stock);
+            triggerBytes, jsonError := json.Marshal(trigger);
+
+            if(readError != nil && jsonError != nil) {
+                lib.ServerSendResponse(conn, 500, "something went wrong");
+                break;
+            }
+            
+            triggerString := string(triggerBytes)
+            lib.ServerSendResponse(conn, 200, triggerString);
         case "READ_TRIGGERS":
+            triggers, readError := readTriggers(client);
+            triggersBytes, jsonError := json.Marshal(triggers)
 
+            if readError != nil || jsonError != nil {
+				lib.ServerSendResponse(conn, 500, "something went wrong");
+                break;
+            }
+
+            triggersString := string(triggersBytes);
+            lib.ServerSendResponse(conn, 200, triggersString);
         case "UPDATE_TRIGGER":
+            triggerJson := data[1];
+            var triggerUpdate Trigger
+            jsonError := json.Unmarshal([]byte(triggerJson), &triggerUpdate);
+
+            if jsonError != nil {
+                lib.ServerSendResponse(conn, 400, "json input is incorrect");
+                break;
+            }
+
+            updateError := updateTrigger(client, triggerUpdate)
+            if updateError != nil {
+                lib.ServerSendResponse(conn, 500, "something went wrong");
+                break;
+            }
+
+            lib.ServerSendResponse(conn, 200, "trigger updated");
+
 
         case "DELETE_TRIGGER":
+            userCommandID := data[1];
+            stock := data[2];
+
+            deleteError := deleteTrigger(client, userCommandID, stock);
+            if deleteError != nil {
+                lib.ServerSendResponse(conn, 500, "something went wrong");
+                break;
+            }
+
+            lib.ServerSendResponse(conn, 200, "trigger has been deleted");
+
 
         default: lib.ServerSendResponse(conn, 400, "Invalid Data Server Command")
 
@@ -260,47 +325,5 @@ func main() {
         fmt.Println("Connection Established")
         go handleConnection(conn, client)
     }
-
-
-
-    
-    // //create a new user
-    // userToCreate := User{"testCommandId",1738, []Investment{}}
-    // createUser(client, userToCreate);
-
-    // //update a user
-    // var investments []Investment
-    // investments = append(investments, Investment{"XXX", 58})
-    // userUpdate := User{"testCommandId", 22222, investments}
-    // updateUser(client, userUpdate);
-
-    // //find a single user
-    // user := readUser(client, "testCommandId")
-    // fmt.Println(user);
-
-    // //delete a single user
-    // deleteUser(client, "testCommandId");
-
-    // //grab all users
-    // users := readUsers(client)
-    // fmt.Println(users);
-
-    // //create a trigger
-    // triggerToCreate := Trigger{"testCommandId", "ABC", 100, 200, false}
-    // createTrigger(client, triggerToCreate);
-
-    // //find a single trigger
-    // trigger := readTrigger(client, "testCommandId", "ABC");
-    // fmt.Println(trigger)
-
-    // //update a trigger
-    // triggerUpdate := Trigger{"testCommandId", "ABC", 333, 222, false}
-    // updateTrigger(client, triggerUpdate);
-
-    // //delete a trigger
-    // deleteTrigger(client, "testCommandId", "DDD");
-
-    // triggers := readTriggers(client)
-    // fmt.Println(triggers)
 }
 
