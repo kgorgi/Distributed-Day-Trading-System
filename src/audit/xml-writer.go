@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
+	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
@@ -79,8 +79,7 @@ func writeOptionalDecimalTag(str *strings.Builder, tag string, amount *int) {
 func writeDecimalTag(str *strings.Builder, tag string, amount int) {
 	str.WriteString("\t\t")
 	writeTagHead(str, tag)
-	decimal := float64(amount) / float64(100)
-	fmt.Fprintf(str, "%.2f", decimal)
+	str.WriteString(lib.CentsToDollars(uint64(amount)))
 	writeTagTail(str, tag)
 	str.WriteString("\n")
 }
