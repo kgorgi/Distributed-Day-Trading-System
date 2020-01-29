@@ -47,7 +47,8 @@ func createLog(cursor *mongo.Cursor) string {
 		writeTagHead(&str, internalInfo.LogType)
 		str.WriteString("\n")
 
-		writeInternalLogInfoTags(&str, internalInfo)
+		logCommand := !(internalInfo.LogType == "accountTransaction" || internalInfo.LogType == "quoteServer")
+		writeInternalLogInfoTags(&str, internalInfo, logCommand)
 		switch internalInfo.LogType {
 		case "userCommand":
 			var userLog auditclient.UserCommandInfo
