@@ -31,7 +31,8 @@ func initParameterMaps() {
 }
 
 var isAlphanumeric = regexp.MustCompile(`^[A-Za-z0-9]+$`).MatchString
-var isStockSymbol = regexp.MustCompile(`^[A-Z][A-Z][A-Z]`).MatchString
+var isStockSymbol = regexp.MustCompile(`^[A-Z][A-Z]?[A-Z]?$`).MatchString
+var isAmount = regexp.MustCompile(`^[0-9]+\.[0-9][0-9]$`).MatchString
 
 func validateParameters(conn net.Conn, commandJSON CommandJSON) bool {
 	// Check userID has valid characters
@@ -64,6 +65,11 @@ func validateParameters(conn net.Conn, commandJSON CommandJSON) bool {
 
 	// Validate Amount
 	if _, ok := noAmountParameter[commandJSON.Command]; !ok {
+		if !isAmount(commandJSON.Amount) {
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid stockSymbol")
+			return false
+		}
+
 		amount, err := strconv.ParseFloat(commandJSON.Amount, 64)
 		if err != nil {
 			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid stockSymbol")
