@@ -1,49 +1,25 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
-	"strings"
 
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 
 	"extremeWorkload.com/daytrader/lib"
 )
 
-var auditClient = auditclient.AuditClient{
-	Server: "transaction",
+type CommandJSON struct {
+	TransactionNum uint64
+	Command        string
+	Userid         string
+	Amount         string
+	Cents          uint64
+	StockSymbol    string
 }
 
-var dataConn net.Conn
-
-func processTransaction(transactionRequest string) (int, string) {
-	var transactionCommand Command
-	CommandFromJSON(transactionRequest, &transactionCommand)
-	fmt.Printf("%+v\n", transactionCommand)
-
-	isValid, err := transactionCommand.isUseridValid()
-	if !isValid {
-		return lib.StatusUserError, err.Error()
-	}
-
-	switch strings.ToUpper(transactionCommand.Command) {
-	case "ADD":
-		_, err = transactionCommand.GetCents()
-		if err != nil {
-			return lib.StatusUserError, err.Error()
-		}
-		// if not userid create user
-		isValid, err = IsUserExist(transactionCommand.Userid)
-		if !isValid {
-			CreateUser(transactionCommand.Userid)
-		}
-		// add amount
-		AddAmount(transactionCommand.Userid, transactionCommand.Cents)
-		return lib.StatusOk, ""
-	}
-
-	return lib.StatusUserError, "command doesn't exist"
-}
+var dataConn databaseWrapper
 
 func handleWebConnection(conn net.Conn) {
 	for {
@@ -53,56 +29,40 @@ func handleWebConnection(conn net.Conn) {
 			break
 		}
 
-		// e2e test
-		// userJson := `{"command_id": "serverTest", "cents": 66, "investments": []}`
-		// payloadc := "CREATE_USER|" + userJson
-		// cstatus, cmessage, _ := lib.ClientSendRequest(dataConn, payloadc)
-		// fmt.Println(cmessage)
-		// fmt.Println(cstatus)
+		var commandJSON CommandJSON
+		err = json.Unmarshal([]byte(payload), &commandJSON)
+		if err != nil {
+			conn.Close()
+			break
+		}
 
-		// // userJson := `{"command_id": "serverTest", "cents": 1738, "investments": [{"stock": "ABC", "amount": 68}]}`
-		// // payloadc := "UPDATE_USER|" + userJson;
-		// // cstatus, cmessage, _ := lib.ClientSendRequest(conn, payloadc);
-		// // fmt.Println(cmessage)
-		// // fmt.Println(cstatus)
+		var auditClient = auditclient.AuditClient{
+			Server:         "audit",
+			Command:        commandJSON.Command,
+			TransactionNum: 1,
+		}
 
-		// payload2 := "READ_USERS"
-		// status, message, _ := lib.ClientSendRequest(dataConn, payload2)
-		// fmt.Println(message)
-		// fmt.Println(status)
-
-		//data := strings.Split(payload, "|")
-
-		fmt.Println("received: " + payload)
-		status, message := processTransaction(payload)
-		lib.ServerSendResponse(conn, status, message)
+		processCommand(conn, commandJSON, auditClient)
 	}
 
 	fmt.Println("closed client")
 }
 
 func main() {
-	auditClient.LogDebugEvent(auditclient.DebugEventInfo{
-		TransactionNum:       -1,
-		Command:              "N/A",
-		OptionalDebugMessage: "Starting Transaction Server",
-	})
+	fmt.Println("Establishing Database Connection")
 
-	fmt.Println("Establishing Connection")
-	var err error
-	dataConn, err = net.Dial("tcp", "data-server:5001")
-	if err != nil {
-		return
-	}
-	fmt.Println("Connection accepted")
-
-	fmt.Println("launching server...")
+	// var err error
+	// dataConn.client, err = net.Dial("tcp", "data-server:5001")
+	// if err != nil {
+	// 	return
+	// }
+	initParameterMaps()
+	fmt.Println("Database Server Connected")
 
 	ln, _ := net.Listen("tcp", ":5000")
 
 	for {
 		conn, _ := ln.Accept()
-		fmt.Println("new client accepted")
 		go handleWebConnection(conn)
 	}
 }
