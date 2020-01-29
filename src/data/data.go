@@ -11,37 +11,16 @@ import (
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
     "extremeWorkload.com/daytrader/lib"
+    "extremeWorkload.com/daytrader/lib/models/data"
 );
 
-
-type Investment struct {
-    Stock string
-    Amount int
-}
-
-type User struct {
-    Command_ID string
-    Cents int
-    Investments []Investment
-}
-
-type Trigger struct {
-    User_Command_ID string
-    Stock string
-    Price_Cents int
-    Amount_Cents int
-    isSell bool
-}
-
-func createTrigger(client *mongo.Client, trigger Trigger){
+func createTrigger(client *mongo.Client, trigger modelsdata.Trigger) error{
     collection := client.Database("extremeworkload").Collection("triggers")
     _, err := collection.InsertOne(context.TODO(), trigger);
-    if err != nil {
-        log.Fatal(err);
-    }
+    return err
 }
 
-func readTriggers(client *mongo.Client) ([]Trigger, error) {
+func readTriggers(client *mongo.Client) ([]modelsdata.Trigger, error) {
     collection := client.Database("extremeworkload").Collection("triggers")
     cursor, err := collection.Find(context.TODO(), bson.M{})
     if err != nil {
@@ -49,10 +28,10 @@ func readTriggers(client *mongo.Client) ([]Trigger, error) {
     }
 
     //copy over users
-    var triggers []Trigger
+    var triggers []modelsdata.Trigger
     defer cursor.Close(context.TODO())
     for cursor.Next(context.TODO()) {
-        var trigger Trigger
+        var trigger modelsdata.Trigger
         cursor.Decode(&trigger)
         triggers = append(triggers, trigger);
     }
@@ -60,15 +39,15 @@ func readTriggers(client *mongo.Client) ([]Trigger, error) {
     return triggers, nil
 }
 
-func readTrigger(client *mongo.Client, user_command_ID string, stock string) (Trigger, error) {
+func readTrigger(client *mongo.Client, user_command_ID string, stock string) (modelsdata.Trigger, error) {
     collection := client.Database("extremeworkload").Collection("triggers")
 
-    var trigger Trigger
+    var trigger modelsdata.Trigger
     err := collection.FindOne(context.TODO(), bson.M{"user_command_id": user_command_ID, "stock": stock}).Decode(&trigger);
     return trigger, err
 }
 
-func updateTrigger(client *mongo.Client, trigger Trigger) error {
+func updateTrigger(client *mongo.Client, trigger modelsdata.Trigger) error {
     collection := client.Database("extremeworkload").Collection("triggers")
     update := bson.D{
         {"$set", bson.M{"price_cents": trigger.Price_Cents, "amount_cents": trigger.Amount_Cents}},
@@ -85,13 +64,13 @@ func deleteTrigger(client *mongo.Client, user_command_ID string, stock string) e
     return err
 }
 
-func createUser(client *mongo.Client, user User) error{
+func createUser(client *mongo.Client, user  modelsdata.User) error{
     collection := client.Database("extremeworkload").Collection("users")
     _, err := collection.InsertOne(context.TODO(), user);
     return err
 }
 
-func readUsers(client *mongo.Client) ([]User, error) {
+func readUsers(client *mongo.Client) ([]modelsdata.User, error) {
     collection := client.Database("extremeworkload").Collection("users")
     cursor, err := collection.Find(context.TODO(), bson.M{})
     if err != nil {
@@ -99,10 +78,10 @@ func readUsers(client *mongo.Client) ([]User, error) {
     }
 
     //copy over users
-    var users []User
+    var users []modelsdata.User
     defer cursor.Close(context.TODO())
     for cursor.Next(context.TODO()) {
-        var user User
+        var user modelsdata.User
         cursor.Decode(&user)
         users = append(users, user);
     }
@@ -110,15 +89,15 @@ func readUsers(client *mongo.Client) ([]User, error) {
     return users, nil
 }
 
-func readUser(client *mongo.Client, command_ID string) (User, error) {
+func readUser(client *mongo.Client, command_ID string) (modelsdata.User, error) {
     collection := client.Database("extremeworkload").Collection("users")
 
-    var user User
+    var user modelsdata.User
     err := collection.FindOne(context.TODO(), bson.D{{"command_id", command_ID}}).Decode(&user);
     return user, err
 }
 
-func updateUser(client *mongo.Client, user User) error {
+func updateUser(client *mongo.Client, user modelsdata.User) error {
     collection := client.Database("extremeworkload").Collection("users")
 
     update := bson.D{
@@ -149,21 +128,20 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
         switch data[0] {
         case "CREATE_USER":
             userJson := data[1]
-            var newUser User
-            jsonError := json.Unmarshal([]byte(userJson), &newUser)
-            if jsonError != nil {
+            var newUser modelsdata.User
+            jsonErr := json.Unmarshal([]byte(userJson), &newUser)
+            if jsonErr != nil {
                 lib.ServerSendResponse(conn, 400, "json input is incorrect");
                 break;
             }
             
-            createError := createUser(client, newUser)
-            if createError != nil {
+            createErr := createUser(client, newUser)
+            if createErr != nil {
                 lib.ServerSendResponse(conn, 500, "something went wrong");
                 break;
             }
 
             lib.ServerSendResponse(conn, 200, "everythings good my dude")
-            
         case "READ_USER":
             commandID := data[1];
             user, readError := readUser(client, commandID)
@@ -173,10 +151,7 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
 				lib.ServerSendResponse(conn, 500, "something went wrong");
 			}
 
-			userString := string(userBytes)
-			lib.ServerSendResponse(conn, 200, userString);
-
-            
+			lib.ServerSendResponse(conn, 200, string(userBytes));
         case "READ_USERS":
             users, readError := readUsers(client)
             usersBytes, jsonError := json.Marshal(users)
@@ -186,12 +161,10 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
                 break;
             }
 			
-			usersString := string(usersBytes);
-            lib.ServerSendResponse(conn, 200, usersString)
-
+            lib.ServerSendResponse(conn, 200, string(usersBytes))
         case "UPDATE_USER":
             userJson := data[1]
-            var userUpdate User
+            var userUpdate modelsdata.User
             jsonError := json.Unmarshal([]byte(userJson), &userUpdate)
             if jsonError != nil {
                 lib.ServerSendResponse(conn, 400, "json input is incorrect");
@@ -205,7 +178,6 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
             }
 
             lib.ServerSendResponse(conn, 200, "everythings good my dude")
-
         case "DELETE_USER":
             commandID := data[1];
             deleteError := deleteUser(client, commandID)
@@ -218,9 +190,15 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
             lib.ServerSendResponse(conn, 200, "user has been deleted");
         case "CREATE_TRIGGER":
             triggerJson := data[1]
-            var newTrigger Trigger
+            var newTrigger modelsdata.Trigger
             jsonError := json.Unmarshal([]byte(triggerJson), &newTrigger)
             if jsonError != nil {
+                lib.ServerSendResponse(conn, 500, "something went wrong");
+                break;
+            }
+
+            createErr := createTrigger(client, newTrigger)
+            if createErr != nil {
                 lib.ServerSendResponse(conn, 500, "something went wrong");
                 break;
             }
@@ -238,8 +216,7 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
                 break;
             }
             
-            triggerString := string(triggerBytes)
-            lib.ServerSendResponse(conn, 200, triggerString);
+            lib.ServerSendResponse(conn, 200, string(triggerBytes));
         case "READ_TRIGGERS":
             triggers, readError := readTriggers(client);
             triggersBytes, jsonError := json.Marshal(triggers)
@@ -249,11 +226,10 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
                 break;
             }
 
-            triggersString := string(triggersBytes);
-            lib.ServerSendResponse(conn, 200, triggersString);
+            lib.ServerSendResponse(conn, 200, string(triggersBytes));
         case "UPDATE_TRIGGER":
             triggerJson := data[1];
-            var triggerUpdate Trigger
+            var triggerUpdate modelsdata.Trigger
             jsonError := json.Unmarshal([]byte(triggerJson), &triggerUpdate);
 
             if jsonError != nil {
@@ -268,8 +244,6 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
             }
 
             lib.ServerSendResponse(conn, 200, "trigger updated");
-
-
         case "DELETE_TRIGGER":
             userCommandID := data[1];
             stock := data[2];
