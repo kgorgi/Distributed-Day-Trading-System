@@ -67,12 +67,6 @@ func getRouter() http.Handler {
 }
 
 func main() {
-	auditClient.LogDebugEvent(auditclient.DebugEventInfo{
-		TransactionNum:       -1,
-		Command:              "N/A",
-		OptionalDebugMessage: "Starting Web Server",
-	})
-
 	fmt.Println("start server")
 	http.ListenAndServe(webServerAddress, getRouter())
 }

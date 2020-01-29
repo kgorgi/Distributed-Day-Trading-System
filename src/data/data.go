@@ -232,12 +232,6 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
 }
 
 func main() {
-	auditClient.LogDebugEvent(auditclient.DebugEventInfo{
-		TransactionNum:       -1,
-		Command:              "N/A",
-		OptionalDebugMessage: "Starting Database Server",
-	})
-
 	fmt.Println("Starting Data server...")
 
 	//hookup to mongo
