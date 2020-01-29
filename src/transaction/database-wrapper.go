@@ -1,6 +1,8 @@
 package main
 
-import "net"
+import (
+	"net"
+)
 
 type databaseWrapper struct {
 	client net.Conn
@@ -22,6 +24,7 @@ func (client *databaseWrapper) createUser(userid string) error {
 }
 
 var amount = uint64(0)
+var stocks = make(map[string]uint64)
 
 // AddAmount add money to user balance
 func (client *databaseWrapper) addAmount(userid string, cents uint64) error {
@@ -38,6 +41,29 @@ func (client *databaseWrapper) removeAmount(userid string, cents uint64) error {
 	return nil
 }
 
+func (client *databaseWrapper) getStockAmount(userid string, stockSymbol string) (uint64, error) {
+	return stocks[stockSymbol], nil
+}
+
+func (client *databaseWrapper) addStock(userid string, stockSymbol string, amount uint64) error {
+	stocks[stockSymbol] = stocks[stockSymbol] + amount
+	return nil
+}
+
+func (client *databaseWrapper) removeStock(userid string, stockSymbol string, amount uint64) error {
+	stocks[stockSymbol] = stocks[stockSymbol] - amount
+	return nil
+}
+
 func (client *databaseWrapper) getStocks(userid string) ([]stock, error) {
-	return make([]stock, 0), nil
+	var results = make([]stock, 0)
+
+	for k, v := range stocks {
+		var newStock = stock{
+			stockSymbol: k,
+			numOfStocks: v,
+		}
+		results = append(results, newStock)
+	}
+	return results, nil
 }
