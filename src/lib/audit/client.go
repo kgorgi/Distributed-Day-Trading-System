@@ -126,7 +126,7 @@ func (client *AuditClient) sendLogs(data interface{}) {
 func (client *AuditClient) generateInternalInfo(logType string, withCommand bool) InternalLogInfo {
 	var internalInfo = InternalLogInfo{
 		LogType:        logType,
-		Timestamp:      time.Now().UnixNano() / int64(time.Millisecond),
+		Timestamp:      uint64(time.Now().UnixNano()) / uint64(time.Millisecond),
 		Server:         client.Server,
 		TransactionNum: client.TransactionNum,
 	}

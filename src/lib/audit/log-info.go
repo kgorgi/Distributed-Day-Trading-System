@@ -4,7 +4,7 @@ package auditclient
 // client or audit server
 type InternalLogInfo struct {
 	LogType        string `json:"logType" bson:"logType" `
-	Timestamp      int64  `json:"timestamp" bson:"timestamp" xml:"timestamp"`
+	Timestamp      uint64 `json:"timestamp" bson:"timestamp" xml:"timestamp"`
 	Server         string `json:"server" bson:"server" xml:"server"`
 	TransactionNum uint64 `json:"transactionNum" bson:"transactionNum"`
 	Command        string `json:"command,omitempty" bson:"command,omitempty"`

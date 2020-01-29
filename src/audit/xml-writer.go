@@ -17,7 +17,7 @@ func writeInternalLogInfoTags(
 	str *strings.Builder,
 	internalInfo auditclient.InternalLogInfo,
 	logCommand bool) {
-	writeStringTag(str, "timestamp", strconv.FormatInt(internalInfo.Timestamp, 10))
+	writeStringTag(str, "timestamp", strconv.FormatUint(internalInfo.Timestamp, 10))
 	writeStringTag(str, "server", internalInfo.Server)
 	writeStringTag(str, "transactionNum", strconv.FormatUint(internalInfo.TransactionNum, 10))
 
