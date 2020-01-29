@@ -20,3 +20,12 @@ func (client *databaseWrapper) createUser(userid string) error {
 func (client *databaseWrapper) addAmount(userid string, cents uint64) error {
 	return nil
 }
+
+func (client *databaseWrapper) getBalance(userid string) (uint64, error) {
+	return 0, nil
+}
+
+func (client *databaseWrapper) removeAmount(userid string, cents uint64) error {
+	return nil
+
+}
