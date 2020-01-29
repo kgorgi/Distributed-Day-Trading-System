@@ -2,6 +2,8 @@ package main
 
 import (
 	"net"
+	"strconv"
+	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
@@ -32,6 +34,8 @@ func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditcli
 	case "SET_SELL_AMOUNT":
 	case "CANCEL_SET_SELL":
 	case "SET_SELL_TRIGGER":
+	case "DISPLAY_SUMMARY":
+		handleDisplaySummary(conn, jsonCommand, auditClient)
 	default:
 		lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid command")
 	}
@@ -96,4 +100,36 @@ func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.A
 	stack := getBuyStack(jsonCommand.Userid)
 	reserve := createReseve(jsonCommand.StockSymbol, numOfStocks, moneyToRemove)
 	stack.push(reserve)
+
+	lib.ServerSendOKResponse(conn)
+}
+
+func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
+	balanceInCents, err := dataConn.getBalance(jsonCommand.Userid)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	stocks, err := dataConn.getStocks(jsonCommand.Userid)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	var str strings.Builder
+	str.WriteString(lib.CentsToDollars(balanceInCents))
+	str.WriteString(",")
+
+	for i, element := range stocks {
+		str.WriteString(element.stockSymbol)
+		str.WriteString(":")
+		str.WriteString(strconv.FormatUint(element.numOfStocks, 10))
+
+		if i < len(stocks)-1 {
+			str.WriteString(",")
+		}
+	}
+
+	lib.ServerSendResponse(conn, lib.StatusOk, str.String())
 }
