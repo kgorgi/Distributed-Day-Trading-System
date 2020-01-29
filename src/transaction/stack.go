@@ -1,6 +1,7 @@
 package main
 
 import (
+	"sync/atomic"
 	"time"
 )
 
@@ -13,7 +14,7 @@ type reserve struct {
 	stockSymbol string
 	numOfStocks uint64
 	cents       uint64
-	valid       bool
+	valid       uint64
 	timer       *time.Timer
 }
 
@@ -53,13 +54,13 @@ func createReseve(stockSymbol string, numOfStocks uint64, cents uint64) *reserve
 
 func (stack *stack) push(newItem *reserve) {
 	stack.items = append(stack.items, newItem)
-	newItem.valid = true
+	newItem.valid = 0
 
 	newItem.timer = time.NewTimer(time.Second * 60)
 
 	go func() {
 		<-newItem.timer.C
-		newItem.valid = false
+		atomic.AddUint64(&newItem.valid, 1)
 		err := dataConn.addAmount(stack.userID, newItem.cents)
 		if err != nil {
 			// TODO
@@ -76,14 +77,14 @@ func (stack *stack) pop() *reserve {
 	n := numOfItems - 1
 	var nextItem *reserve = stack.items[n]
 	nextItem.timer.Stop()
-	for !nextItem.valid && n > 0 {
+	for atomic.LoadUint64(&nextItem.valid) == 0 && n > 0 {
 		stack.items[n] = nil
 		n = n - 1
 		nextItem = stack.items[n]
 		nextItem.timer.Stop()
 	}
 
-	if nextItem.valid {
+	if atomic.LoadUint64(&nextItem.valid) == 0 {
 		return nextItem
 	}
 
