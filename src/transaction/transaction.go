@@ -5,8 +5,14 @@ import (
 	"net"
 	"strings"
 
+	auditclient "extremeWorkload.com/daytrader/lib/audit"
+
 	"extremeWorkload.com/daytrader/lib"
 )
+
+var auditClient = auditclient.AuditClient{
+	Server: "transaction",
+}
 
 var dataConn net.Conn
 
@@ -76,6 +82,12 @@ func handleWebConnection(conn net.Conn) {
 }
 
 func main() {
+	auditClient.LogDebugEvent(auditclient.DebugEventInfo{
+		TransactionNum:       -1,
+		Command:              "N/A",
+		OptionalDebugMessage: "Starting Transaction Server",
+	})
+
 	fmt.Println("Establishing Connection")
 	var err error
 	dataConn, err = net.Dial("tcp", "data-server:5001")

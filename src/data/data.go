@@ -12,7 +12,12 @@ import (
     "go.mongodb.org/mongo-driver/mongo/options"
     "extremeWorkload.com/daytrader/lib"
     "extremeWorkload.com/daytrader/lib/models/data"
+    auditclient "extremeWorkload.com/daytrader/lib/audit"
 );
+
+var auditClient = auditclient.AuditClient{
+	Server: "database",
+}
 
 func createTrigger(client *mongo.Client, trigger modelsdata.Trigger) error{
     collection := client.Database("extremeworkload").Collection("triggers")
@@ -58,10 +63,10 @@ func updateTrigger(client *mongo.Client, trigger modelsdata.Trigger) error {
 }
 
 func deleteTrigger(client *mongo.Client, user_command_ID string, stock string) error {
-    collection := client.Database("extremeworkload").Collection("triggers")
-    filter := bson.M{"user_command_id": user_command_ID, "stock": stock};
-    _, err := collection.DeleteOne(context.TODO(), filter);
-    return err
+	collection := client.Database("extremeworkload").Collection("triggers")
+	filter := bson.M{"user_command_id": user_command_ID, "stock": stock}
+	_, err := collection.DeleteOne(context.TODO(), filter)
+	return err
 }
 
 func createUser(client *mongo.Client, user  modelsdata.User) error{
@@ -100,21 +105,21 @@ func readUser(client *mongo.Client, command_ID string) (modelsdata.User, error) 
 func updateUser(client *mongo.Client, user modelsdata.User) error {
     collection := client.Database("extremeworkload").Collection("users")
 
-    update := bson.D{
-        {"$set", bson.M{"cents": user.Cents, "investments": user.Investments}},
-    }
+	update := bson.D{
+		{"$set", bson.M{"cents": user.Cents, "investments": user.Investments}},
+	}
 
-    filter := bson.M{"command_id": user.Command_ID}
+	filter := bson.M{"command_id": user.Command_ID}
 
-    _, err := collection.UpdateOne(context.TODO(), filter, update)
-    return err
+	_, err := collection.UpdateOne(context.TODO(), filter, update)
+	return err
 }
 
 func deleteUser(client *mongo.Client, command_ID string) error {
-    collection := client.Database("extremeworkload").Collection("users")
-    filter := bson.M{"command_id": command_ID};
-    _, err := collection.DeleteOne(context.TODO(), filter);
-    return err
+	collection := client.Database("extremeworkload").Collection("users")
+	filter := bson.M{"command_id": command_ID}
+	_, err := collection.DeleteOne(context.TODO(), filter)
+	return err
 }
 
 func handleConnection(conn net.Conn, client *mongo.Client) {
@@ -291,6 +296,11 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
 }
 
 func main() {
+    auditClient.LogDebugEvent(auditclient.DebugEventInfo{
+		TransactionNum:       -1,
+		Command:              "N/A",
+		OptionalDebugMessage: "Starting Database Server",
+	})
     fmt.Println("Starting Data server...")
 
     //hookup to mongo
@@ -326,4 +336,3 @@ func main() {
         go handleConnection(conn, client)
     }
 }
-
