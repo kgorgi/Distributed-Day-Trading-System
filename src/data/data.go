@@ -131,134 +131,160 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
             var newUser modelsdata.User
             jsonErr := json.Unmarshal([]byte(userJson), &newUser)
             if jsonErr != nil {
-                lib.ServerSendResponse(conn, 400, "json input is incorrect");
+                lib.ServerSendResponse(conn, 400, jsonErr.Error());
                 break;
             }
             
             createErr := createUser(client, newUser)
             if createErr != nil {
-                lib.ServerSendResponse(conn, 500, "something went wrong");
+                lib.ServerSendResponse(conn, 500, createErr.Error());
                 break;
             }
 
-            lib.ServerSendResponse(conn, 200, "everythings good my dude")
+            lib.ServerSendOKResponse(conn)
         case "READ_USER":
             commandID := data[1];
-            user, readError := readUser(client, commandID)
-			userBytes, jsonError := json.Marshal(user)
+            user, readErr := readUser(client, commandID)
+			userBytes, jsonErr := json.Marshal(user)
 
-			if(readError != nil && jsonError != nil) {
-				lib.ServerSendResponse(conn, 500, "something went wrong");
-			}
+            var errorString = ""
+            if readErr != nil {
+                errorString += readErr.Error()
+            }
+            if jsonErr != nil {
+                errorString += jsonErr.Error()
+            }
+            if errorString != "" {
+                lib.ServerSendResponse(conn, 500, errorString)
+                break;
+            }
 
-			lib.ServerSendResponse(conn, 200, string(userBytes));
+			lib.ServerSendResponse(conn, lib.StatusOk, string(userBytes));
         case "READ_USERS":
-            users, readError := readUsers(client)
-            usersBytes, jsonError := json.Marshal(users)
+            users, readErr := readUsers(client)
+            usersBytes, jsonErr := json.Marshal(users)
 			
-            if readError != nil || jsonError != nil {
-				lib.ServerSendResponse(conn, 500, "something went wrong");
+            var errorString = ""
+            if readErr != nil {
+                errorString += readErr.Error()
+            }
+            if jsonErr != nil {
+                errorString += jsonErr.Error()
+            }
+            if errorString != "" {
+                lib.ServerSendResponse(conn, 500, errorString)
                 break;
             }
 			
-            lib.ServerSendResponse(conn, 200, string(usersBytes))
+            lib.ServerSendResponse(conn, lib.StatusOk, string(usersBytes))
         case "UPDATE_USER":
             userJson := data[1]
             var userUpdate modelsdata.User
-            jsonError := json.Unmarshal([]byte(userJson), &userUpdate)
-            if jsonError != nil {
-                lib.ServerSendResponse(conn, 400, "json input is incorrect");
+            jsonErr := json.Unmarshal([]byte(userJson), &userUpdate)
+            if jsonErr != nil {
+                lib.ServerSendResponse(conn, 400, jsonErr.Error());
                 break;
             }
             
-            updateError := updateUser(client, userUpdate)
-            if updateError != nil {
-                lib.ServerSendResponse(conn, 500, "something went wrong");
+            updateErr := updateUser(client, userUpdate)
+            if updateErr != nil {
+                lib.ServerSendResponse(conn, 500, updateErr.Error());
                 break;
             }
 
-            lib.ServerSendResponse(conn, 200, "everythings good my dude")
+            lib.ServerSendOKResponse(conn)
         case "DELETE_USER":
             commandID := data[1];
-            deleteError := deleteUser(client, commandID)
+            deleteErr := deleteUser(client, commandID)
             
-            if deleteError != nil {
-                lib.ServerSendResponse(conn, 500, "something went wrong");
+            if deleteErr != nil {
+                lib.ServerSendResponse(conn, 500, deleteErr.Error());
                 break;
             }
 
-            lib.ServerSendResponse(conn, 200, "user has been deleted");
+            lib.ServerSendOKResponse(conn)
         case "CREATE_TRIGGER":
             triggerJson := data[1]
             var newTrigger modelsdata.Trigger
-            jsonError := json.Unmarshal([]byte(triggerJson), &newTrigger)
-            if jsonError != nil {
-                lib.ServerSendResponse(conn, 500, "something went wrong");
+            jsonErr := json.Unmarshal([]byte(triggerJson), &newTrigger)
+            if jsonErr != nil {
+                lib.ServerSendResponse(conn, 500, jsonErr.Error());
                 break;
             }
 
             createErr := createTrigger(client, newTrigger)
             if createErr != nil {
-                lib.ServerSendResponse(conn, 500, "something went wrong");
+                lib.ServerSendResponse(conn, 500, createErr.Error());
                 break;
             }
 
-            lib.ServerSendResponse(conn, 200, "trigger created!")
+            lib.ServerSendOKResponse(conn)
         case "READ_TRIGGER":
             userCommandID := data[1];
             stock := data[2];
 
-            trigger, readError := readTrigger(client, userCommandID, stock);
-            triggerBytes, jsonError := json.Marshal(trigger);
+            trigger, readErr := readTrigger(client, userCommandID, stock);
+            triggerBytes, jsonErr := json.Marshal(trigger);
 
-            if(readError != nil && jsonError != nil) {
-                lib.ServerSendResponse(conn, 500, "something went wrong");
+            var errorString = ""
+            if readErr != nil {
+                errorString += readErr.Error()
+            }
+            if jsonErr != nil {
+                errorString += jsonErr.Error()
+            }
+            if errorString != "" {
+                lib.ServerSendResponse(conn, 500, errorString)
                 break;
             }
             
-            lib.ServerSendResponse(conn, 200, string(triggerBytes));
+            lib.ServerSendResponse(conn, lib.StatusOk, string(triggerBytes));
         case "READ_TRIGGERS":
-            triggers, readError := readTriggers(client);
-            triggersBytes, jsonError := json.Marshal(triggers)
+            triggers, readErr := readTriggers(client);
+            triggersBytes, jsonErr := json.Marshal(triggers)
 
-            if readError != nil || jsonError != nil {
-				lib.ServerSendResponse(conn, 500, "something went wrong");
+            var errorString = ""
+            if readErr != nil {
+                errorString += readErr.Error()
+            }
+            if jsonErr != nil {
+                errorString += jsonErr.Error()
+            }
+            if errorString != "" {
+                lib.ServerSendResponse(conn, 500, errorString)
                 break;
             }
 
-            lib.ServerSendResponse(conn, 200, string(triggersBytes));
+            lib.ServerSendResponse(conn, lib.StatusOk, string(triggersBytes));
         case "UPDATE_TRIGGER":
             triggerJson := data[1];
             var triggerUpdate modelsdata.Trigger
-            jsonError := json.Unmarshal([]byte(triggerJson), &triggerUpdate);
+            jsonErr := json.Unmarshal([]byte(triggerJson), &triggerUpdate);
 
-            if jsonError != nil {
-                lib.ServerSendResponse(conn, 400, "json input is incorrect");
+            if jsonErr != nil {
+                lib.ServerSendResponse(conn, 400, jsonErr.Error());
                 break;
             }
 
-            updateError := updateTrigger(client, triggerUpdate)
-            if updateError != nil {
-                lib.ServerSendResponse(conn, 500, "something went wrong");
+            updateErr := updateTrigger(client, triggerUpdate)
+            if updateErr != nil {
+                lib.ServerSendResponse(conn, 500, updateErr.Error());
                 break;
             }
 
-            lib.ServerSendResponse(conn, 200, "trigger updated");
+            lib.ServerSendOKResponse(conn)
         case "DELETE_TRIGGER":
             userCommandID := data[1];
             stock := data[2];
 
-            deleteError := deleteTrigger(client, userCommandID, stock);
-            if deleteError != nil {
-                lib.ServerSendResponse(conn, 500, "something went wrong");
+            deleteErr := deleteTrigger(client, userCommandID, stock);
+            if deleteErr != nil {
+                lib.ServerSendResponse(conn, 500, deleteErr.Error());
                 break;
             }
 
-            lib.ServerSendResponse(conn, 200, "trigger has been deleted");
-
-
+            lib.ServerSendOKResponse(conn)
         default: lib.ServerSendResponse(conn, 400, "Invalid Data Server Command")
-
         }
         lib.ServerSendOKResponse(conn)
     }
