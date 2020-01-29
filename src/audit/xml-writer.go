@@ -8,10 +8,10 @@ import (
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
-const userID = "userID"
+const userID = "username"
 const stockSymbol = "stockSymbol"
 const filename = "filename"
-const fundsInCents = "fundsInCents"
+const fundsInCents = "funds"
 
 func writeInternalLogInfoTags(
 	str *strings.Builder,
@@ -19,7 +19,7 @@ func writeInternalLogInfoTags(
 	logCommand bool) {
 	writeStringTag(str, "timestamp", strconv.FormatInt(internalInfo.Timestamp, 10))
 	writeStringTag(str, "server", internalInfo.Server)
-	writeStringTag(str, "transactionNum", string(internalInfo.TransactionNum))
+	writeStringTag(str, "transactionNum", strconv.FormatUint(internalInfo.TransactionNum, 10))
 
 	if logCommand && internalInfo.Command != "" {
 		writeStringTag(str, "command", internalInfo.Command)
@@ -34,10 +34,10 @@ func writeUserCommandTags(str *strings.Builder, info auditclient.UserCommandInfo
 }
 
 func writeQuoteServerTags(str *strings.Builder, info auditclient.QuoteServerResponseInfo) {
-	writeDecimalTag(str, "priceInCents", info.PriceInCents)
+	writeDecimalTag(str, "price", info.PriceInCents)
 	writeStringTag(str, stockSymbol, info.StockSymbol)
 	writeStringTag(str, userID, info.UserID)
-	writeStringTag(str, "quoteServerTime", string(info.QuoteServerTime))
+	writeStringTag(str, "quoteServerTime", strconv.FormatUint(info.QuoteServerTime, 10))
 	writeStringTag(str, "cryptokey", info.CryptoKey)
 }
 
