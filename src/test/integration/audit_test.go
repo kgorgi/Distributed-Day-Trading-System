@@ -12,26 +12,25 @@ import (
 func TestAuditServer(t *testing.T) {
 
 	var auditClient = auditclient.AuditClient{
-		Server: "audit-test",
+		Server:         "audit-test",
+		TransactionNum: 1,
+		Command:        "ADD",
 	}
 
-	var funds = 55
+	var funds uint64 = 55
 	auditClient.LogUserCommandRequest(
 		auditclient.UserCommandInfo{
-			TransactionNum:   1,
-			Command:          "TEST",
-			OptionalUsername: "testUser",
-			OptionalFilename: "testFile",
-			OptionalFunds:    &funds,
+			OptionalUserID:       "testUser",
+			OptionalFilename:     "testFile",
+			OptionalFundsInCents: &funds,
 		},
 	)
 
 	auditClient.LogQuoteServerResponse(
 		auditclient.QuoteServerResponseInfo{
-			TransactionNum:  2,
-			Price:           2,
+			PriceInCents:    2,
 			StockSymbol:     "ABC",
-			Username:        "testUser",
+			UserID:          "testUser",
 			QuoteServerTime: 5,
 			CryptoKey:       "crypto1",
 		},
@@ -39,41 +38,34 @@ func TestAuditServer(t *testing.T) {
 
 	auditClient.LogAccountTransaction(
 		auditclient.AccountTransactionInfo{
-			TransactionNum: 3,
-			Action:         "TEST",
-			Username:       "testUser",
-			Funds:          5,
+			Action:       "TEST",
+			UserID:       "testUser",
+			FundsInCents: 5,
 		},
 	)
 
 	auditClient.LogSystemEvent(
 		auditclient.SystemEventInfo{
-			TransactionNum:   4,
-			Command:          "TEST",
-			OptionalUsername: "testUser",
-			OptionalFilename: "testFile",
-			OptionalFunds:    &funds,
+			OptionalUserID:       "testUser",
+			OptionalFilename:     "testFile",
+			OptionalFundsInCents: &funds,
 		},
 	)
 
 	auditClient.LogErrorEvent(
 		auditclient.ErrorEventInfo{
-			TransactionNum:       5,
-			Command:              "TEST",
-			OptionalUsername:     "testUser",
+			OptionalUserID:       "testUser",
 			OptionalFilename:     "testFile",
-			OptionalFunds:        &funds,
+			OptionalFundsInCents: &funds,
 			OptionalErrorMessage: "This is an error event",
 		},
 	)
 
 	auditClient.LogDebugEvent(
 		auditclient.DebugEventInfo{
-			TransactionNum:       6,
-			Command:              "TEST",
-			OptionalUsername:     "testUser2",
+			OptionalUserID:       "testUser2",
 			OptionalFilename:     "testFile",
-			OptionalFunds:        &funds,
+			OptionalFundsInCents: &funds,
 			OptionalDebugMessage: "This is an debug event",
 		},
 	)

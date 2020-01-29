@@ -8,75 +8,75 @@ import (
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
-func writeInternalLogInfoTags(str *strings.Builder, internalInfo auditclient.InternalLogInfo) {
-	writeStringTag(str, "timestamp", strconv.FormatInt(internalInfo.Timestamp, 10))
+const userID = "username"
+const stockSymbol = "stockSymbol"
+const filename = "filename"
+const fundsInCents = "funds"
+
+func writeInternalLogInfoTags(
+	str *strings.Builder,
+	internalInfo auditclient.InternalLogInfo,
+	logCommand bool) {
+	writeStringTag(str, "timestamp", strconv.FormatUint(internalInfo.Timestamp, 10))
 	writeStringTag(str, "server", internalInfo.Server)
+	writeStringTag(str, "transactionNum", strconv.FormatUint(internalInfo.TransactionNum, 10))
+
+	if logCommand && internalInfo.Command != "" {
+		writeStringTag(str, "command", internalInfo.Command)
+	}
 }
 
 func writeUserCommandTags(str *strings.Builder, info auditclient.UserCommandInfo) {
-	writeStringTag(str, "transactionNum", string(info.TransactionNum))
-	writeStringTag(str, "command", info.Command)
-	writeOptionalStringTag(str, "username", info.OptionalUsername)
-	writeOptionalStringTag(str, "stockSymbol", info.OptionalStockSymbol)
-	writeOptionalStringTag(str, "filename", info.OptionalFilename)
-	writeOptionalDecimalTag(str, "funds", info.OptionalFunds)
+	writeOptionalStringTag(str, userID, info.OptionalUserID)
+	writeOptionalStringTag(str, stockSymbol, info.OptionalStockSymbol)
+	writeOptionalStringTag(str, filename, info.OptionalFilename)
+	writeOptionalDecimalTag(str, "fundsInCents", info.OptionalFundsInCents)
 }
 
 func writeQuoteServerTags(str *strings.Builder, info auditclient.QuoteServerResponseInfo) {
-	writeStringTag(str, "transactionNum", string(info.TransactionNum))
-	writeDecimalTag(str, "price", info.Price)
-	writeStringTag(str, "stockSymbol", info.StockSymbol)
-	writeStringTag(str, "username", info.Username)
-	writeStringTag(str, "quoteServerTime", string(info.QuoteServerTime))
+	writeDecimalTag(str, "price", info.PriceInCents)
+	writeStringTag(str, stockSymbol, info.StockSymbol)
+	writeStringTag(str, userID, info.UserID)
+	writeStringTag(str, "quoteServerTime", strconv.FormatUint(info.QuoteServerTime, 10))
 	writeStringTag(str, "cryptokey", info.CryptoKey)
 }
 
 func writeAccountTransactionTags(str *strings.Builder, info auditclient.AccountTransactionInfo) {
-	writeStringTag(str, "transactionNum", string(info.TransactionNum))
 	writeStringTag(str, "action", info.Action)
-	writeStringTag(str, "username", info.Username)
-	writeDecimalTag(str, "funds", info.Funds)
+	writeStringTag(str, userID, info.UserID)
+	writeDecimalTag(str, fundsInCents, info.FundsInCents)
 }
 
 func writeSystemEventTags(str *strings.Builder, info auditclient.SystemEventInfo) {
-	writeStringTag(str, "transactionNum", string(info.TransactionNum))
-	writeStringTag(str, "command", info.Command)
-
-	writeOptionalStringTag(str, "username", info.OptionalUsername)
-	writeOptionalStringTag(str, "stockSymbol", info.OptionalStockSymbol)
-	writeOptionalStringTag(str, "filename", info.OptionalFilename)
-	writeOptionalDecimalTag(str, "funds", info.OptionalFunds)
+	writeOptionalStringTag(str, userID, info.OptionalUserID)
+	writeOptionalStringTag(str, stockSymbol, info.OptionalStockSymbol)
+	writeOptionalStringTag(str, filename, info.OptionalFilename)
+	writeOptionalDecimalTag(str, fundsInCents, info.OptionalFundsInCents)
 }
 
 func writeErrorEventTags(str *strings.Builder, info auditclient.ErrorEventInfo) {
-	writeStringTag(str, "transactionNum", string(info.TransactionNum))
-	writeStringTag(str, "command", info.Command)
-
-	writeOptionalStringTag(str, "username", info.OptionalUsername)
-	writeOptionalStringTag(str, "stockSymbol", info.OptionalStockSymbol)
-	writeOptionalStringTag(str, "filename", info.OptionalFilename)
-	writeOptionalDecimalTag(str, "funds", info.OptionalFunds)
+	writeOptionalStringTag(str, userID, info.OptionalUserID)
+	writeOptionalStringTag(str, stockSymbol, info.OptionalStockSymbol)
+	writeOptionalStringTag(str, filename, info.OptionalFilename)
+	writeOptionalDecimalTag(str, fundsInCents, info.OptionalFundsInCents)
 	writeOptionalStringTag(str, "errorMessage", info.OptionalErrorMessage)
 }
 
 func writeDebugEventTags(str *strings.Builder, info auditclient.DebugEventInfo) {
-	writeStringTag(str, "transactionNum", string(info.TransactionNum))
-	writeStringTag(str, "command", info.Command)
-
-	writeOptionalStringTag(str, "username", info.OptionalUsername)
-	writeOptionalStringTag(str, "stockSymbol", info.OptionalStockSymbol)
-	writeOptionalStringTag(str, "filename", info.OptionalFilename)
-	writeOptionalDecimalTag(str, "funds", info.OptionalFunds)
+	writeOptionalStringTag(str, userID, info.OptionalUserID)
+	writeOptionalStringTag(str, stockSymbol, info.OptionalStockSymbol)
+	writeOptionalStringTag(str, filename, info.OptionalFilename)
+	writeOptionalDecimalTag(str, fundsInCents, info.OptionalFundsInCents)
 	writeOptionalStringTag(str, "debugMessage", info.OptionalDebugMessage)
 }
 
-func writeOptionalDecimalTag(str *strings.Builder, tag string, amount *int) {
+func writeOptionalDecimalTag(str *strings.Builder, tag string, amount *uint64) {
 	if amount != nil {
 		writeDecimalTag(str, tag, *amount)
 	}
 }
 
-func writeDecimalTag(str *strings.Builder, tag string, amount int) {
+func writeDecimalTag(str *strings.Builder, tag string, amount uint64) {
 	str.WriteString("\t\t")
 	writeTagHead(str, tag)
 	decimal := float64(amount) / float64(100)

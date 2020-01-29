@@ -15,7 +15,9 @@ const auditServerLocalAddress = "localhost:5002"
 
 // AuditClient send requests to the audit server
 type AuditClient struct {
-	Server string
+	Server         string
+	TransactionNum uint64
+	Command        string
 }
 
 // DumpLogAll get all logs from audit server
@@ -31,7 +33,7 @@ func (client *AuditClient) DumpLog(userID string) (string, error) {
 
 // LogUserCommandRequest sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) {
-	var internalInfo = client.generateInternalInfo("userCommand")
+	var internalInfo = client.generateInternalInfo("userCommand", true)
 	payload := struct {
 		*InternalLogInfo
 		*UserCommandInfo
@@ -45,7 +47,7 @@ func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) {
 
 // LogQuoteServerResponse sends a UserCommandType to the audit server
 func (client *AuditClient) LogQuoteServerResponse(info QuoteServerResponseInfo) {
-	var internalInfo = client.generateInternalInfo("quoteServer")
+	var internalInfo = client.generateInternalInfo("quoteServer", false)
 	payload := struct {
 		*InternalLogInfo
 		*QuoteServerResponseInfo
@@ -58,7 +60,7 @@ func (client *AuditClient) LogQuoteServerResponse(info QuoteServerResponseInfo) 
 
 // LogAccountTransaction sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogAccountTransaction(info AccountTransactionInfo) {
-	var internalInfo = client.generateInternalInfo("accountTransaction")
+	var internalInfo = client.generateInternalInfo("accountTransaction", false)
 	payload := struct {
 		*InternalLogInfo
 		*AccountTransactionInfo
@@ -71,7 +73,7 @@ func (client *AuditClient) LogAccountTransaction(info AccountTransactionInfo) {
 
 // LogSystemEvent sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogSystemEvent(info SystemEventInfo) {
-	var internalInfo = client.generateInternalInfo("systemEvent")
+	var internalInfo = client.generateInternalInfo("systemEvent", true)
 	payload := struct {
 		*InternalLogInfo
 		*SystemEventInfo
@@ -84,7 +86,7 @@ func (client *AuditClient) LogSystemEvent(info SystemEventInfo) {
 
 // LogErrorEvent sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogErrorEvent(info ErrorEventInfo) {
-	var internalInfo = client.generateInternalInfo("errorEvent")
+	var internalInfo = client.generateInternalInfo("errorEvent", true)
 	payload := struct {
 		*InternalLogInfo
 		*ErrorEventInfo
@@ -97,7 +99,7 @@ func (client *AuditClient) LogErrorEvent(info ErrorEventInfo) {
 
 // LogDebugEvent sends a log of UserCommandType to the audit server
 func (client *AuditClient) LogDebugEvent(info DebugEventInfo) {
-	var internalInfo = client.generateInternalInfo("debugEvent")
+	var internalInfo = client.generateInternalInfo("debugEvent", true)
 	payload := struct {
 		*InternalLogInfo
 		*DebugEventInfo
@@ -121,12 +123,19 @@ func (client *AuditClient) sendLogs(data interface{}) {
 	client.sendRequest(payload)
 }
 
-func (client *AuditClient) generateInternalInfo(logType string) InternalLogInfo {
-	return InternalLogInfo{
-		LogType:   logType,
-		Timestamp: time.Now().UnixNano() / int64(time.Millisecond),
-		Server:    client.Server,
+func (client *AuditClient) generateInternalInfo(logType string, withCommand bool) InternalLogInfo {
+	var internalInfo = InternalLogInfo{
+		LogType:        logType,
+		Timestamp:      uint64(time.Now().UnixNano()) / uint64(time.Millisecond),
+		Server:         client.Server,
+		TransactionNum: client.TransactionNum,
 	}
+
+	if withCommand && client.Command != "" {
+		internalInfo.Command = client.Command
+	}
+
+	return internalInfo
 }
 
 func (client *AuditClient) sendRequest(payload string) (int, string, error) {
