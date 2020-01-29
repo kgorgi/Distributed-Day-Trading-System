@@ -51,11 +51,12 @@ func handleWebConnection(conn net.Conn) {
 func main() {
 	fmt.Println("Establishing Database Connection")
 
-	var err error
-	dataConn.client, err = net.Dial("tcp", "data-server:5001")
-	if err != nil {
-		return
-	}
+	// var err error
+	// dataConn.client, err = net.Dial("tcp", "data-server:5001")
+	// if err != nil {
+	// 	return
+	// }
+	initParameterMaps()
 	fmt.Println("Database Server Connected")
 
 	ln, _ := net.Listen("tcp", ":5000")

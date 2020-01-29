@@ -17,5 +17,5 @@ func DollarsToCents(dollars string) uint64 {
 func CentsToDollars(cents uint64) string {
 	dollars := cents / uint64(100)
 	remainingCents := cents % uint64(100)
-	return fmt.Sprintf("%d.%d", dollars, remainingCents)
+	return fmt.Sprintf("%d.%02d", dollars, remainingCents)
 }

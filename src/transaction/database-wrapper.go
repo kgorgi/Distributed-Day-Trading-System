@@ -21,18 +21,21 @@ func (client *databaseWrapper) createUser(userid string) error {
 	return nil
 }
 
+var amount = uint64(0)
+
 // AddAmount add money to user balance
 func (client *databaseWrapper) addAmount(userid string, cents uint64) error {
+	amount = amount + cents
 	return nil
 }
 
 func (client *databaseWrapper) getBalance(userid string) (uint64, error) {
-	return 0, nil
+	return amount, nil
 }
 
 func (client *databaseWrapper) removeAmount(userid string, cents uint64) error {
+	amount = amount - cents
 	return nil
-
 }
 
 func (client *databaseWrapper) getStocks(userid string) ([]stock, error) {

@@ -16,6 +16,8 @@ func GetQuote(
 	userID string,
 	auditClient auditclient.AuditClient) uint64 {
 
+	return 5
+
 	// Establish Connection to Quote Server
 	conn, err := net.Dial("tcp", ":5000")
 	if err != nil {

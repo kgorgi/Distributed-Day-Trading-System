@@ -12,12 +12,13 @@ var noStockSymbolParameter = make(map[string]bool)
 var noAmountParameter = make(map[string]bool)
 
 func initParameterMaps() {
+	noStockSymbolParameter["ADD"] = true
 	noStockSymbolParameter["COMMIT_BUY"] = true
 	noStockSymbolParameter["CANCEL_BUY"] = true
 	noStockSymbolParameter["COMMIT_SELL"] = true
 	noStockSymbolParameter["CANCEL_SELL"] = true
+	noStockSymbolParameter["DISPLAY_SUMMARY"] = true
 
-	noAmountParameter["ADD"] = true
 	noAmountParameter["QUOTE"] = true
 	noAmountParameter["COMMIT_BUY"] = true
 	noAmountParameter["CANCEL_BUY"] = true
@@ -26,7 +27,7 @@ func initParameterMaps() {
 	noAmountParameter["CANCEL_SELL"] = true
 	noAmountParameter["CANCEL_SET_BUY"] = true
 	noAmountParameter["CANCEL_SET_SELL"] = true
-
+	noAmountParameter["DISPLAY_SUMMARY"] = true
 }
 
 var isAlphanumeric = regexp.MustCompile(`^[A-Za-z0-9]+$`).MatchString

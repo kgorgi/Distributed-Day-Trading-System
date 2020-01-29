@@ -42,12 +42,8 @@ func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditcli
 
 }
 
-func getCents(dollarString string) uint64 {
-	return 1
-}
-
 func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
-	amount := getCents(jsonCommand.Amount)
+	amount := lib.DollarsToCents(jsonCommand.Amount)
 
 	err := dataConn.addAmount(jsonCommand.Userid, amount)
 	if err != nil {

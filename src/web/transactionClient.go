@@ -22,7 +22,7 @@ func (transactionClient *TransactionClient) SendCommand(command map[string]strin
 		return lib.StatusSystemError, "", err
 	}
 
-	conn, err := net.Dial("tcp", transactionServerDockerAddress)
+	conn, err := net.Dial("tcp", ":5000")
 	if err != nil {
 		return lib.StatusSystemError, "", err
 	}
