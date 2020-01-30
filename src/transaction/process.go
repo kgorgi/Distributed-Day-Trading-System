@@ -34,11 +34,14 @@ func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditcli
 	case "CANCEL_SELL":
 		handleCancelSell(conn, jsonCommand, &auditClient)
 	case "SET_BUY_AMOUNT":
-	case "CANCEL_SET_BUY":
+		handleSetBuyAmount(conn, jsonCommand, &auditClient)
 	case "SET_BUY_TRIGGER":
+		handleSetBuyTrigger(conn, jsonCommand, &auditClient)
+	case "CANCEL_SET_BUY":
+		handleCancelSetBuy(conn, jsonCommand, &auditClient)
 	case "SET_SELL_AMOUNT":
-	case "CANCEL_SET_SELL":
 	case "SET_SELL_TRIGGER":
+	case "CANCEL_SET_SELL":
 	case "DISPLAY_SUMMARY":
 		handleDisplaySummary(conn, jsonCommand, auditClient)
 	default:
@@ -198,6 +201,93 @@ func handleCancelSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 	}
 
 	lib.ServerSendOKResponse(conn)
+}
+
+func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
+	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
+
+	balanceInCents, err := dataConn.getBalance(jsonCommand.Userid)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	if amountInCents > balanceInCents {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "Account balance is less than trigger amount")
+		return
+	}
+
+	err = dataConn.removeAmount(jsonCommand.Userid, amountInCents, auditClient)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	err = dataConn.createTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, false)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		// TODO replace user's balance
+		return
+	}
+
+	lib.ServerSendOKResponse(conn)
+}
+
+func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
+	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	if trigger == nil {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "Trigger amount has not been set")
+		return
+	}
+
+	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
+
+	if trigger.Amount_Cents < amountInCents {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "Amount too high trigger will never execute")
+		return
+	}
+
+	err = dataConn.setTriggerAmount(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, true)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	lib.ServerSendOKResponse(conn)
+}
+
+func handleCancelSetBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
+	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	if trigger == nil {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "Trigger does not exist")
+		return
+	}
+
+	err = dataConn.addAmount(jsonCommand.Userid, trigger.Amount_Cents, auditClient)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	err = dataConn.deleteTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		// TODO handle error here
+		return
+	}
+
+	lib.ServerSendOKResponse(conn)
+
 }
 
 func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {

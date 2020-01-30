@@ -15,7 +15,6 @@ type CommandJSON struct {
 	Command        string
 	Userid         string
 	Amount         string
-	Cents          uint64
 	StockSymbol    string
 }
 

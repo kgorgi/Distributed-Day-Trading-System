@@ -2,9 +2,11 @@ package main
 
 import (
 	"net"
+	"strconv"
 	"sync"
 
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
+	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
 )
 
 type databaseWrapper struct {
@@ -29,6 +31,7 @@ func (client *databaseWrapper) createUser(userid string) error {
 
 var amount = uint64(0)
 var stocks = make(map[string]uint64)
+var triggers = make(map[string]*modelsdata.Trigger)
 
 // AddAmount add money to user balance
 func (client *databaseWrapper) addAmount(
@@ -107,4 +110,60 @@ func (client *databaseWrapper) getStocks(userid string) ([]stock, error) {
 	}
 	client.mux.Unlock()
 	return results, nil
+}
+
+func (client *databaseWrapper) getTrigger(userid string, stockSymbol string, isSell bool) (*modelsdata.Trigger, error) {
+	client.mux.Lock()
+	var trigger = triggers[triggerKey(userid, stockSymbol, isSell)]
+	client.mux.Unlock()
+
+	return trigger, nil
+}
+
+func (client *databaseWrapper) createTrigger(userid string, stockSymbol string, cents uint64, isSell bool) error {
+	var newTrigger = new(modelsdata.Trigger)
+	newTrigger.User_Command_ID = userid
+	newTrigger.Stock = stockSymbol
+	newTrigger.Amount_Cents = cents
+	newTrigger.Is_Sell = !isSell
+
+	client.mux.Lock()
+	triggers[triggerKey(userid, stockSymbol, isSell)] = newTrigger
+	client.mux.Unlock()
+	return nil
+}
+
+func (client *databaseWrapper) setTriggerAmount(userid string, stockSymbol string, cents uint64, isSell bool) error {
+	client.mux.Lock()
+	triggers[triggerKey(userid, stockSymbol, isSell)].Price_Cents = cents
+	client.mux.Unlock()
+	return nil
+}
+
+func (client *databaseWrapper) deleteTrigger(userid string, stockSymbol string, isSell bool) error {
+	client.mux.Lock()
+	triggers[triggerKey(userid, stockSymbol, isSell)] = nil
+	client.mux.Unlock()
+	return nil
+}
+
+func (client *databaseWrapper) getTriggers() ([]modelsdata.Trigger, error) {
+	results := make([]modelsdata.Trigger, len(triggers))
+
+	client.mux.Lock()
+
+	i := 0
+	for _, value := range triggers {
+		results[i] = *value
+		i++
+	}
+
+	client.mux.Unlock()
+
+	return results, nil
+}
+
+func triggerKey(userID string, stockSymbol string, isSell bool) string {
+	var key = userID + ": " + stockSymbol + ":" + strconv.FormatBool(isSell)
+	return key
 }
