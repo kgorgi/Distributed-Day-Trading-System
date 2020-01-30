@@ -17,7 +17,7 @@ type reserve struct {
 	stockSymbol string
 	numOfStocks uint64
 	cents       uint64
-	valid       uint64
+	notValid    uint64
 	timer       *time.Timer
 
 	// Used to return the go routine
@@ -39,7 +39,7 @@ func getBuyStack(userID string) *stack {
 	return buyStack[userID]
 }
 
-func createReseve(stockSymbol string, numOfStocks uint64, cents uint64) *reserve {
+func createReserve(stockSymbol string, numOfStocks uint64, cents uint64) *reserve {
 	var instance *reserve
 	instance = new(reserve)
 	instance.stockSymbol = stockSymbol
@@ -49,7 +49,7 @@ func createReseve(stockSymbol string, numOfStocks uint64, cents uint64) *reserve
 }
 
 func (stack *stack) push(newItem *reserve, auditClient *auditclient.AuditClient) {
-	newItem.valid = 0
+	newItem.notValid = 0
 	newItem.timer = time.NewTimer(time.Second * 60)
 	newItem.done = make(chan struct{})
 
@@ -57,20 +57,7 @@ func (stack *stack) push(newItem *reserve, auditClient *auditclient.AuditClient)
 		select {
 		case <-newItem.timer.C:
 			// Timer reached buy/sell cancelled
-			atomic.AddUint64(&newItem.valid, 1)
-
-			if stack.isBuy {
-				err := dataConn.addAmount(stack.userID, newItem.cents)
-				if err != nil {
-					// TODO
-				}
-
-				auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
-					Action:       "add",
-					UserID:       stack.userID,
-					FundsInCents: amount,
-				})
-			}
+			atomic.AddUint64(&newItem.notValid, 1)
 		case <-newItem.done:
 			// Timer cancelled early
 			return
@@ -87,26 +74,18 @@ func (stack *stack) pop() *reserve {
 	}
 
 	n := numOfItems - 1
-	var nextItem *reserve = stack.items[n]
-	nextItem.timer.Stop()
-	close(nextItem.done)
+	var topOfStack *reserve = stack.items[n]
 
-	// Find first valid item or end of list
-	for atomic.LoadUint64(&nextItem.valid) != 0 && n > 0 {
+	// Is first item valid
+	if atomic.LoadUint64(&topOfStack.notValid) != 0 {
+		topOfStack.timer.Stop()
+		close(topOfStack.done)
 		stack.items[n] = nil
 		stack.items = stack.items[:n]
-		n = n - 1
-		nextItem = stack.items[n]
-		nextItem.timer.Stop()
-		close(nextItem.done)
+		return topOfStack
 	}
 
-	stack.items[n] = nil
-	stack.items = stack.items[:n]
-	if atomic.LoadUint64(&nextItem.valid) == 0 {
-		return nextItem
-	}
-
-	// n = 0
+	// Dis-regard stack all invalid
+	stack.items = make([]*reserve, 0)
 	return nil
 }

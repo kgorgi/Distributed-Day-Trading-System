@@ -69,17 +69,7 @@ func handleQuote(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient
 }
 
 func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
-	balanceInCents, err := dataConn.getBalance(jsonCommand.Userid)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
 	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
-	if balanceInCents < amountInCents {
-		lib.ServerSendResponse(conn, lib.StatusUserError, "Balance is less than amount")
-		return
-	}
 
 	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, auditClient)
 	if quoteInCents > amountInCents {
@@ -89,20 +79,9 @@ func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.A
 
 	numOfStocks := amountInCents / quoteInCents
 	moneyToRemove := quoteInCents * numOfStocks
-	err = dataConn.removeAmount(jsonCommand.Userid, moneyToRemove)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
-	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
-		Action:       "remove",
-		UserID:       jsonCommand.Userid,
-		FundsInCents: amount,
-	})
 
 	stack := getBuyStack(jsonCommand.Userid)
-	reserve := createReseve(jsonCommand.StockSymbol, numOfStocks, moneyToRemove)
+	reserve := createReserve(jsonCommand.StockSymbol, numOfStocks, moneyToRemove)
 	stack.push(reserve, &auditClient)
 
 	lib.ServerSendOKResponse(conn)
@@ -116,10 +95,33 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient auditcl
 		return
 	}
 
-	err := dataConn.addStock(jsonCommand.Userid, nextBuy.stockSymbol, nextBuy.numOfStocks)
+	balanceInCents, err := dataConn.getBalance(jsonCommand.Userid)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		// TODO Return Amount to users balance
+		return
+	}
+
+	if balanceInCents < nextBuy.cents {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "Account balance is less than stock cost")
+		return
+	}
+
+	err = dataConn.removeAmount(jsonCommand.Userid, nextBuy.cents)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
+		Action:       "remove",
+		UserID:       jsonCommand.Userid,
+		FundsInCents: amount,
+	})
+
+	err = dataConn.addStock(jsonCommand.Userid, nextBuy.stockSymbol, nextBuy.numOfStocks)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		// TODO Retry?
 		return
 	}
 
@@ -133,18 +135,6 @@ func handleCancelBuy(conn net.Conn, jsonCommand CommandJSON, auditClient auditcl
 		lib.ServerSendResponse(conn, lib.StatusUserError, "No Buy to Cancel")
 		return
 	}
-
-	err := dataConn.addAmount(jsonCommand.Userid, nextBuy.cents)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
-	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
-		Action:       "add",
-		UserID:       jsonCommand.Userid,
-		FundsInCents: amount,
-	})
 
 	lib.ServerSendOKResponse(conn)
 }
