@@ -66,13 +66,13 @@ func validateParameters(conn net.Conn, commandJSON CommandJSON) bool {
 	// Validate Amount
 	if _, ok := noAmountParameter[commandJSON.Command]; !ok {
 		if !isAmount(commandJSON.Amount) {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid stockSymbol")
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid amount")
 			return false
 		}
 
 		amount, err := strconv.ParseFloat(commandJSON.Amount, 64)
 		if err != nil {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid stockSymbol")
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid amount")
 			return false
 		}
 
