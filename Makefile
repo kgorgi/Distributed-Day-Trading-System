@@ -37,6 +37,10 @@ build-quote-mock:
 docker-deploy:
 	docker-compose up --build
 
+.phony docker-redeploy:
+docker-redeploy:
+	docker-compose up --build --force-recreate --no-deps -d $(c)
+
 .phony docker-teardown:
 docker-teardown:  
 	docker-compose down
