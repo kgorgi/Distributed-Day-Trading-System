@@ -8,7 +8,7 @@ import (
 func GetQuote(
 	stockSymbol string,
 	userID string,
-	auditClient auditclient.AuditClient) uint64 {
+	auditClient *auditclient.AuditClient) uint64 {
 
 	return 5
 }

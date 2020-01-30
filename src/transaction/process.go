@@ -18,18 +18,21 @@ func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditcli
 	// Process Command
 	switch jsonCommand.Command {
 	case "ADD":
-		handleAdd(conn, jsonCommand, auditClient)
+		handleAdd(conn, jsonCommand, &auditClient)
 	case "QUOTE":
-		handleQuote(conn, jsonCommand, auditClient)
+		handleQuote(conn, jsonCommand, &auditClient)
 	case "BUY":
-		handleBuy(conn, jsonCommand, auditClient)
+		handleBuy(conn, jsonCommand, &auditClient)
 	case "COMMIT_BUY":
-		handleCommitBuy(conn, jsonCommand, auditClient)
+		handleCommitBuy(conn, jsonCommand, &auditClient)
 	case "CANCEL_BUY":
-		handleCancelBuy(conn, jsonCommand, auditClient)
+		handleCancelBuy(conn, jsonCommand, &auditClient)
 	case "SELL":
+		handleSell(conn, jsonCommand, &auditClient)
 	case "COMMIT_SELL":
+		handleCommitSell(conn, jsonCommand, &auditClient)
 	case "CANCEL_SELL":
+		handleCancelSell(conn, jsonCommand, &auditClient)
 	case "SET_BUY_AMOUNT":
 	case "CANCEL_SET_BUY":
 	case "SET_BUY_TRIGGER":
@@ -44,10 +47,10 @@ func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditcli
 
 }
 
-func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
+func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amount := lib.DollarsToCents(jsonCommand.Amount)
 
-	err := dataConn.addAmount(jsonCommand.Userid, amount)
+	err := dataConn.addAmount(jsonCommand.Userid, amount, auditClient)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -62,13 +65,13 @@ func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.A
 	lib.ServerSendOKResponse(conn)
 }
 
-func handleQuote(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
+func handleQuote(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	quote := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, auditClient)
 	dollars := lib.CentsToDollars(quote)
 	lib.ServerSendResponse(conn, lib.StatusOk, dollars)
 }
 
-func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
+func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
 
 	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, auditClient)
@@ -82,12 +85,12 @@ func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.A
 
 	stack := getBuyStack(jsonCommand.Userid)
 	reserve := createReserve(jsonCommand.StockSymbol, numOfStocks, moneyToRemove)
-	stack.push(reserve, &auditClient)
+	stack.push(reserve, auditClient)
 
 	lib.ServerSendOKResponse(conn)
 }
 
-func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
+func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	stack := getBuyStack(jsonCommand.Userid)
 	nextBuy := stack.pop()
 	if nextBuy == nil {
@@ -106,17 +109,11 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient auditcl
 		return
 	}
 
-	err = dataConn.removeAmount(jsonCommand.Userid, nextBuy.cents)
+	err = dataConn.removeAmount(jsonCommand.Userid, nextBuy.cents, auditClient)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
 	}
-
-	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
-		Action:       "remove",
-		UserID:       jsonCommand.Userid,
-		FundsInCents: amount,
-	})
 
 	err = dataConn.addStock(jsonCommand.Userid, nextBuy.stockSymbol, nextBuy.numOfStocks)
 	if err != nil {
@@ -128,11 +125,75 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient auditcl
 	lib.ServerSendOKResponse(conn)
 }
 
-func handleCancelBuy(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
+func handleCancelBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	stack := getBuyStack(jsonCommand.Userid)
 	nextBuy := stack.pop()
 	if nextBuy == nil {
 		lib.ServerSendResponse(conn, lib.StatusUserError, "No Buy to Cancel")
+		return
+	}
+
+	lib.ServerSendOKResponse(conn)
+}
+
+func handleSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
+	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
+	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, auditClient)
+	if quoteInCents > amountInCents {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "Quote price is higher than sell amount")
+		return
+	}
+
+	numOfStocks := amountInCents / quoteInCents
+	moneyToAdd := quoteInCents * numOfStocks
+
+	stack := getSellStack(jsonCommand.Userid)
+	reserve := createReserve(jsonCommand.StockSymbol, numOfStocks, moneyToAdd)
+	stack.push(reserve, auditClient)
+
+	lib.ServerSendOKResponse(conn)
+}
+
+func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
+	stack := getSellStack(jsonCommand.Userid)
+	nextSell := stack.pop()
+	if nextSell == nil {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "No Sell to Commit")
+		return
+	}
+
+	stockAmount, err := dataConn.getStockAmount(jsonCommand.Userid, nextSell.stockSymbol)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	if stockAmount < nextSell.numOfStocks {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "Not enough stock is owned by the user to sell")
+		return
+	}
+
+	err = dataConn.removeStock(jsonCommand.Userid, nextSell.stockSymbol, nextSell.numOfStocks)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	err = dataConn.addAmount(jsonCommand.Userid, nextSell.cents, auditClient)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		// TODO Return Stock to user's portfolio
+		return
+	}
+
+	lib.ServerSendOKResponse(conn)
+}
+
+func handleCancelSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
+	stack := getSellStack(jsonCommand.Userid)
+	nextSell := stack.pop()
+	if nextSell == nil {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "No Sell to Cancel")
 		return
 	}
 
