@@ -77,11 +77,6 @@ func (stack *stack) push(newItem *reserve, auditClient *auditclient.AuditClient)
 				if err != nil {
 					// TODO
 				}
-			} else {
-				err := dataConn.addStock(stack.userID, newItem.stockSymbol, newItem.numOfStocks)
-				if err != nil {
-					// TODO
-				}
 			}
 		case <-newItem.done:
 			// Timer cancelled early

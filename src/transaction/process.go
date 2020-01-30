@@ -141,17 +141,6 @@ func handleCancelBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 }
 
 func handleSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	stockAmount, err := dataConn.getStockAmount(jsonCommand.Userid, jsonCommand.StockSymbol)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
-	if stockAmount == 0 {
-		lib.ServerSendResponse(conn, lib.StatusUserError, "Stock is not owned by user")
-		return
-	}
-
 	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
 	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, auditClient)
 	if quoteInCents > amountInCents {
@@ -161,11 +150,6 @@ func handleSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient
 
 	numOfStocks := amountInCents / quoteInCents
 	moneyToAdd := quoteInCents * numOfStocks
-	err = dataConn.removeStock(jsonCommand.Userid, jsonCommand.StockSymbol, numOfStocks)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
 
 	stack := getSellStack(jsonCommand.Userid)
 	reserve := createReseve(jsonCommand.StockSymbol, numOfStocks, moneyToAdd)
@@ -182,7 +166,24 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 		return
 	}
 
-	err := dataConn.addAmount(jsonCommand.Userid, nextSell.cents, auditClient)
+	stockAmount, err := dataConn.getStockAmount(jsonCommand.Userid, nextSell.stockSymbol)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	if stockAmount < nextSell.numOfStocks {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "Not enough stock is owned by the user to sell")
+		return
+	}
+
+	err = dataConn.removeStock(jsonCommand.Userid, nextSell.stockSymbol, nextSell.numOfStocks)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
+	err = dataConn.addAmount(jsonCommand.Userid, nextSell.cents, auditClient)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		// TODO Return Stock to user's portfolio
@@ -197,12 +198,6 @@ func handleCancelSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 	nextSell := stack.pop()
 	if nextSell == nil {
 		lib.ServerSendResponse(conn, lib.StatusUserError, "No Sell to Cancel")
-		return
-	}
-
-	err := dataConn.addStock(jsonCommand.Userid, nextSell.stockSymbol, nextSell.numOfStocks)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
 	}
 
