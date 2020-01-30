@@ -3,6 +3,8 @@ package main
 import (
 	"net"
 	"sync"
+
+	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
 type databaseWrapper struct {
@@ -29,10 +31,19 @@ var amount = uint64(0)
 var stocks = make(map[string]uint64)
 
 // AddAmount add money to user balance
-func (client *databaseWrapper) addAmount(userid string, cents uint64) error {
+func (client *databaseWrapper) addAmount(
+	userid string,
+	cents uint64,
+	auditClient *auditclient.AuditClient) error {
 	client.mux.Lock()
 	amount = amount + cents
 	client.mux.Unlock()
+
+	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
+		Action:       "add",
+		UserID:       userid,
+		FundsInCents: cents,
+	})
 
 	return nil
 }
@@ -45,10 +56,18 @@ func (client *databaseWrapper) getBalance(userid string) (uint64, error) {
 	return cents, nil
 }
 
-func (client *databaseWrapper) removeAmount(userid string, cents uint64) error {
+func (client *databaseWrapper) removeAmount(userid string,
+	cents uint64,
+	auditClient *auditclient.AuditClient) error {
 	client.mux.Lock()
 	amount = amount - cents
 	client.mux.Unlock()
+
+	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
+		Action:       "remove",
+		UserID:       userid,
+		FundsInCents: cents,
+	})
 
 	return nil
 }
