@@ -50,11 +50,14 @@ func handleWebConnection(conn net.Conn) {
 func main() {
 	fmt.Println("Establishing Database Connection")
 
-	// var err error
-	// dataConn.client, err = net.Dial("tcp", "data-server:5001")
-	// if err != nil {
-	// 	return
-	// }
+	var auditclient = auditclient.AuditClient{
+		Server:         "transaction",
+		TransactionNum: 1,
+		Command:        "N,/A",
+	}
+
+	go checkTriggers(auditclient)
+
 	initParameterMaps()
 	fmt.Println("Database Server Connected")
 

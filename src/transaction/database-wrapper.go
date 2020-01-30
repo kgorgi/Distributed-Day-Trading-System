@@ -125,7 +125,7 @@ func (client *databaseWrapper) createTrigger(userid string, stockSymbol string, 
 	newTrigger.User_Command_ID = userid
 	newTrigger.Stock = stockSymbol
 	newTrigger.Amount_Cents = cents
-	newTrigger.Is_Sell = !isSell
+	newTrigger.Is_Sell = isSell
 
 	client.mux.Lock()
 	triggers[triggerKey(userid, stockSymbol, isSell)] = newTrigger
@@ -142,7 +142,7 @@ func (client *databaseWrapper) setTriggerAmount(userid string, stockSymbol strin
 
 func (client *databaseWrapper) deleteTrigger(userid string, stockSymbol string, isSell bool) error {
 	client.mux.Lock()
-	triggers[triggerKey(userid, stockSymbol, isSell)] = nil
+	delete(triggers, triggerKey(userid, stockSymbol, isSell))
 	client.mux.Unlock()
 	return nil
 }
