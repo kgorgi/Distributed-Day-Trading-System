@@ -7,6 +7,7 @@ import (
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
+// TODO This is not thread safe :(
 type stack struct {
 	items  []*reserve
 	userID string
@@ -39,6 +40,18 @@ func getBuyStack(userID string) *stack {
 	return buyStack[userID]
 }
 
+func getSellStack(userID string) *stack {
+	if sellStack[userID] == nil {
+		stack := new(stack)
+		stack.isBuy = false
+		stack.items = make([]*reserve, 0)
+		stack.userID = userID
+		sellStack[userID] = stack
+	}
+
+	return sellStack[userID]
+}
+
 func createReseve(stockSymbol string, numOfStocks uint64, cents uint64) *reserve {
 	var instance *reserve
 	instance = new(reserve)
@@ -60,16 +73,15 @@ func (stack *stack) push(newItem *reserve, auditClient *auditclient.AuditClient)
 			atomic.AddUint64(&newItem.valid, 1)
 
 			if stack.isBuy {
-				err := dataConn.addAmount(stack.userID, newItem.cents)
+				err := dataConn.addAmount(stack.userID, newItem.cents, auditClient)
 				if err != nil {
 					// TODO
 				}
-
-				auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
-					Action:       "add",
-					UserID:       stack.userID,
-					FundsInCents: amount,
-				})
+			} else {
+				err := dataConn.addStock(stack.userID, newItem.stockSymbol, newItem.numOfStocks)
+				if err != nil {
+					// TODO
+				}
 			}
 		case <-newItem.done:
 			// Timer cancelled early
