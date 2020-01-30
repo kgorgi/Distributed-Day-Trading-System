@@ -1,10 +1,12 @@
-package main
+package user
 
 import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
 )
+
+const webserverAddress = "http://localhost:8080/command/"
 
 type commandParams struct {
 	UserID      string
@@ -48,7 +50,7 @@ func makeRequest(httpMethod string, command string, params url.Values) (int, str
 	return resp.StatusCode, string(body), nil
 }
 
-func addRequest(userid string, amount string) (int, string, error) {
+func AddRequest(userid string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 		Amount: amount,
@@ -56,7 +58,7 @@ func addRequest(userid string, amount string) (int, string, error) {
 	return makeRequest("POST", "ADD", createParameters(command))
 }
 
-func quoteRequest(userid string, stockSymbol string) (int, string, error) {
+func QuoteRequest(userid string, stockSymbol string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		StockSymbol: stockSymbol,
@@ -64,7 +66,7 @@ func quoteRequest(userid string, stockSymbol string) (int, string, error) {
 	return makeRequest("GET", "QUOTE", createParameters(command))
 }
 
-func buyRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+func BuyRequest(userid string, stockSymbol string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		Amount:      amount,
@@ -73,21 +75,21 @@ func buyRequest(userid string, stockSymbol string, amount string) (int, string, 
 	return makeRequest("POST", "BUY", createParameters(command))
 }
 
-func commitBuyRequest(userid string) (int, string, error) {
+func CommitBuyRequest(userid string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 	}
 	return makeRequest("POST", "COMMIT_BUY", createParameters(command))
 }
 
-func cancelBuyRequest(userid string) (int, string, error) {
+func CancelBuyRequest(userid string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 	}
 	return makeRequest("POST", "CANCEL_BUY", createParameters(command))
 }
 
-func sellRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+func SellRequest(userid string, stockSymbol string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		Amount:      amount,
@@ -96,21 +98,21 @@ func sellRequest(userid string, stockSymbol string, amount string) (int, string,
 	return makeRequest("POST", "SELL", createParameters(command))
 }
 
-func commitSellRequest(userid string) (int, string, error) {
+func CommitSellRequest(userid string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 	}
 	return makeRequest("POST", "COMMIT_SELL", createParameters(command))
 }
 
-func cancelSellRequest(userid string) (int, string, error) {
+func CancelSellRequest(userid string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 	}
 	return makeRequest("POST", "CANCEL_SELL", createParameters(command))
 }
 
-func setBuyAmountRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+func SetBuyAmountRequest(userid string, stockSymbol string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		Amount:      amount,
@@ -119,7 +121,7 @@ func setBuyAmountRequest(userid string, stockSymbol string, amount string) (int,
 	return makeRequest("POST", "SET_BUY_AMOUNT", createParameters(command))
 }
 
-func cancelSetBuyRequest(userid string, stockSymbol string) (int, string, error) {
+func CancelSetBuyRequest(userid string, stockSymbol string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		StockSymbol: stockSymbol,
@@ -127,7 +129,7 @@ func cancelSetBuyRequest(userid string, stockSymbol string) (int, string, error)
 	return makeRequest("GET", "CANCEL_SET_BUY", createParameters(command))
 }
 
-func setBuyTriggerRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+func SetBuyTriggerRequest(userid string, stockSymbol string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		Amount:      amount,
@@ -136,7 +138,7 @@ func setBuyTriggerRequest(userid string, stockSymbol string, amount string) (int
 	return makeRequest("POST", "SET_BUY_TRIGGER", createParameters(command))
 }
 
-func setSellAmountRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+func SetSellAmountRequest(userid string, stockSymbol string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		Amount:      amount,
@@ -145,7 +147,7 @@ func setSellAmountRequest(userid string, stockSymbol string, amount string) (int
 	return makeRequest("POST", "SET_SELL_AMOUNT", createParameters(command))
 }
 
-func cancelSetSellRequest(userid string, stockSymbol string) (int, string, error) {
+func CancelSetSellRequest(userid string, stockSymbol string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		StockSymbol: stockSymbol,
@@ -153,7 +155,7 @@ func cancelSetSellRequest(userid string, stockSymbol string) (int, string, error
 	return makeRequest("GET", "CANCEL_SET_SELL", createParameters(command))
 }
 
-func setSellTriggerRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+func SetSellTriggerRequest(userid string, stockSymbol string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		Amount:      amount,
@@ -162,7 +164,7 @@ func setSellTriggerRequest(userid string, stockSymbol string, amount string) (in
 	return makeRequest("POST", "SET_SELL_TRIGGER", createParameters(command))
 }
 
-func dumplogRequest(userid string, filename string) (int, string, error) {
+func DumplogRequest(userid string, filename string) (int, string, error) {
 	var command = commandParams{
 		UserID:   userid,
 		Filename: filename,
@@ -170,7 +172,7 @@ func dumplogRequest(userid string, filename string) (int, string, error) {
 	return makeRequest("POST", "DUMPLOG", createParameters(command))
 }
 
-func displaySummaryRequest(userid string) (int, string, error) {
+func DisplaySummaryRequest(userid string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 	}
