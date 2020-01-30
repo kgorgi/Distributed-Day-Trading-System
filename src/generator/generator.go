@@ -101,10 +101,6 @@ func main() {
 			fmt.Println(err.Error() + "\nFailed on line" + strconv.Itoa(lineNumber))
 			return
 		}
-		if lineNumber > 2 {
-			break
-		}
-
 	}
 
 	if readErr != nil && readErr != io.EOF {
