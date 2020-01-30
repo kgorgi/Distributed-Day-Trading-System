@@ -77,7 +77,7 @@ func (stack *stack) pop() *reserve {
 	var topOfStack *reserve = stack.items[n]
 
 	// Is first item valid
-	if atomic.LoadUint64(&topOfStack.notValid) != 0 {
+	if !(atomic.LoadUint64(&topOfStack.notValid) == 1) {
 		topOfStack.timer.Stop()
 		close(topOfStack.done)
 		stack.items[n] = nil
