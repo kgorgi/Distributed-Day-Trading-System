@@ -28,6 +28,10 @@ build-audit:
 build-generator: 
 	cd $(SRC)/generator && go build -o $(OUTPUT)/generator
 
+.phony build-quote-mock:
+build-quote-mock: 
+	cd $(SRC)/test/mocks && go build -o ../$(OUTPUT)/quote-mock
+
 # Docker Compose Commands
 .phony docker-deploy:
 docker-deploy:
