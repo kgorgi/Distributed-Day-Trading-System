@@ -7,6 +7,7 @@ import (
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
+// TODO This is not thread safe :(
 type stack struct {
 	items  []*reserve
 	userID string
@@ -37,6 +38,18 @@ func getBuyStack(userID string) *stack {
 	}
 
 	return buyStack[userID]
+}
+
+func getSellStack(userID string) *stack {
+	if sellStack[userID] == nil {
+		stack := new(stack)
+		stack.isBuy = false
+		stack.items = make([]*reserve, 0)
+		stack.userID = userID
+		sellStack[userID] = stack
+	}
+
+	return sellStack[userID]
 }
 
 func createReserve(stockSymbol string, numOfStocks uint64, cents uint64) *reserve {
@@ -77,7 +90,7 @@ func (stack *stack) pop() *reserve {
 	var topOfStack *reserve = stack.items[n]
 
 	// Is first item valid
-	if atomic.LoadUint64(&topOfStack.notValid) != 0 {
+	if !(atomic.LoadUint64(&topOfStack.notValid) == 1) {
 		topOfStack.timer.Stop()
 		close(topOfStack.done)
 		stack.items[n] = nil
