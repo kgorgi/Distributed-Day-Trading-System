@@ -72,11 +72,11 @@ func ResolveMockQuoteServerAddress() string {
 
 // ResolveDatabaseDBAddress returns the mongo DB address for the database server
 func ResolveDatabaseDBAddress() string {
-	return resolveMongoAddress("data-mongoDB", "27017", "27017")
+	return resolveMongoAddress("data-mongodb", "27017", "27017")
 
 }
 
 // ResolveAuditDBAddress returns the mongo DB address for the audit server
 func ResolveAuditDBAddress() string {
-	return resolveMongoAddress("audit-mongoDB", "27017", "5003")
+	return resolveMongoAddress("audit-mongodb", "27017", "5003")
 }

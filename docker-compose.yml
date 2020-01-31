@@ -46,12 +46,12 @@ services:
             - ENV=DOCKER
     dataDB:
         image: mongo:latest
-        container_name: "data-mongoDB"
+        container_name: "data-mongodb"
         environment:
             MONGO_INITDB_DATABASE: data
 
     auditDB:
         image: mongo:latest
-        container_name: "audit-mongoDB"
+        container_name: "audit-mongodb"
         environment:
             MONGO_INITDB_DATABASE: audit

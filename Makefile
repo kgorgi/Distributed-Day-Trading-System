@@ -45,7 +45,7 @@ docker-deploy-local:
 
 .phony docker-deploy-lab:
 docker-deploy-lab: build
-	sudo docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build
+	docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build
 
 .phony docker-redeploy-dev:
 docker-redeploy:
