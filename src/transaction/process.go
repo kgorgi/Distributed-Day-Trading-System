@@ -265,7 +265,7 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID: jsonCommand.Userid,
 			OptionalStockSymbol: jsonCommand.StockSymbol,
-			OptionalFundsInCents: &amountInCents,
+			OptionalFundsInCents: &balanceInCents,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -302,7 +302,6 @@ func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID: jsonCommand.Userid,
 			OptionalStockSymbol: jsonCommand.StockSymbol,
-			OptionalFundsInCents: &amountInCents,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -316,7 +315,6 @@ func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID: jsonCommand.Userid,
 			OptionalStockSymbol: jsonCommand.StockSymbol,
-			OptionalFundsInCents: &amountInCents,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -393,7 +391,6 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID: jsonCommand.Userid,
 			OptionalStockSymbol: jsonCommand.StockSymbol,
-			OptionalFundsInCents: &priceInCents,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -402,11 +399,10 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 	}
 
 	if priceInCents > trigger.Amount_Cents {
-		errorMessage := "Quote price is higher than amount of stocks to sell"
+		errorMessage := "Trigger amount is higher than amount of stocks to sell"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID: jsonCommand.Userid,
 			OptionalStockSymbol: jsonCommand.StockSymbol,
-			OptionalFundsInCents: &priceInCents,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -427,7 +423,6 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID: jsonCommand.Userid,
 			OptionalStockSymbol: jsonCommand.StockSymbol,
-			OptionalFundsInCents: &priceInCents,
 			OptionalErrorMessage: errorMessage,
 		})
 
