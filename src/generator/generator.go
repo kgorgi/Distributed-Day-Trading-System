@@ -58,9 +58,16 @@ func handleLine(line string) (int, error) {
 	case "DUMPLOG":
 		if len(command) > 2 {
 			status, body, err = user.DumplogRequest(command[1], command[2])
+			if err == nil && status == 200 {
+				err = user.SaveDumplog(body, command[2])
+			}
 		} else {
 			status, body, err = user.DumplogRequest("", command[1])
+			if err == nil && status == 200 {
+				err = user.SaveDumplog(body, command[1])
+			}
 		}
+
 	case "DISPLAY_SUMMARY":
 		status, body, err = user.DisplaySummaryRequest(command[1])
 	}
