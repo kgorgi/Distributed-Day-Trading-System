@@ -107,8 +107,8 @@ func (client *DataClient) ReadTriggers() ([]modelsdata.Trigger, error) {
 	return triggers, nil
 }
 
-func (client *DataClient) ReadTrigger(userID string, stockName string) (modelsdata.Trigger, error) {
-	payload := "READ_TRIGGER|" + userID + "|" + stockName
+func (client *DataClient) ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigger, error) {
+	payload := "READ_TRIGGER|" + userID + "|" + stockName + "|" + generateIsSellString(isSell)
 	_, message, err := client.sendRequest(payload);
 	if err != nil {
 		return modelsdata.Trigger{}, err
@@ -135,10 +135,20 @@ func (client *DataClient) UpdateTrigger(trigger modelsdata.Trigger) error {
 	return err
 }
 
-func (client *DataClient) DeleteTrigger(userID string, stockName string) error {
-	payload := "DELETE_TRIGGER|" + userID + "|" + stockName
+func (client *DataClient) DeleteTrigger(userID string, stockName string, isSell bool) error {
+
+
+	payload := "DELETE_TRIGGER|" + userID + "|" + stockName + "|" + generateIsSellString(isSell)
 	_, _, err := client.sendRequest(payload)
 	return err;
+}
+
+func generateIsSellString(isSell bool) string {
+	if isSell {
+		return "true"
+	} else {
+		return "false"
+	}
 }
 
 func (client *DataClient) sendRequest(payload string) (int, string, error) {

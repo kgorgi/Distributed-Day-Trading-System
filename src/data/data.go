@@ -44,11 +44,11 @@ func readTriggers(client *mongo.Client) ([]modelsdata.Trigger, error) {
     return triggers, nil
 }
 
-func readTrigger(client *mongo.Client, user_command_ID string, stock string) (modelsdata.Trigger, error) {
+func readTrigger(client *mongo.Client, user_command_ID string, stock string, isSell bool) (modelsdata.Trigger, error) {
     collection := client.Database("extremeworkload").Collection("triggers")
 
     var trigger modelsdata.Trigger
-    err := collection.FindOne(context.TODO(), bson.M{"user_command_id": user_command_ID, "stock": stock}).Decode(&trigger);
+    err := collection.FindOne(context.TODO(), bson.M{"user_command_id": user_command_ID, "stock": stock, "is_sell": isSell}).Decode(&trigger);
     return trigger, err
 }
 
@@ -62,9 +62,9 @@ func updateTrigger(client *mongo.Client, trigger modelsdata.Trigger) error {
     return err
 }
 
-func deleteTrigger(client *mongo.Client, user_command_ID string, stock string) error {
+func deleteTrigger(client *mongo.Client, user_command_ID string, stock string, isSell bool) error {
 	collection := client.Database("extremeworkload").Collection("triggers")
-	filter := bson.M{"user_command_id": user_command_ID, "stock": stock}
+	filter := bson.M{"user_command_id": user_command_ID, "stock": stock, "is_sell": isSell}
 	_, err := collection.DeleteOne(context.TODO(), filter)
 	return err
 }
@@ -120,6 +120,14 @@ func deleteUser(client *mongo.Client, command_ID string) error {
 	filter := bson.M{"command_id": command_ID}
 	_, err := collection.DeleteOne(context.TODO(), filter)
 	return err
+}
+
+func generateIsSellBool(isSellString string) bool {
+    if isSellString == "true" {
+        return true
+    }else{
+        return false
+    }
 }
 
 func handleConnection(conn net.Conn, client *mongo.Client) {
@@ -227,8 +235,9 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
         case "READ_TRIGGER":
             userCommandID := data[1];
             stock := data[2];
+            isSellString := data[3];
 
-            trigger, readErr := readTrigger(client, userCommandID, stock);
+            trigger, readErr := readTrigger(client, userCommandID, stock, generateIsSellBool(isSellString))
             triggerBytes, jsonErr := json.Marshal(trigger);
 
             var errorString = ""
@@ -281,8 +290,9 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
         case "DELETE_TRIGGER":
             userCommandID := data[1];
             stock := data[2];
+            isSellString := data[3];
 
-            deleteErr := deleteTrigger(client, userCommandID, stock);
+            deleteErr := deleteTrigger(client, userCommandID, stock, generateIsSellBool(isSellString));
             if deleteErr != nil {
                 lib.ServerSendResponse(conn, 500, deleteErr.Error());
                 break;

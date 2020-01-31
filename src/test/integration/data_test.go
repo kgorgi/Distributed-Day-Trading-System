@@ -80,7 +80,7 @@ func TestTriggers(t *testing.T) {
 	}
 	fmt.Println(triggers)
 
-	trigger, readErr := dataClient.ReadTrigger("1234", "ABC")
+	trigger, readErr := dataClient.ReadTrigger("1234", "ABC", false)
 	if readErr != nil {
 		t.Errorf("There was an error when reading a specific trigger");
 		fmt.Println(readErr)
@@ -103,7 +103,7 @@ func TestTriggers(t *testing.T) {
 	fmt.Println(triggersAfterUpdate)
 
 	//Deleting
-	deleteErr := dataClient.DeleteTrigger("1234", "ABC")
+	deleteErr := dataClient.DeleteTrigger("1234", "ABC", false)
 	if deleteErr != nil {
 		t.Errorf("There was an error when deleting a trigger");
 	}

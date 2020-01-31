@@ -50,7 +50,7 @@ func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditcli
 func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amount := lib.DollarsToCents(jsonCommand.Amount)
 
-	err := dataConn.addAmount(jsonCommand.Userid, amount, auditClient)
+	err := dataConn.addAmount(jsonCommand.Userid, amount)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -109,7 +109,7 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 		return
 	}
 
-	err = dataConn.removeAmount(jsonCommand.Userid, nextBuy.cents, auditClient)
+	err = dataConn.removeAmount(jsonCommand.Userid, nextBuy.cents)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -179,7 +179,7 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 		return
 	}
 
-	err = dataConn.addAmount(jsonCommand.Userid, nextSell.cents, auditClient)
+	err = dataConn.addAmount(jsonCommand.Userid, nextSell.cents)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		// TODO Return Stock to user's portfolio
@@ -207,7 +207,7 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 		return
 	}
 
-	stocks, err := dataConn.getStocks(jsonCommand.Userid)
+	investments, err := dataConn.getStocks(jsonCommand.Userid)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -217,12 +217,12 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 	str.WriteString(lib.CentsToDollars(balanceInCents))
 	str.WriteString(",")
 
-	for i, element := range stocks {
-		str.WriteString(element.stockSymbol)
+	for i, element := range investments {
+		str.WriteString(element.Stock)
 		str.WriteString(":")
-		str.WriteString(strconv.FormatUint(element.numOfStocks, 10))
+		str.WriteString(strconv.FormatUint(element.Amount, 10))
 
-		if i < len(stocks)-1 {
+		if i < len(investments)-1 {
 			str.WriteString(",")
 		}
 	}

@@ -149,17 +149,66 @@ func (client *databaseWrapper) removeStock(userid string, stockSymbol string, am
     return nil
 }
 
-//use client for adding a trigger
+func (client *databaseWrapper) getTrigger(userid string, stockSymbol string, isSell bool) (modelsdata.Trigger, error) {
+	trigger, readErr := dataClient.ReadTrigger(userid, stockSymbol, isSell);
+	if readErr != nil {
+		return modelsdata.Trigger{}, readErr
+	}
 
-// func (client *databaseWrapper) getStocks(userid string) ([]modelsdata.Investment, error) {
-//  var results = make([]stock, 0)
+	return trigger, nil
+}
 
-//  for k, v := range stocks {
-//      var newStock = stock{
-//          stockSymbol: k,
-//          numOfStocks: v,
-//      }
-//      results = append(results, newStock)
-//  }
-//  return results, nil 
-// }
+func (client *databaseWrapper) createTrigger(userid string, stockSymbol string, amount_cents uint64, isSell bool) error {
+	newTrigger := modelsdata.Trigger{ userid, stockSymbol, 0, amount_cents, isSell }
+	createErr := dataClient.CreateTrigger(newTrigger);
+	if createErr != nil {
+		return createErr
+	}
+
+	return nil
+}
+
+//probably should be called set trigger price
+func (client *databaseWrapper) setTriggerAmount(userid string, stockSymbol string, cents uint64, isSell bool) error {
+	trigger, readErr := dataClient.ReadTrigger(userid, stockSymbol, isSell)
+	if readErr != nil {
+		return readErr
+	}
+
+	trigger.Price_Cents = cents;
+	updateErr := dataClient.UpdateTrigger(trigger)
+	if updateErr != nil {
+		return updateErr
+	}
+
+	return nil
+}
+
+func (client *databaseWrapper) deleteTrigger(userid string, stockSymbol string, isSell bool) error {
+	deleteErr := dataClient.DeleteTrigger(userid, stockSymbol, isSell)
+	if deleteErr != nil {
+		return deleteErr
+	}
+
+	return nil
+}
+
+func (client *databaseWrapper) getTriggers() ([]modelsdata.Trigger, error) {
+	triggers, readErr := dataClient.ReadTriggers()
+	if readErr != nil {
+		return []modelsdata.Trigger{}, readErr
+	}
+
+	return triggers, nil
+}
+
+func (client *databaseWrapper) getStocks(userid string) ([]modelsdata.Investment, error) {
+	user, readErr := dataClient.ReadUser(userid)
+	if readErr != nil {
+		return []modelsdata.Investment{}, readErr
+	}
+
+	return user.Investments, nil
+}
+
+
