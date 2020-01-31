@@ -41,7 +41,8 @@ func commandRoute(w http.ResponseWriter, r *http.Request, ) {
 	}
 
 	auditInfo := auditclient.UserCommandInfo{
-		OptionalUserID: command["userid"],  
+		OptionalUserID: command["userid"],
+		OptionalFilename: command["filename"],  
 		OptionalStockSymbol:  command["stockSymbol"], 
 	}
 
