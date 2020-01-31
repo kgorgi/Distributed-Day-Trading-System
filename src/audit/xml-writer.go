@@ -30,7 +30,7 @@ func writeUserCommandTags(str *strings.Builder, info auditclient.UserCommandInfo
 	writeOptionalStringTag(str, userID, info.OptionalUserID)
 	writeOptionalStringTag(str, stockSymbol, info.OptionalStockSymbol)
 	writeOptionalStringTag(str, filename, info.OptionalFilename)
-	writeOptionalDecimalTag(str, "fundsInCents", info.OptionalFundsInCents)
+	writeOptionalDecimalTag(str, fundsInCents, info.OptionalFundsInCents)
 }
 
 func writeQuoteServerTags(str *strings.Builder, info auditclient.QuoteServerResponseInfo) {

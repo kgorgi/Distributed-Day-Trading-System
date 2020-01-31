@@ -62,12 +62,6 @@ func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.
 		return
 	}
 
-	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
-		Action:       "add",
-		UserID:       jsonCommand.Userid,
-		FundsInCents: amount,
-	})
-
 	lib.ServerSendOKResponse(conn)
 }
 
