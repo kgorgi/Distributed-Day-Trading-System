@@ -40,16 +40,17 @@ func commandRoute(w http.ResponseWriter, r *http.Request, ) {
 		TransactionNum: nextNum,
 	}
 
-	var funds = uint64(0)
-	if command["amount"] != "" {
-		funds, _ = strconv.ParseUint(command["amount"], 10, 64)
-	}
-
-	auditClient.LogUserCommandRequest(auditclient.UserCommandInfo{
+	auditInfo := auditclient.UserCommandInfo{
 		OptionalUserID: command["userid"],  
 		OptionalStockSymbol:  command["stockSymbol"], 
-		OptionalFundsInCents: &funds,
-	})
+	}
+
+	if command["amount"] != "" {
+		funds, _ := strconv.ParseUint(command["amount"], 10, 64)
+		auditInfo.OptionalFundsInCents = &funds
+	}
+
+	auditClient.LogUserCommandRequest(auditInfo)
 
 	var message string
 	var err error
