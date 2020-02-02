@@ -211,4 +211,3 @@ func (client *databaseWrapper) getStocks(userid string) ([]modelsdata.Investment
 	return user.Investments, nil
 }
 
-
