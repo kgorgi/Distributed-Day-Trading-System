@@ -40,34 +40,32 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
         case "READ_USER":
             commandID := data[1];
             user, readErr := readUser(client, commandID)
-			userBytes, jsonErr := json.Marshal(user)
-
-            var errorString = ""
             if readErr != nil {
-                errorString += readErr.Error()
-            }
-            if jsonErr != nil {
-                errorString += jsonErr.Error()
-            }
-            if errorString != "" {
-                lib.ServerSendResponse(conn, 500, errorString)
+                status := 500
+                if readErr == mongo.ErrNoDocuments {
+                    status = 404
+                }
+                lib.ServerSendResponse(conn, status, readErr.Error())
                 break;
             }
 
+            userBytes, jsonErr := json.Marshal(user)
+            if jsonErr != nil {
+                lib.ServerSendResponse(conn, 500, readErr.Error())
+                break;
+            }
+            
 			lib.ServerSendResponse(conn, lib.StatusOk, string(userBytes));
         case "READ_USERS":
             users, readErr := readUsers(client)
-            usersBytes, jsonErr := json.Marshal(users)
-			
-            var errorString = ""
             if readErr != nil {
-                errorString += readErr.Error()
+                lib.ServerSendResponse(conn, 500, readErr.Error())
+                break;
             }
+
+            usersBytes, jsonErr := json.Marshal(users)
             if jsonErr != nil {
-                errorString += jsonErr.Error()
-            }
-            if errorString != "" {
-                lib.ServerSendResponse(conn, 500, errorString)
+                lib.ServerSendResponse(conn, 500, readErr.Error())
                 break;
             }
 			
@@ -120,34 +118,32 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
             isSellString := data[3];
 
             trigger, readErr := readTrigger(client, userCommandID, stock, generateIsSellBool(isSellString))
-            triggerBytes, jsonErr := json.Marshal(trigger);
-
-            var errorString = ""
             if readErr != nil {
-                errorString += readErr.Error()
-            }
-            if jsonErr != nil {
-                errorString += jsonErr.Error()
-            }
-            if errorString != "" {
-                lib.ServerSendResponse(conn, 500, errorString)
+                status := 500
+                if readErr == mongo.ErrNoDocuments {
+                    status = 404
+                }
+                lib.ServerSendResponse(conn, status, readErr.Error())
                 break;
             }
-            
+
+            triggerBytes, jsonErr := json.Marshal(trigger);
+            if jsonErr != nil {
+                lib.ServerSendResponse(conn, 500, readErr.Error())
+                break;
+            }
+
             lib.ServerSendResponse(conn, lib.StatusOk, string(triggerBytes));
         case "READ_TRIGGERS":
             triggers, readErr := readTriggers(client);
-            triggersBytes, jsonErr := json.Marshal(triggers)
-
-            var errorString = ""
             if readErr != nil {
-                errorString += readErr.Error()
+                lib.ServerSendResponse(conn, 500, readErr.Error())
+                break;
             }
+
+            triggersBytes, jsonErr := json.Marshal(triggers)
             if jsonErr != nil {
-                errorString += jsonErr.Error()
-            }
-            if errorString != "" {
-                lib.ServerSendResponse(conn, 500, errorString)
+                lib.ServerSendResponse(conn, 500, readErr.Error())
                 break;
             }
 
