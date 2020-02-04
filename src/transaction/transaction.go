@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"strconv"
 
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 
@@ -11,7 +12,7 @@ import (
 )
 
 type CommandJSON struct {
-	TransactionNum uint64
+	TransactionNum string
 	Command        string
 	Userid         string
 	Amount         string
@@ -35,10 +36,12 @@ func handleWebConnection(conn net.Conn) {
 			break
 		}
 
+		transactionNum, _ := strconv.ParseUint(commandJSON.TransactionNum, 10, 64) 
+
 		var auditClient = auditclient.AuditClient{
-			Server:         "audit",
+			Server:         "transaction",
 			Command:        commandJSON.Command,
-			TransactionNum: 1,
+			TransactionNum: transactionNum,
 		}
 
 		processCommand(conn, commandJSON, auditClient)
@@ -52,7 +55,7 @@ func main() {
 
 	var auditclient = auditclient.AuditClient{
 		Server:         "transaction",
-		TransactionNum: 1,
+		TransactionNum: 0,
 		Command:        "N,/A",
 	}
 

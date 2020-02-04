@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const eotChar = '\\'
+const eotChar = '`'
 const seperatorChar = "|"
 
 // StatusOk (HTTP 200)
