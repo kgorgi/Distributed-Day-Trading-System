@@ -12,7 +12,7 @@ import (
 	"extremeWorkload.com/daytrader/lib/url"
 )
 
-var quoteServerAddress = "192.168.1.100:4443"
+const quoteServerAddress = "192.168.1.100:4443"
 
 // GetQuote returns a quote from the quote server
 func GetQuote(
