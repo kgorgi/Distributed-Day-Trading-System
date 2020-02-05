@@ -16,7 +16,7 @@ func buyTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *audi
 	numOfStocks := trigger.Amount_Cents / stockPrice
 	moneyToAdd := trigger.Amount_Cents - (stockPrice * numOfStocks)
 
-	err := dataConn.addAmount(trigger.User_Command_ID, moneyToAdd)
+	err := dataConn.addAmount(trigger.User_Command_ID, moneyToAdd, auditClient)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func sellTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *aud
 	moneyToAdd := stockPrice * numOfStocksToSell
 	stocksRemaining := stocksInReserve - numOfStocksToSell
 
-	err := dataConn.addAmount(trigger.User_Command_ID, moneyToAdd)
+	err := dataConn.addAmount(trigger.User_Command_ID, moneyToAdd, auditClient)
 	if err != nil {
 		return err
 	}

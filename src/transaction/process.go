@@ -56,7 +56,7 @@ func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditcli
 func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amount := lib.DollarsToCents(jsonCommand.Amount)
 
-	err := dataConn.addAmount(jsonCommand.Userid, amount)
+	err := dataConn.addAmount(jsonCommand.Userid, amount, auditClient)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -129,7 +129,7 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 		return
 	}
 
-	err = dataConn.removeAmount(jsonCommand.Userid, nextBuy.cents)
+	err = dataConn.removeAmount(jsonCommand.Userid, nextBuy.cents, auditClient)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -225,7 +225,7 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 		return
 	}
 
-	err = dataConn.addAmount(jsonCommand.Userid, nextSell.cents)
+	err = dataConn.addAmount(jsonCommand.Userid, nextSell.cents, auditClient)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		// TODO Return Stock to user's portfolio
@@ -273,7 +273,7 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 		return
 	}
 
-	err = dataConn.removeAmount(jsonCommand.Userid, amountInCents)
+	err = dataConn.removeAmount(jsonCommand.Userid, amountInCents, auditClient)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -349,7 +349,7 @@ func handleCancelSetBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 		return
 	}
 
-	err = dataConn.addAmount(jsonCommand.Userid, trigger.Amount_Cents)
+	err = dataConn.addAmount(jsonCommand.Userid, trigger.Amount_Cents, auditClient)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return

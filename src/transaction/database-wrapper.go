@@ -5,6 +5,7 @@ import (
     "errors"
     dataclient "extremeWorkload.com/daytrader/lib/data"
     modelsdata "extremeWorkload.com/daytrader/lib/models/data"
+    auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
 type databaseWrapper struct {
@@ -64,7 +65,7 @@ func (client *databaseWrapper) createUser(userid string) error {
     return dataClient.CreateUser(user)
 }
 
-func (client *databaseWrapper) addAmount(userid string, cents uint64) error {
+func (client *databaseWrapper) addAmount(userid string, cents uint64, auditClient *auditclient.AuditClient) error {
     user, readErr := readUser(userid)
     if readErr != nil {
         return readErr
@@ -75,6 +76,12 @@ func (client *databaseWrapper) addAmount(userid string, cents uint64) error {
     if updateErr != nil {
         return updateErr
     }
+
+    auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
+		Action:       "add",
+		UserID:       userid,
+		FundsInCents: cents,
+	})
     
     return nil
 }
@@ -88,7 +95,7 @@ func (client *databaseWrapper) getBalance(userid string) (uint64, error) {
     return user.Cents, nil
 }
 
-func (client *databaseWrapper) removeAmount(userid string, cents uint64) error {
+func (client *databaseWrapper) removeAmount(userid string, cents uint64, auditClient *auditclient.AuditClient) error {
     user, readErr := readUser(userid)
     if readErr != nil {
         return readErr
@@ -103,6 +110,12 @@ func (client *databaseWrapper) removeAmount(userid string, cents uint64) error {
     if updateErr != nil {
         return updateErr
     }
+
+    auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
+		Action:       "remove",
+		UserID:       userid,
+		FundsInCents: cents,
+	})
     
     return nil
 }
