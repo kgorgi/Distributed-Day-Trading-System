@@ -220,7 +220,7 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 		return
 	}
 
-	err = dataConn.removeAmount(jsonCommand.Userid, amountInCents, auditClient)
+	err = dataConn.removeAmount(jsonCommand.Userid, amountInCents)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -240,11 +240,6 @@ func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, false)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
-	if trigger == nil {
-		lib.ServerSendResponse(conn, lib.StatusUserError, "Trigger amount has not been set")
 		return
 	}
 
@@ -271,12 +266,7 @@ func handleCancelSetBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 		return
 	}
 
-	if trigger == nil {
-		lib.ServerSendResponse(conn, lib.StatusUserError, "Trigger does not exist")
-		return
-	}
-
-	err = dataConn.addAmount(jsonCommand.Userid, trigger.Amount_Cents, auditClient)
+	err = dataConn.addAmount(jsonCommand.Userid, trigger.Amount_Cents)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -308,11 +298,6 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
-	if trigger == nil {
-		lib.ServerSendResponse(conn, lib.StatusUserError, "Trigger amount has not been set")
 		return
 	}
 
@@ -355,11 +340,6 @@ func handleCancelSetSell(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
-	if trigger == nil {
-		lib.ServerSendResponse(conn, lib.StatusUserError, "Trigger does not exist")
 		return
 	}
 

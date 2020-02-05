@@ -10,6 +10,11 @@ import (
 	"extremeWorkload.com/daytrader/lib/models/data"
 )
 
+var (
+	// ErrNotFound is returned when a user or trigger is not found in the database.
+	ErrNotFound = errors.New("not found")
+)
+
 const dataServerDockerAddress = "data-server:5001"
 const dataServerLocalAddress = "localhost:5001"
 
@@ -153,7 +158,7 @@ func generateIsSellString(isSell bool) string {
 
 func (client *DataClient) sendRequest(payload string) (int, string, error) {
 	//connect to data server
-	conn, err := net.Dial("tcp", dataServerLocalAddress)
+	conn, err := net.Dial("tcp", dataServerDockerAddress)
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
 		return -1, "", err
@@ -171,7 +176,10 @@ func (client *DataClient) sendRequest(payload string) (int, string, error) {
 
 	if status != lib.StatusOk {
 		log.Println("Response Error: Status " + strconv.Itoa(status) + " " + message)
-		return status, message, errors.New("Not Ok, status: " + string(status));
+		if status == 404 {
+			return status, message, ErrNotFound;
+		}
+		return status, message, errors.New("Not ok, status: " + strconv.Itoa(status));
 	}
 
 	return status, message, nil

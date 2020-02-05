@@ -18,11 +18,37 @@ type stock struct {
 
 var dataClient = dataclient.DataClient{}
 
+func readUser(userid string) (modelsdata.User, error) {
+    user, err := dataClient.ReadUser(userid);
+    if err != nil {
+        errToReturn := err
+        if err == dataclient.ErrNotFound {
+            errToReturn = ErrDataNotFound
+        }
+        return modelsdata.User{}, errToReturn
+    }
+
+    return user, nil
+}
+
+func readTrigger(userid string, stockSymbol string, isSell bool) (modelsdata.Trigger, error) {
+    trigger, err := dataClient.ReadTrigger(userid, stockSymbol, isSell)
+    if err != nil {
+        errToReturn := err
+        if err == dataclient.ErrNotFound {
+            errToReturn = ErrDataNotFound
+        }
+        return modelsdata.Trigger{}, errToReturn
+    }
+
+    return trigger, nil
+}
+
 func (client *databaseWrapper) userExists(userid string) (bool, error) {
     _, err := dataClient.ReadUser(userid);
 
     if err != nil {
-        if err.Error() == "Not Ok, status: 404" { //do this in a cleaner way later
+        if err == dataclient.ErrNotFound {
             return false, nil
         }else {
             return false, err
@@ -38,7 +64,7 @@ func (client *databaseWrapper) createUser(userid string) error {
 }
 
 func (client *databaseWrapper) addAmount(userid string, cents uint64) error {
-    user, readErr := dataClient.ReadUser(userid);
+    user, readErr := readUser(userid)
     if readErr != nil {
         return readErr
     }
@@ -53,7 +79,7 @@ func (client *databaseWrapper) addAmount(userid string, cents uint64) error {
 }
 
 func (client *databaseWrapper) getBalance(userid string) (uint64, error) {
-    user, readErr := dataClient.ReadUser(userid);
+    user, readErr := readUser(userid)
     if readErr != nil {
         return 0, readErr
     }
@@ -62,7 +88,7 @@ func (client *databaseWrapper) getBalance(userid string) (uint64, error) {
 }
 
 func (client *databaseWrapper) removeAmount(userid string, cents uint64) error {
-    user, readErr := dataClient.ReadUser(userid);
+    user, readErr := readUser(userid)
     if readErr != nil {
         return readErr
     }
@@ -81,7 +107,7 @@ func (client *databaseWrapper) removeAmount(userid string, cents uint64) error {
 }
 
 func (client *databaseWrapper) getStockAmount(userid string, stockSymbol string) (uint64, error) {
-    user, readErr := dataClient.ReadUser(userid);
+    user, readErr := readUser(userid)
     if readErr != nil {
         return 0, readErr
     }
@@ -101,8 +127,7 @@ func (client *databaseWrapper) getStockAmount(userid string, stockSymbol string)
 }
 
 func (client *databaseWrapper) addStock(userid string, stockSymbol string, amount uint64) error {
-    //read the client first
-    user, readErr := dataClient.ReadUser(userid);
+    user, readErr := readUser(userid)
     if readErr != nil {
         return readErr
     }
@@ -131,8 +156,7 @@ func (client *databaseWrapper) addStock(userid string, stockSymbol string, amoun
 }
 
 func (client *databaseWrapper) removeStock(userid string, stockSymbol string, amount uint64) error {
-    //read the client first
-    user, readErr := dataClient.ReadUser(userid);
+    user, readErr := readUser(userid)
     if readErr != nil {
         return readErr
     }
@@ -173,7 +197,7 @@ func (client *databaseWrapper) removeStock(userid string, stockSymbol string, am
 }
 
 func (client *databaseWrapper) getTrigger(userid string, stockSymbol string, isSell bool) (modelsdata.Trigger, error) {
-	trigger, readErr := dataClient.ReadTrigger(userid, stockSymbol, isSell);
+	trigger, readErr := readTrigger(userid, stockSymbol, isSell)
 	if readErr != nil {
 		return modelsdata.Trigger{}, readErr
 	}
@@ -191,9 +215,8 @@ func (client *databaseWrapper) createTrigger(userid string, stockSymbol string, 
 	return nil
 }
 
-//probably should be called set trigger price
 func (client *databaseWrapper) setTriggerAmount(userid string, stockSymbol string, cents uint64, isSell bool) error {
-	trigger, readErr := dataClient.ReadTrigger(userid, stockSymbol, isSell)
+	trigger, readErr := readTrigger(userid, stockSymbol, isSell)
 	if readErr != nil {
 		return readErr
 	}
@@ -210,6 +233,9 @@ func (client *databaseWrapper) setTriggerAmount(userid string, stockSymbol strin
 func (client *databaseWrapper) deleteTrigger(userid string, stockSymbol string, isSell bool) error {
 	deleteErr := dataClient.DeleteTrigger(userid, stockSymbol, isSell)
 	if deleteErr != nil {
+        if deleteErr == dataclient.ErrNotFound {
+            return ErrDataNotFound
+        }
 		return deleteErr
 	}
 
@@ -226,7 +252,7 @@ func (client *databaseWrapper) getTriggers() ([]modelsdata.Trigger, error) {
 }
 
 func (client *databaseWrapper) getStocks(userid string) ([]modelsdata.Investment, error) {
-	user, readErr := dataClient.ReadUser(userid)
+	user, readErr := readUser(userid)
 	if readErr != nil {
 		return []modelsdata.Investment{}, readErr
 	}
