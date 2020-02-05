@@ -8,10 +8,9 @@ import (
 	"encoding/json"
 	"extremeWorkload.com/daytrader/lib"
 	"extremeWorkload.com/daytrader/lib/models/data"
+	"extremeWorkload.com/daytrader/lib/url"
 )
 
-const dataServerDockerAddress = "data-server:5001"
-const dataServerLocalAddress = "localhost:5001"
 
 type DataClient struct {}
 
@@ -143,7 +142,7 @@ func (client *DataClient) DeleteTrigger(userID string, stockName string) error {
 
 func (client *DataClient) sendRequest(payload string) (int, string, error) {
 	//connect to data server
-	conn, err := net.Dial("tcp", dataServerLocalAddress)
+	conn, err := net.Dial("tcp", url.ResolveDataServerAddress())
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
 		return -1, "", err
