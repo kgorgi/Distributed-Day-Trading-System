@@ -18,6 +18,7 @@ type stock struct {
 
 var dataClient = dataclient.DataClient{}
 
+// These two read functions are here to perform some additional error handling
 func readUser(userid string) (modelsdata.User, error) {
     user, err := dataClient.ReadUser(userid);
     if err != nil {
@@ -132,7 +133,7 @@ func (client *databaseWrapper) addStock(userid string, stockSymbol string, amoun
         return readErr
     }
 
-    //find the investment in the user struct and set the amount specified in the params
+    // Find the investment in the user struct and set the amount specified in the params
     investmentIndex := -1
     for i, investment := range user.Investments {
         if(investment.Stock == stockSymbol) {
@@ -140,7 +141,7 @@ func (client *databaseWrapper) addStock(userid string, stockSymbol string, amoun
         }
     }
 
-    //if you can't find the investment create a new investment, otherwise add to the existing one
+    // If you can't find the investment create a new investment, otherwise add to the existing one
     if investmentIndex == -1 {
         user.Investments = append(user.Investments, modelsdata.Investment{stockSymbol, amount});
     } else {
@@ -168,12 +169,12 @@ func (client *databaseWrapper) removeStock(userid string, stockSymbol string, am
         }
     }
 
-    //make sure the stock is found
+    // Make sure the stock is found
     if investmentIndex == -1 {
         return errors.New("The user with id " + userid + " does not have any of the stock " + stockSymbol);
     }
 
-    //make sure they have enough stock to remove the amount
+    // Make sure they have enough stock to remove the amount
     userStockAmount := user.Investments[investmentIndex].Amount
     if userStockAmount < amount {
         return errors.New("The user does not have sufficient stock ( " + string(userStockAmount) + " ) to remove " + string(amount));
@@ -182,7 +183,7 @@ func (client *databaseWrapper) removeStock(userid string, stockSymbol string, am
     remainingAmount := userStockAmount - amount
     user.Investments[investmentIndex].Amount = remainingAmount;
 
-    //If the remaining amount is 0 remove the investment from the user
+    // If the remaining amount is 0 remove the investment from the user
     if remainingAmount == 0 {
         user.Investments[investmentIndex] = user.Investments[len(user.Investments) - 1]
         user.Investments = user.Investments[:len(user.Investments) - 1]
