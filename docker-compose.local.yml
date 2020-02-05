@@ -1,0 +1,9 @@
+version: "3"
+services:
+    quote-mock:
+        container_name: "quote-mock-server"
+        build:
+            context: .
+            dockerfile: docker-files/local/Dockerfile.quote-mock
+        ports:
+            - "4443:4443"

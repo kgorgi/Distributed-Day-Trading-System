@@ -8,7 +8,7 @@ all: build
 
 # Build Commands
 .phony build:
-build: build-web build-transaction build-data build-audit build-generator
+build: build-web build-transaction build-data build-audit build-generator build-quote-mock
 
 .phony build-web:
 build-web: 
@@ -32,12 +32,12 @@ build-generator:
 
 .phony build-quote-mock:
 build-quote-mock: 
-	cd $(SRC)/test/mocks && go build -o ../$(OUTPUT)/quote-mock
+	cd $(SRC)/quote-mock && go build -o $(OUTPUT)/quote-mock
 
 # Docker Compose Commands
 .phony docker-deploy:
 docker-deploy:
-	docker-compose up --build
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
 .phony docker-deploy-lab:
 docker-deploy-lab: build
