@@ -18,13 +18,15 @@ type stock struct {
 
 var dataClient = dataclient.DataClient{}
 
-// IsUserExist check if user is in db
 func (client *databaseWrapper) userExists(userid string) (bool, error) {
-    
-    //Read User should return an error if there is no matching user
     _, err := dataClient.ReadUser(userid);
+
     if err != nil {
-        return false, err
+        if err.Error() == "Not Ok, status: 404" { //do this in a cleaner way later
+            return false, nil
+        }else {
+            return false, err
+        }
     }
     
     return true, nil
@@ -69,6 +71,7 @@ func (client *databaseWrapper) removeAmount(userid string, cents uint64) error {
         return errors.New("The user does not have sufficient funds ( " + string(user.Cents) + " ) to remove " + string(cents));
     }
 
+    user.Cents -= cents;
     updateErr := dataClient.UpdateUser(user)
     if updateErr != nil {
         return updateErr
@@ -78,19 +81,23 @@ func (client *databaseWrapper) removeAmount(userid string, cents uint64) error {
 }
 
 func (client *databaseWrapper) getStockAmount(userid string, stockSymbol string) (uint64, error) {
-    //return stocks[stockSymbol], nil
     user, readErr := dataClient.ReadUser(userid);
     if readErr != nil {
         return 0, readErr
     }
 
-    var amount uint64
-    for _, investment := range user.Investments {
+    investmentIndex := -1;
+    for i, investment := range user.Investments {
         if(investment.Stock == stockSymbol) {
-            amount = investment.Amount
+            investmentIndex = i;
         }
     }
-    return amount, nil
+
+    if investmentIndex == -1 {
+        return 0, nil;
+    }
+
+    return user.Investments[investmentIndex].Amount, nil
 }
 
 func (client *databaseWrapper) addStock(userid string, stockSymbol string, amount uint64) error {
@@ -101,15 +108,20 @@ func (client *databaseWrapper) addStock(userid string, stockSymbol string, amoun
     }
 
     //find the investment in the user struct and set the amount specified in the params
-    var investmentIndex int
+    investmentIndex := -1
     for i, investment := range user.Investments {
         if(investment.Stock == stockSymbol) {
             investmentIndex = i
         }
     }
-    user.Investments[investmentIndex].Amount += amount
 
-    //update the user in the db
+    //if you can't find the investment create a new investment, otherwise add to the existing one
+    if investmentIndex == -1 {
+        user.Investments = append(user.Investments, modelsdata.Investment{stockSymbol, amount});
+    } else {
+        user.Investments[investmentIndex].Amount += amount
+    }
+
     updateErr := dataClient.UpdateUser(user)
     if updateErr != nil {
         return updateErr
@@ -125,22 +137,33 @@ func (client *databaseWrapper) removeStock(userid string, stockSymbol string, am
         return readErr
     }
 
-    //find the investment in the user struct and set the amount specified in the params
-    var investmentIndex int
+    investmentIndex := -1;
     for i, investment := range user.Investments {
         if(investment.Stock == stockSymbol) {
             investmentIndex = i
         }
     }
 
-    //check to see if the user has enough stock to remove
+    //make sure the stock is found
+    if investmentIndex == -1 {
+        return errors.New("The user with id " + userid + " does not have any of the stock " + stockSymbol);
+    }
+
+    //make sure they have enough stock to remove the amount
     userStockAmount := user.Investments[investmentIndex].Amount
     if userStockAmount < amount {
         return errors.New("The user does not have sufficient stock ( " + string(userStockAmount) + " ) to remove " + string(amount));
     }
 
-    //update the user in the db
-    user.Investments[investmentIndex].Amount -= amount
+    remainingAmount := userStockAmount - amount
+    user.Investments[investmentIndex].Amount = remainingAmount;
+
+    //If the remaining amount is 0 remove the investment from the user
+    if remainingAmount == 0 {
+        user.Investments[investmentIndex] = user.Investments[len(user.Investments) - 1]
+        user.Investments = user.Investments[:len(user.Investments) - 1]
+    }
+
     updateErr := dataClient.UpdateUser(user)
     if updateErr != nil {
         return updateErr
@@ -194,7 +217,7 @@ func (client *databaseWrapper) deleteTrigger(userid string, stockSymbol string, 
 }
 
 func (client *databaseWrapper) getTriggers() ([]modelsdata.Trigger, error) {
-	triggers, readErr := dataClient.ReadTriggers()
+    triggers, readErr := dataClient.ReadTriggers()
 	if readErr != nil {
 		return []modelsdata.Trigger{}, readErr
 	}
