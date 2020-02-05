@@ -1,0 +1,8 @@
+FROM golang:latest
+
+WORKDIR ./server
+COPY ./build/transaction .
+
+EXPOSE 5000
+
+CMD ["./transaction"]

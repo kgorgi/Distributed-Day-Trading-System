@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 SRC = ./src
 OUTPUT = ../../build
 
@@ -37,13 +39,17 @@ build-quote-mock:
 docker-deploy:
 	docker-compose up --build
 
+.phony docker-deploy-lab:
+docker-deploy-lab: build
+	sudo docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build
+
 .phony docker-redeploy:
 docker-redeploy:
 	docker-compose up --build --force-recreate --no-deps -d $(c)
 
 .phony docker-teardown:
 docker-teardown:  
-	docker-compose down
+	docker-compose down --remove-orphans
 
 # Docker Container Commands
 .phony docker-list:

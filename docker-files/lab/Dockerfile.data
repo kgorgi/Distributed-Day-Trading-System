@@ -1,0 +1,8 @@
+FROM golang:latest
+
+WORKDIR ./server
+COPY ./build/data .
+
+EXPOSE 5001
+
+CMD ["./data"]

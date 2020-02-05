@@ -1,0 +1,8 @@
+FROM golang:latest
+
+WORKDIR ./server
+COPY ./build/audit .
+
+EXPOSE 5002
+
+CMD ["./audit"]

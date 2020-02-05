@@ -1,0 +1,29 @@
+version: "3"
+services:
+    web:
+        build:
+            dockerfile: docker-files/lab/Dockerfile.web
+        environment:
+            - IS_LAB=true
+            - IS_DOCKER=true
+
+    transaction:
+        build:
+            dockerfile: docker-files/lab/Dockerfile.transaction
+        environment:
+            - IS_LAB=true
+            - IS_DOCKER=true
+
+    data:
+        build:
+            dockerfile: docker-files/lab/Dockerfile.data
+        environment:
+            - IS_LAB=true
+            - IS_DOCKER=true
+
+    audit:
+        build:
+            dockerfile: docker-files/lab/Dockerfile.audit
+        environment:
+            - IS_LAB=true
+            - IS_DOCKER=true
