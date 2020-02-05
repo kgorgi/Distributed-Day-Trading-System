@@ -11,7 +11,7 @@ services:
         ports:
             - "8080:8080"
         environment:
-            - IS_DOCKER=true
+            - ENV=DOCKER
 
     transaction:
         container_name: "transaction-server"
@@ -21,10 +21,8 @@ services:
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.transaction
-        ports:
-            - "5000:5000"
         environment:
-            - IS_DOCKER=true
+            - ENV=DOCKER
 
     data:
         container_name: "data-server"
@@ -34,10 +32,8 @@ services:
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.data
-        ports:
-            - "5001:5001"
         environment:
-            - IS_DOCKER=true
+            - ENV=DOCKER
 
     audit:
         container_name: "audit-server"
@@ -46,24 +42,16 @@ services:
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.audit
-        ports:
-            - "5002:5002"
         environment:
-            - IS_DOCKER=true
-
+            - ENV=DOCKER
     dataDB:
         image: mongo:latest
         container_name: "data-mongoDB"
-        ports:
-            - "27017:27017"
         environment:
             MONGO_INITDB_DATABASE: data
 
     auditDB:
         image: mongo:latest
         container_name: "audit-mongoDB"
-        command: mongod --port 27018
-        ports:
-            - "27018:27018"
         environment:
             MONGO_INITDB_DATABASE: audit

@@ -21,11 +21,7 @@ func CentsToDollars(cents uint64) string {
 	return fmt.Sprintf("%d.%02d", dollars, remainingCents)
 }
 
-func IsLabEnvironment() bool {
-	value := os.Getenv("LAB")
-	if len(value) == 0 {
-		return false
-	}
-
-	return value == "TRUE"
+func UseLabQuoteServer() bool {
+	env := os.Getenv("ENV")
+	return env == "LAB"
 }

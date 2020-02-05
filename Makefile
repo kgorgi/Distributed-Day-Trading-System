@@ -35,17 +35,21 @@ build-quote-mock:
 	cd $(SRC)/quote-mock && go build -o $(OUTPUT)/quote-mock
 
 # Docker Compose Commands
-.phony docker-deploy:
-docker-deploy:
+.phony docker-deploy-dev:
+docker-deploy-dev:
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build
+
+.phony docker-deploy-local:
+docker-deploy-local:
 	docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build
 
 .phony docker-deploy-lab:
 docker-deploy-lab: build
 	sudo docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build
 
-.phony docker-redeploy:
+.phony docker-redeploy-dev:
 docker-redeploy:
-	docker-compose up --build --force-recreate --no-deps -d $(c)
+	docker-compose up -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --build --force-recreate --no-deps -d $(c)
 
 .phony docker-teardown:
 docker-teardown:  

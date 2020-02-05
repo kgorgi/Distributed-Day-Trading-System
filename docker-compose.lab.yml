@@ -4,26 +4,22 @@ services:
         build:
             dockerfile: docker-files/lab/Dockerfile.web
         environment:
-            - IS_LAB=true
-            - IS_DOCKER=true
+            - ENV=LAB
 
     transaction:
         build:
             dockerfile: docker-files/lab/Dockerfile.transaction
         environment:
-            - IS_LAB=true
-            - IS_DOCKER=true
+            - ENV=LAB
 
     data:
         build:
             dockerfile: docker-files/lab/Dockerfile.data
         environment:
-            - IS_LAB=true
-            - IS_DOCKER=true
+            - ENV=LAB
 
     audit:
         build:
             dockerfile: docker-files/lab/Dockerfile.audit
         environment:
-            - IS_LAB=true
-            - IS_DOCKER=true
+            - ENV=LAB

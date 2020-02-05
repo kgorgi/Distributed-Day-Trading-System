@@ -5,5 +5,3 @@ services:
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.quote-mock
-        ports:
-            - "4443:4443"

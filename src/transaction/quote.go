@@ -20,10 +20,10 @@ func GetQuote(
 	userID string,
 	auditClient *auditclient.AuditClient) uint64 {
 
-	var address = quoteServerAddress
+	var address = url.ResolveMockQuoteServerAddress()
 
-	if !lib.IsLabEnvironment() {
-		address = url.ResolveLegacyQuoteServerAddress()
+	if lib.UseLabQuoteServer() {
+		address = quoteServerAddress
 	}
 
 	// Establish Connection to Quote Server
