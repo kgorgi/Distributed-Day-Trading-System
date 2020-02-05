@@ -11,8 +11,8 @@ import (
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
-var quoteServerAddress = "192.168.1.100:4443"
-var localQuoteServerAddress = ":4443"
+const quoteServerAddress = "192.168.1.100:4443"
+// const quoteServerAddress = ":4443"
 
 // GetQuote returns a quote from the quote server
 func GetQuote(
@@ -21,7 +21,7 @@ func GetQuote(
 	auditClient *auditclient.AuditClient) uint64 {
 
 	// Establish Connection to Quote Server
-	conn, err := net.Dial("tcp", localQuoteServerAddress)
+	conn, err := net.Dial("tcp", quoteServerAddress)
 	if err != nil {
 		log.Fatalln("Could not connect to quote server")
 		return 0
@@ -36,7 +36,9 @@ func GetQuote(
 	}
 
 	// Receive Response
-	rawResponse, err := bufio.NewReader(conn).ReadString('\n')
+	rawResponse, err := bufio.NewReader(conn).ReadString('\n')	
+	rawResponse = strings.TrimRight(rawResponse, "\n")
+
 	if err != nil {
 		log.Fatalln("Failed to recieve response to quote server")
 		return 0
@@ -57,7 +59,6 @@ func GetQuote(
 	}
 
 	cents := lib.DollarsToCents(data[0])
-
 	auditClient.LogQuoteServerResponse(auditclient.QuoteServerResponseInfo{
 		QuoteServerTime: timestamp,
 		UserID:          userID,

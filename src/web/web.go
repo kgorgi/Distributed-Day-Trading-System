@@ -3,17 +3,15 @@ package main
 import (
 	"fmt"
 	"net/http"
-
+	"sync/atomic"
+	"strconv"
 	"github.com/gorilla/mux"
 
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
-var auditClient = auditclient.AuditClient{
-	Server: "web",
-}
-
 const webServerAddress = ":8080"
+var transactionNum uint64 = 0
 
 func parseCommandRequest(r *http.Request) map[string]string {
 
@@ -30,10 +28,41 @@ func parseCommandRequest(r *http.Request) map[string]string {
 }
 
 // Creates a route method. Whenever the route is called, it always uses the same socket
-func commandRoute(w http.ResponseWriter, r *http.Request) {
+func commandRoute(w http.ResponseWriter, r *http.Request, ) {
 	command := parseCommandRequest(r)
-	var transactionClient TransactionClient
-	status, message, err := transactionClient.SendCommand(command)
+
+	var nextNum = atomic.AddUint64(&transactionNum, 1)
+	command["transactionNum"] = strconv.FormatUint(nextNum, 10)
+
+	var auditClient = auditclient.AuditClient{
+		Command: command["command"],
+		Server: "web",
+		TransactionNum: nextNum,
+	}
+
+	auditInfo := auditclient.UserCommandInfo{
+		OptionalUserID: command["userid"],
+		OptionalFilename: command["filename"],  
+		OptionalStockSymbol:  command["stockSymbol"], 
+	}
+
+	if command["amount"] != "" {
+		funds, _ := strconv.ParseUint(command["amount"], 10, 64)
+		auditInfo.OptionalFundsInCents = &funds
+	}
+
+	auditClient.LogUserCommandRequest(auditInfo)
+
+	var message string
+	var err error
+	var status int
+	if command["command"] == "DUMPLOG" {
+		message, err = auditClient.DumpLogAll()
+		status = 200
+	} else {
+		var transactionClient TransactionClient
+		status, message, err = transactionClient.SendCommand(command)
+	}
 
 	w.WriteHeader(status)
 	if err != nil {
