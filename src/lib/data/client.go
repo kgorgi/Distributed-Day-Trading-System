@@ -129,7 +129,7 @@ func (client *DataClient) ReadTriggersByUser(userID string) ([]modelsdata.Trigge
 }
 
 func (client *DataClient) ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigger, error) {
-	payload := "READ_TRIGGER|" + userID + "|" + stockName + "|" + generateIsSellString(isSell)
+	payload := "READ_TRIGGER|" + userID + "|" + stockName + "|" + strconv.FormatBool(isSell)
 	_, message, err := client.sendRequest(payload);
 	if err != nil {
 		return modelsdata.Trigger{}, err
@@ -159,17 +159,9 @@ func (client *DataClient) UpdateTrigger(trigger modelsdata.Trigger) error {
 func (client *DataClient) DeleteTrigger(userID string, stockName string, isSell bool) error {
 
 
-	payload := "DELETE_TRIGGER|" + userID + "|" + stockName + "|" + generateIsSellString(isSell)
+	payload := "DELETE_TRIGGER|" + userID + "|" + stockName + "|" + strconv.FormatBool(isSell)
 	_, _, err := client.sendRequest(payload)
 	return err
-}
-
-func generateIsSellString(isSell bool) string {
-	if isSell {
-		return "true"
-	} else {
-		return "false"
-	}
 }
 
 func (client *DataClient) sendRequest(payload string) (int, string, error) {
@@ -192,7 +184,7 @@ func (client *DataClient) sendRequest(payload string) (int, string, error) {
 
 	if status != lib.StatusOk {
 		log.Println("Response Error: Status " + strconv.Itoa(status) + " " + message)
-		if status == 404 {
+		if status == lib.StatusNotFound {
 			return status, message, ErrNotFound;
 		}
 		return status, message, errors.New("Not ok, status: " + strconv.Itoa(status));

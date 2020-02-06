@@ -19,6 +19,9 @@ const StatusUserError = 400
 // StatusSystemError (HTTP 500)
 const StatusSystemError = 500
 
+// StatusNotFound (HTTP 404)
+const StatusNotFound = 404
+
 // ClientSendRequest sends a request to a server and then returns
 // the response from the server (status, message/error, exception)
 func ClientSendRequest(conn net.Conn, payload string) (int, string, error) {
