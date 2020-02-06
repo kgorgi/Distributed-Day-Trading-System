@@ -12,7 +12,12 @@ import (
 	"extremeWorkload.com/daytrader/lib/resolveurl"
 )
 
-type DataClient struct{}
+var (
+	// ErrNotFound is returned when a user or trigger is not found in the database.
+	ErrNotFound = errors.New("not found")
+)
+
+type DataClient struct {}
 
 func (client *DataClient) CreateUser(user modelsdata.User) error {
 	userBytes, jsonErr := json.Marshal(user)
@@ -106,9 +111,9 @@ func (client *DataClient) ReadTriggers() ([]modelsdata.Trigger, error) {
 	return triggers, nil
 }
 
-func (client *DataClient) ReadTrigger(userID string, stockName string) (modelsdata.Trigger, error) {
-	payload := "READ_TRIGGER|" + userID + "|" + stockName
-	_, message, err := client.sendRequest(payload)
+func (client *DataClient) ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigger, error) {
+	payload := "READ_TRIGGER|" + userID + "|" + stockName + "|" + strconv.FormatBool(isSell)
+	_, message, err := client.sendRequest(payload);
 	if err != nil {
 		return modelsdata.Trigger{}, err
 	}
@@ -134,8 +139,10 @@ func (client *DataClient) UpdateTrigger(trigger modelsdata.Trigger) error {
 	return err
 }
 
-func (client *DataClient) DeleteTrigger(userID string, stockName string) error {
-	payload := "DELETE_TRIGGER|" + userID + "|" + stockName
+func (client *DataClient) DeleteTrigger(userID string, stockName string, isSell bool) error {
+
+
+	payload := "DELETE_TRIGGER|" + userID + "|" + stockName + "|" + strconv.FormatBool(isSell)
 	_, _, err := client.sendRequest(payload)
 	return err
 }
@@ -160,7 +167,10 @@ func (client *DataClient) sendRequest(payload string) (int, string, error) {
 
 	if status != lib.StatusOk {
 		log.Println("Response Error: Status " + strconv.Itoa(status) + " " + message)
-		return status, message, errors.New("Not Ok, status: " + string(status))
+		if status == lib.StatusNotFound {
+			return status, message, ErrNotFound;
+		}
+		return status, message, errors.New("Not ok, status: " + strconv.Itoa(status));
 	}
 
 	return status, message, nil

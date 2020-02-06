@@ -62,7 +62,7 @@ func TransactionServerAddress() string {
 
 // DataServerAddress returns the database server address
 func DataServerAddress() string {
-	return resolveServerAddress("data-server", "5000")
+	return resolveServerAddress("data-server", "5001")
 }
 
 // MockQuoteServerAddress returns the mock legacy quote server address

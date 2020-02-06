@@ -292,23 +292,22 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
 	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, false)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
-	if trigger == nil {
+	if err == ErrDataNotFound {
 		errorMessage := "Trigger amount has not been set"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID: jsonCommand.Userid,
 			OptionalStockSymbol: jsonCommand.StockSymbol,
 			OptionalErrorMessage: errorMessage,
 		})
-
+		
 		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
 		return
 	}
-
+	
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
 
 	if trigger.Amount_Cents < amountInCents {
 		errorMessage := "Amount too high trigger will never execute"
@@ -333,20 +332,20 @@ func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 
 func handleCancelSetBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, false)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
-	if trigger == nil {
+	if err == ErrDataNotFound {
 		errorMessage := "Trigger does not exist"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID: jsonCommand.Userid,
 			OptionalStockSymbol: jsonCommand.StockSymbol,
 			OptionalErrorMessage: errorMessage,
 		})
-
+		
 		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		return
+	}
+	
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
 	}
 
@@ -381,20 +380,20 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	priceInCents := lib.DollarsToCents(jsonCommand.Amount)	
 	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
-	if trigger == nil {
+	if err == ErrDataNotFound {
 		errorMessage := "Trigger amount has not been set"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID: jsonCommand.Userid,
 			OptionalStockSymbol: jsonCommand.StockSymbol,
 			OptionalErrorMessage: errorMessage,
 		})
-
+		
 		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		return
+	}
+	
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
 	}
 
@@ -448,12 +447,8 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 
 func handleCancelSetSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
-	if trigger == nil {
+	
+	if err == ErrDataNotFound {
 		errorMessage := "Trigger does not exist"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID: jsonCommand.Userid,
@@ -462,6 +457,11 @@ func handleCancelSetSell(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 		})
 
 		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		return
+	} 
+	
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
 	}
 
@@ -495,7 +495,7 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 		return
 	}
 
-	stocks, err := dataConn.getStocks(jsonCommand.Userid)
+	investments, err := dataConn.getStocks(jsonCommand.Userid)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -505,12 +505,12 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 	str.WriteString(lib.CentsToDollars(balanceInCents))
 	str.WriteString(",")
 
-	for i, element := range stocks {
-		str.WriteString(element.stockSymbol)
+	for i, element := range investments {
+		str.WriteString(element.Stock)
 		str.WriteString(":")
-		str.WriteString(strconv.FormatUint(element.numOfStocks, 10))
+		str.WriteString(strconv.FormatUint(element.Amount, 10))
 
-		if i < len(stocks)-1 {
+		if i < len(investments)-1 {
 			str.WriteString(",")
 		}
 	}
