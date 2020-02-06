@@ -10,11 +10,7 @@ import (
 );
 
 func generateIsSellBool(isSellString string) bool {
-    if isSellString == "true" {
-        return true
-    }else{
-        return false
-    }
+    return isSellString == "true"
 }
 
 func processCommand(conn net.Conn, client *mongo.Client, payload string) {
@@ -26,13 +22,13 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 			var newUser modelsdata.User
 			jsonErr := json.Unmarshal([]byte(userJson), &newUser)
 			if jsonErr != nil {
-				lib.ServerSendResponse(conn, 400, jsonErr.Error());
+				lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error());
 				break;
 			}
 			
 			createErr := createUser(client, newUser)
 			if createErr != nil {
-				lib.ServerSendResponse(conn, 500, createErr.Error());
+				lib.ServerSendResponse(conn, lib.StatusSystemError, createErr.Error());
 				break;
 			}
 
@@ -41,9 +37,9 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
             commandID := data[1];
             user, readErr := readUser(client, commandID)
             if readErr != nil {
-                status := 500
+                status := lib.StatusSystemError
                 if readErr == mongo.ErrNoDocuments {
-                    status = 404
+                    status = lib.StatusNotFound
                 }
                 lib.ServerSendResponse(conn, status, readErr.Error())
                 break;
@@ -51,7 +47,7 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 
             userBytes, jsonErr := json.Marshal(user)
             if jsonErr != nil {
-                lib.ServerSendResponse(conn, 500, readErr.Error())
+                lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
                 break;
             }
             
@@ -59,13 +55,13 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
         case "READ_USERS":
             users, readErr := readUsers(client)
             if readErr != nil {
-                lib.ServerSendResponse(conn, 500, readErr.Error())
+                lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
                 break;
             }
 
             usersBytes, jsonErr := json.Marshal(users)
             if jsonErr != nil {
-                lib.ServerSendResponse(conn, 500, readErr.Error())
+                lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
                 break;
             }
 			
@@ -75,13 +71,13 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
             var userUpdate modelsdata.User
             jsonErr := json.Unmarshal([]byte(userJson), &userUpdate)
             if jsonErr != nil {
-                lib.ServerSendResponse(conn, 400, jsonErr.Error());
+                lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error());
                 break;
             }
             
             updateErr := updateUser(client, userUpdate)
             if updateErr != nil {
-                lib.ServerSendResponse(conn, 500, updateErr.Error());
+                lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error());
                 break;
             }
 
@@ -91,7 +87,7 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
             deleteErr := deleteUser(client, commandID)
             
             if deleteErr != nil {
-                lib.ServerSendResponse(conn, 500, deleteErr.Error());
+                lib.ServerSendResponse(conn, lib.StatusSystemError, deleteErr.Error());
                 break;
             }
 
@@ -101,13 +97,13 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
             var newTrigger modelsdata.Trigger
             jsonErr := json.Unmarshal([]byte(triggerJson), &newTrigger)
             if jsonErr != nil {
-                lib.ServerSendResponse(conn, 500, jsonErr.Error());
+                lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error());
                 break;
             }
 
             createErr := createTrigger(client, newTrigger)
             if createErr != nil {
-                lib.ServerSendResponse(conn, 500, createErr.Error());
+                lib.ServerSendResponse(conn, lib.StatusSystemError, createErr.Error());
                 break;
             }
 
@@ -119,9 +115,9 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 
             trigger, readErr := readTrigger(client, userCommandID, stock, generateIsSellBool(isSellString))
             if readErr != nil {
-                status := 500
+                status := lib.StatusSystemError
                 if readErr == mongo.ErrNoDocuments {
-                    status = 404
+                    status = lib.StatusNotFound
                 }
                 lib.ServerSendResponse(conn, status, readErr.Error())
                 break;
@@ -129,7 +125,7 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 
             triggerBytes, jsonErr := json.Marshal(trigger);
             if jsonErr != nil {
-                lib.ServerSendResponse(conn, 500, readErr.Error())
+                lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
                 break;
             }
 
@@ -137,13 +133,13 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
         case "READ_TRIGGERS":
             triggers, readErr := readTriggers(client);
             if readErr != nil {
-                lib.ServerSendResponse(conn, 500, readErr.Error())
+                lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
                 break;
             }
 
             triggersBytes, jsonErr := json.Marshal(triggers)
             if jsonErr != nil {
-                lib.ServerSendResponse(conn, 500, readErr.Error())
+                lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
                 break;
             }
 
@@ -154,13 +150,13 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
             jsonErr := json.Unmarshal([]byte(triggerJson), &triggerUpdate);
 
             if jsonErr != nil {
-                lib.ServerSendResponse(conn, 400, jsonErr.Error());
+                lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error());
                 break;
             }
 
             updateErr := updateTrigger(client, triggerUpdate)
             if updateErr != nil {
-                lib.ServerSendResponse(conn, 500, updateErr.Error());
+                lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error());
                 break;
             }
 
@@ -172,11 +168,11 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 
             deleteErr := deleteTrigger(client, userCommandID, stock, generateIsSellBool(isSellString));
             if deleteErr != nil {
-                lib.ServerSendResponse(conn, 500, deleteErr.Error());
+                lib.ServerSendResponse(conn, lib.StatusSystemError, deleteErr.Error());
                 break;
             }
 
             lib.ServerSendOKResponse(conn)
-        default: lib.ServerSendResponse(conn, 400, "Invalid Data Server Command")
+        default: lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Data Server Command")
 	}
 }
