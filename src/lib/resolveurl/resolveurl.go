@@ -1,4 +1,4 @@
-package url
+package resolveurl
 
 import "os"
 
@@ -50,33 +50,33 @@ func resolveMongoAddress(dockerServer string, dockerPort string, localPort strin
 	return "mongodb://" + server + ":" + port
 }
 
-// ResolveAuditServerAddress returns the audit server address
-func ResolveAuditServerAddress() string {
+// AuditServerAddress returns the audit server address
+func AuditServerAddress() string {
 	return resolveServerAddress("audit-server", "5002")
 }
 
-// ResolveTransactionServerAddress returns the transaction server address
-func ResolveTransactionServerAddress() string {
+// TransactionServerAddress returns the transaction server address
+func TransactionServerAddress() string {
 	return resolveServerAddress("transaction-server", "5000")
 }
 
-// ResolveDataServerAddress returns the database server address
-func ResolveDataServerAddress() string {
+// DataServerAddress returns the database server address
+func DataServerAddress() string {
 	return resolveServerAddress("data-server", "5000")
 }
 
-// ResolveMockQuoteServerAddress returns the mock legacy quote server address
-func ResolveMockQuoteServerAddress() string {
+// MockQuoteServerAddress returns the mock legacy quote server address
+func MockQuoteServerAddress() string {
 	return resolveServerAddress("quote-mock-server", "4443")
 }
 
-// ResolveDatabaseDBAddress returns the mongo DB address for the database server
-func ResolveDatabaseDBAddress() string {
+// DatabaseDBAddress returns the mongo DB address for the database server
+func DatabaseDBAddress() string {
 	return resolveMongoAddress("data-mongodb", "27017", "27017")
 
 }
 
-// ResolveAuditDBAddress returns the mongo DB address for the audit server
-func ResolveAuditDBAddress() string {
+// AuditDBAddress returns the mongo DB address for the audit server
+func AuditDBAddress() string {
 	return resolveMongoAddress("audit-mongodb", "27017", "5003")
 }

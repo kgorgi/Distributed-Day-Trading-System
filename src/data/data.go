@@ -11,7 +11,7 @@ import (
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
-	"extremeWorkload.com/daytrader/lib/url"
+	"extremeWorkload.com/daytrader/lib/resolveurl"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -302,7 +302,7 @@ func main() {
 	fmt.Println("Starting Data server...")
 
 	//hookup to mongo
-	clientOptions := options.Client().ApplyURI(url.ResolveDatabaseDBAddress())
+	clientOptions := options.Client().ApplyURI(resolveurl.DatabaseDBAddress())
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		log.Fatal(err)

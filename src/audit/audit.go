@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
-	"extremeWorkload.com/daytrader/lib/url"
+	"extremeWorkload.com/daytrader/lib/resolveurl"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -66,7 +66,7 @@ func handleConnection(conn net.Conn) {
 }
 
 func connectToMongo() (*mongo.Client, error) {
-	clientOptions := options.Client().ApplyURI(url.ResolveAuditDBAddress())
+	clientOptions := options.Client().ApplyURI(resolveurl.AuditDBAddress())
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		return nil, err

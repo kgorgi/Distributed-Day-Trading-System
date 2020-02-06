@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"extremeWorkload.com/daytrader/lib"
-	"extremeWorkload.com/daytrader/lib/url"
+	"extremeWorkload.com/daytrader/lib/resolveurl"
 )
 
 // TransactionClient client for transaction server
@@ -19,7 +19,7 @@ func (transactionClient *TransactionClient) SendCommand(command map[string]strin
 		return lib.StatusSystemError, "", err
 	}
 
-	conn, err := net.Dial("tcp", url.ResolveTransactionServerAddress())
+	conn, err := net.Dial("tcp", resolveurl.TransactionServerAddress())
 	if err != nil {
 		return lib.StatusSystemError, "", err
 	}

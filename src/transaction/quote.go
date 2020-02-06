@@ -9,7 +9,7 @@ import (
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
-	"extremeWorkload.com/daytrader/lib/url"
+	"extremeWorkload.com/daytrader/lib/resolveurl"
 )
 
 const quoteServerAddress = "192.168.1.100:4443"
@@ -20,7 +20,7 @@ func GetQuote(
 	userID string,
 	auditClient *auditclient.AuditClient) uint64 {
 
-	var address = url.ResolveMockQuoteServerAddress()
+	var address = resolveurl.MockQuoteServerAddress()
 
 	if lib.UseLabQuoteServer() {
 		address = quoteServerAddress
