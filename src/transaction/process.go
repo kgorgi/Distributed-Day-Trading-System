@@ -265,16 +265,31 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 		return
 	}
 
+	_, err = dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, false)
+	if err == nil {
+		errorMessage := "There is an existing trigger, use CANCEL_SET_BUY to update amount"
+		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
+			OptionalUserID:       jsonCommand.Userid,
+			OptionalStockSymbol:  jsonCommand.StockSymbol,
+			OptionalFundsInCents: &balanceInCents,
+			OptionalErrorMessage: errorMessage,
+		})
+
+		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		return
+	} else if err != ErrDataNotFound {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
 	err = dataConn.removeAmount(jsonCommand.Userid, amountInCents, auditClient)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
 	}
-
 	err = dataConn.createTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, false)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		// TODO replace user's balance
 		return
 	}
 
@@ -308,7 +323,7 @@ func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 		return
 	}
 
-	err = dataConn.setTriggerAmount(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, false)
+	err = dataConn.setTriggerPrice(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, false)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -422,7 +437,7 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 		return
 	}
 
-	err = dataConn.setTriggerAmount(jsonCommand.Userid, jsonCommand.StockSymbol, priceInCents, true)
+	err = dataConn.setTriggerPrice(jsonCommand.Userid, jsonCommand.StockSymbol, priceInCents, true)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		// TODO handle stock being removed

@@ -229,7 +229,7 @@ func (client *databaseWrapper) createTrigger(userid string, stockSymbol string, 
 	return nil
 }
 
-func (client *databaseWrapper) setTriggerAmount(userid string, stockSymbol string, cents uint64, isSell bool) error {
+func (client *databaseWrapper) setTriggerPrice(userid string, stockSymbol string, cents uint64, isSell bool) error {
 	trigger, readErr := readTrigger(userid, stockSymbol, isSell)
 	if readErr != nil {
 		return readErr
