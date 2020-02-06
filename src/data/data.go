@@ -7,7 +7,8 @@ import (
     "log"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
-    "extremeWorkload.com/daytrader/lib"
+	"extremeWorkload.com/daytrader/lib"
+	"extremeWorkload.com/daytrader/lib/resolveurl"
     auditclient "extremeWorkload.com/daytrader/lib/audit"
 );
 
@@ -28,38 +29,38 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
 }
 
 func main() {
-    fmt.Println("Starting Data server...")
+	fmt.Println("Starting Data server...")
 
-    //hookup to mongo
-    clientOptions := options.Client().ApplyURI("mongodb://data-mongoDB:27017/mongodb")
-    client, err := mongo.Connect(context.TODO(), clientOptions)
-    if err != nil {
-        log.Fatal(err)
-    }
+	//hookup to mongo
+	clientOptions := options.Client().ApplyURI(resolveurl.DatabaseDBAddress())
+	client, err := mongo.Connect(context.TODO(), clientOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-    // Check the connection
-    err = client.Ping(context.TODO(), nil)
-    if err != nil {
-        log.Fatal(err)
-    }
-    fmt.Println("Connected to MongoDB!")
-    
-    //start listening on the port
-    ln, err := net.Listen("tcp", ":5001")
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-    fmt.Println("Started Server on Port 5001")
+	// Check the connection
+	err = client.Ping(context.TODO(), nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Connected to MongoDB!")
 
-    //connection handling
-    for {
-        conn, err := ln.Accept()
-        if err != nil {
-            fmt.Println(err)
-            continue
-        }
-        fmt.Println("Connection Established")
-        go handleConnection(conn, client)
-    }
+	//start listening on the port
+	ln, err := net.Listen("tcp", ":5001")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println("Started Server on Port 5001")
+
+	//connection handling
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+		fmt.Println("Connection Established")
+		go handleConnection(conn, client)
+	}
 }

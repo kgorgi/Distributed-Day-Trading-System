@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 )
 
 const webserverAddress = "http://localhost:8080/command/"
@@ -48,6 +49,21 @@ func makeRequest(httpMethod string, command string, params url.Values) (int, str
 	}
 
 	return resp.StatusCode, string(body), nil
+}
+
+func SaveDumplog(body string, filename string) error {
+
+	dumpFile, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer dumpFile.Close()
+	_, err = dumpFile.WriteString(body)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func AddRequest(userid string, amount string) (int, string, error) {

@@ -1,0 +1,35 @@
+version: "3"
+services:
+    web:
+        environment:
+            - ENV=DEV
+
+    transaction:
+        ports:
+            - "5000:5000"
+        environment:
+            - ENV=DEV
+
+    data:
+        ports:
+            - "5001:5001"
+        environment:
+            - ENV=DEV
+
+    audit:
+        ports:
+            - "5002:5002"
+        environment:
+            - ENV=DEV
+
+    dataDB:
+        ports:
+            - "27017:27017"
+
+    auditDB:
+        ports:
+            - "5003:27017"
+
+    quote-mock:
+        ports:
+            - "4443:4443"

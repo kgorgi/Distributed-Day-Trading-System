@@ -5,11 +5,8 @@ import (
 	"net"
 
 	"extremeWorkload.com/daytrader/lib"
+	"extremeWorkload.com/daytrader/lib/resolveurl"
 )
-
-const transactionServerDockerAddress = "transaction-server:5000"
-
-// const transactionServerDockerAddress = ":5000"
 
 // TransactionClient client for transaction server
 type TransactionClient struct{}
@@ -22,7 +19,7 @@ func (transactionClient *TransactionClient) SendCommand(command map[string]strin
 		return lib.StatusSystemError, "", err
 	}
 
-	conn, err := net.Dial("tcp", transactionServerDockerAddress)
+	conn, err := net.Dial("tcp", resolveurl.TransactionServerAddress())
 	if err != nil {
 		return lib.StatusSystemError, "", err
 	}

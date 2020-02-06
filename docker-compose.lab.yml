@@ -1,0 +1,25 @@
+version: "3"
+services:
+    web:
+        build:
+            dockerfile: docker-files/lab/Dockerfile.web
+        environment:
+            - ENV=LAB
+
+    transaction:
+        build:
+            dockerfile: docker-files/lab/Dockerfile.transaction
+        environment:
+            - ENV=LAB
+
+    data:
+        build:
+            dockerfile: docker-files/lab/Dockerfile.data
+        environment:
+            - ENV=LAB
+
+    audit:
+        build:
+            dockerfile: docker-files/lab/Dockerfile.audit
+        environment:
+            - ENV=LAB

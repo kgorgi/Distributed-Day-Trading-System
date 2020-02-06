@@ -1,13 +1,15 @@
 package dataclient
 
 import (
+	"encoding/json"
+	"errors"
 	"log"
 	"net"
-	"errors"
 	"strconv"
-	"encoding/json"
+
 	"extremeWorkload.com/daytrader/lib"
-	"extremeWorkload.com/daytrader/lib/models/data"
+	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
+	"extremeWorkload.com/daytrader/lib/resolveurl"
 )
 
 var (
@@ -15,43 +17,40 @@ var (
 	ErrNotFound = errors.New("not found")
 )
 
-const dataServerDockerAddress = "data-server:5001"
-const dataServerLocalAddress = "localhost:5001"
-
 type DataClient struct {}
 
-func (client *DataClient) CreateUser(user modelsdata.User) error{
-	userBytes, jsonErr := json.Marshal(user);
+func (client *DataClient) CreateUser(user modelsdata.User) error {
+	userBytes, jsonErr := json.Marshal(user)
 	if jsonErr != nil {
-		return jsonErr;
+		return jsonErr
 	}
 	userJSON := string(userBytes)
 
 	payload := "CREATE_USER|" + userJSON
-	_, _, err := client.sendRequest(payload);
-	return err;
+	_, _, err := client.sendRequest(payload)
+	return err
 }
 
 func (client *DataClient) ReadUsers() ([]modelsdata.User, error) {
 	users := make([]modelsdata.User, 0)
 
 	payload := "READ_USERS"
-	_, message, err := client.sendRequest(payload);
+	_, message, err := client.sendRequest(payload)
 	if err != nil {
 		return users, err
 	}
 
-	jsonErr := json.Unmarshal([]byte(message), &users);
+	jsonErr := json.Unmarshal([]byte(message), &users)
 	if jsonErr != nil {
-		return users, jsonErr;
+		return users, jsonErr
 	}
 
 	return users, nil
 }
 
 func (client *DataClient) ReadUser(userID string) (modelsdata.User, error) {
-	payload := "READ_USER|" + userID;
-	_, message, err := client.sendRequest(payload);
+	payload := "READ_USER|" + userID
+	_, message, err := client.sendRequest(payload)
 	if err != nil {
 		return modelsdata.User{}, err
 	}
@@ -66,33 +65,33 @@ func (client *DataClient) ReadUser(userID string) (modelsdata.User, error) {
 }
 
 func (client *DataClient) UpdateUser(user modelsdata.User) error {
-	userBytes, jsonErr := json.Marshal(user);
+	userBytes, jsonErr := json.Marshal(user)
 	if jsonErr != nil {
-		return jsonErr;
+		return jsonErr
 	}
 	userJSON := string(userBytes)
 
-	payload := "UPDATE_USER|" + userJSON;
-	_, _, err := client.sendRequest(payload);
-	return err;
+	payload := "UPDATE_USER|" + userJSON
+	_, _, err := client.sendRequest(payload)
+	return err
 }
 
 func (client *DataClient) DeleteUser(userID string) error {
-	payload := "DELETE_USER|" + userID;
-	_, _, err := client.sendRequest(payload);
-	return err;
+	payload := "DELETE_USER|" + userID
+	_, _, err := client.sendRequest(payload)
+	return err
 }
 
 func (client *DataClient) CreateTrigger(trigger modelsdata.Trigger) error {
-	triggerBytes, jsonErr := json.Marshal(trigger);
+	triggerBytes, jsonErr := json.Marshal(trigger)
 	if jsonErr != nil {
-		return jsonErr;
+		return jsonErr
 	}
 	triggerJSON := string(triggerBytes)
 
-	payload := "CREATE_TRIGGER|" + triggerJSON;
-	_, _, err := client.sendRequest(payload);
-	return err;
+	payload := "CREATE_TRIGGER|" + triggerJSON
+	_, _, err := client.sendRequest(payload)
+	return err
 }
 
 func (client *DataClient) ReadTriggers() ([]modelsdata.Trigger, error) {
@@ -129,14 +128,14 @@ func (client *DataClient) ReadTrigger(userID string, stockName string, isSell bo
 }
 
 func (client *DataClient) UpdateTrigger(trigger modelsdata.Trigger) error {
-	triggerBytes, jsonErr := json.Marshal(trigger);
+	triggerBytes, jsonErr := json.Marshal(trigger)
 	if jsonErr != nil {
-		return jsonErr;
+		return jsonErr
 	}
 	triggerJSON := string(triggerBytes)
 
 	payload := "UPDATE_TRIGGER|" + triggerJSON
-	_, _, err := client.sendRequest(payload);
+	_, _, err := client.sendRequest(payload)
 	return err
 }
 
@@ -145,7 +144,7 @@ func (client *DataClient) DeleteTrigger(userID string, stockName string, isSell 
 
 	payload := "DELETE_TRIGGER|" + userID + "|" + stockName + "|" + generateIsSellString(isSell)
 	_, _, err := client.sendRequest(payload)
-	return err;
+	return err
 }
 
 func generateIsSellString(isSell bool) string {
@@ -158,7 +157,7 @@ func generateIsSellString(isSell bool) string {
 
 func (client *DataClient) sendRequest(payload string) (int, string, error) {
 	//connect to data server
-	conn, err := net.Dial("tcp", dataServerDockerAddress)
+	conn, err := net.Dial("tcp", resolveurl.DataServerAddress())
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
 		return -1, "", err
