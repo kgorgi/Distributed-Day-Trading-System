@@ -12,27 +12,27 @@ build: build-web build-transaction build-data build-audit build-generator build-
 
 .phony build-web:
 build-web: 
-	cd $(SRC)/web && go build -o $(OUTPUT)/web
+	cd $(SRC)/web && go build -o $(OUTPUT)/web.exe
 
 .phony build-transaction:
 build-transaction: 
-	cd $(SRC)/transaction && go build -o $(OUTPUT)/transaction
+	cd $(SRC)/transaction && go build -o $(OUTPUT)/transaction.exe
 
 .phony build-data:
 build-data: 
-	cd $(SRC)/data && go build -o $(OUTPUT)/data
+	cd $(SRC)/data && go build -o $(OUTPUT)/data.exe
 
 .phony build-audit:
 build-audit: 
-	cd $(SRC)/audit && go build -o $(OUTPUT)/audit
+	cd $(SRC)/audit && go build -o $(OUTPUT)/audit.exe
 
 .phony build-generator:
 build-generator: 
-	cd $(SRC)/generator && go build -o $(OUTPUT)/generator
+	cd $(SRC)/generator && go build -o $(OUTPUT)/generator.exe
 
 .phony build-quote-mock:
 build-quote-mock: 
-	cd $(SRC)/quote-mock && go build -o $(OUTPUT)/quote-mock
+	cd $(SRC)/quote-mock && go build -o $(OUTPUT)/quote-mock.exe
 
 # Docker Compose Commands
 .phony docker-deploy-dev:

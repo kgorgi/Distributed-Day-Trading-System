@@ -1,8 +1,8 @@
 FROM golang:latest
 
 WORKDIR ./server
-COPY ./build/audit .
+COPY ./build/audit.exe .
 
 EXPOSE 5002
 
-CMD ["./audit"]
+CMD ["./audit.exe"]
