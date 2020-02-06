@@ -7,15 +7,9 @@ import (
     "extremeWorkload.com/daytrader/lib/models/data"
 );
 
-func createTrigger(client *mongo.Client, trigger modelsdata.Trigger) error{
+func queryTriggers(client *mongo.Client, query bson.M) ([]modelsdata.Trigger, error) {
     collection := client.Database("extremeworkload").Collection("triggers")
-    _, err := collection.InsertOne(context.TODO(), trigger);
-    return err
-}
-
-func readTriggers(client *mongo.Client) ([]modelsdata.Trigger, error) {
-    collection := client.Database("extremeworkload").Collection("triggers")
-    cursor, err := collection.Find(context.TODO(), bson.M{})
+    cursor, err := collection.Find(context.TODO(), query)
     if err != nil {
         return nil, err
     }
@@ -27,6 +21,30 @@ func readTriggers(client *mongo.Client) ([]modelsdata.Trigger, error) {
         var trigger modelsdata.Trigger
         cursor.Decode(&trigger)
         triggers = append(triggers, trigger);
+    }
+
+    return triggers, nil
+}
+
+func createTrigger(client *mongo.Client, trigger modelsdata.Trigger) error{
+    collection := client.Database("extremeworkload").Collection("triggers")
+    _, err := collection.InsertOne(context.TODO(), trigger);
+    return err
+}
+
+func readTriggers(client *mongo.Client) ([]modelsdata.Trigger, error) {
+    triggers, err := queryTriggers(client, bson.M{});
+    if err != nil {
+        return []modelsdata.Trigger{}, err
+    }
+
+    return triggers, nil
+}
+
+func readTriggersByUser(client *mongo.Client, user_command_ID string) ([]modelsdata.Trigger, error) {
+    triggers, err := queryTriggers(client, bson.M{"user_command_id": user_command_ID});
+    if err != nil {
+        return []modelsdata.Trigger{}, err
     }
 
     return triggers, nil

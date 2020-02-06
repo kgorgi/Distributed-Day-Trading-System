@@ -4,6 +4,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"encoding/json"
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
@@ -501,6 +502,12 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 		return
 	}
 
+	triggers, err := dataConn.getTriggersByUser(jsonCommand.Userid);
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
+	}
+
 	var str strings.Builder
 	str.WriteString(lib.CentsToDollars(balanceInCents))
 	str.WriteString(",")
@@ -514,6 +521,23 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 			str.WriteString(",")
 		}
 	}
+
+	str.WriteString("\n")
+	str.WriteString(`"triggers" : [ ` + "\n")
+
+	var triggerJson []byte
+	var jsonErr error
+	for _, trigger := range triggers {
+		triggerJson, jsonErr = json.Marshal(trigger)
+		if jsonErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
+			return
+		}
+
+		str.WriteString(string(triggerJson) + "\n")
+	}
+
+	str.WriteString(` ]`)
 
 	lib.ServerSendResponse(conn, lib.StatusOk, str.String())
 }

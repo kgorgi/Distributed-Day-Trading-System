@@ -265,6 +265,15 @@ func (client *databaseWrapper) getTriggers() ([]modelsdata.Trigger, error) {
 	return triggers, nil
 }
 
+func (client *databaseWrapper) getTriggersByUser(userid string) ([]modelsdata.Trigger, error) {
+    triggers, readErr := dataClient.ReadTriggersByUser(userid);
+    if readErr != nil {
+        return []modelsdata.Trigger{}, readErr
+    }
+
+    return triggers, nil
+}
+
 func (client *databaseWrapper) getStocks(userid string) ([]modelsdata.Investment, error) {
 	user, readErr := readUser(userid)
 	if readErr != nil {

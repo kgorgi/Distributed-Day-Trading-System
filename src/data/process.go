@@ -135,7 +135,16 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 
             lib.ServerSendResponse(conn, lib.StatusOk, string(triggerBytes));
         case "READ_TRIGGERS":
-            triggers, readErr := readTriggers(client);
+            var triggers []modelsdata.Trigger
+            var readErr error
+
+            // if the length of data is greater than 1 that means user_command_ID is included in the command
+            if len(data) > 1 {
+                triggers, readErr = readTriggersByUser(client, data[1]);
+            } else {
+                triggers, readErr = readTriggers(client)
+            }
+
             if readErr != nil {
                 lib.ServerSendResponse(conn, 500, readErr.Error())
                 break;
