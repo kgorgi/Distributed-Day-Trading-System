@@ -1,0 +1,8 @@
+FROM golang:latest
+
+WORKDIR ./server
+COPY ./build/web.exe .
+
+EXPOSE 8080 
+
+CMD ["./web.exe"]

@@ -8,10 +8,8 @@ import (
 	"time"
 
 	"extremeWorkload.com/daytrader/lib"
+	"extremeWorkload.com/daytrader/lib/resolveurl"
 )
-
-const auditServerDockerAddress = "audit-server:5002"
-const auditServerLocalAddress = "localhost:5002"
 
 // AuditClient send requests to the audit server
 type AuditClient struct {
@@ -140,7 +138,7 @@ func (client *AuditClient) generateInternalInfo(logType string, withCommand bool
 
 func (client *AuditClient) sendRequest(payload string) (int, string, error) {
 	// Establish Connection to Audit Server
-	conn, err := net.Dial("tcp", auditServerDockerAddress)
+	conn, err := net.Dial("tcp", resolveurl.AuditServerAddress())
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
 		return -1, "", err

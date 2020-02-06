@@ -2,6 +2,7 @@ package lib
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -18,4 +19,9 @@ func CentsToDollars(cents uint64) string {
 	dollars := cents / uint64(100)
 	remainingCents := cents % uint64(100)
 	return fmt.Sprintf("%d.%02d", dollars, remainingCents)
+}
+
+func UseLabQuoteServer() bool {
+	env := os.Getenv("ENV")
+	return env == "LAB"
 }

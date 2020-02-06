@@ -1,0 +1,10 @@
+FROM golang:latest
+
+WORKDIR ./server
+COPY ./src/quote-mock ./quote-mock
+
+RUN cd ./quote-mock && go build
+
+EXPOSE 4443
+
+CMD ["./quote-mock/quote-mock"]

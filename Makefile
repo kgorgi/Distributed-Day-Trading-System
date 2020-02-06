@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 SRC = ./src
 OUTPUT = ../../build
 
@@ -6,44 +8,52 @@ all: build
 
 # Build Commands
 .phony build:
-build: build-web build-transaction build-data build-audit build-generator
+build: build-web build-transaction build-data build-audit build-generator build-quote-mock
 
 .phony build-web:
 build-web: 
-	cd $(SRC)/web && go build -o $(OUTPUT)/web
+	cd $(SRC)/web && go build -o $(OUTPUT)/web.exe
 
 .phony build-transaction:
 build-transaction: 
-	cd $(SRC)/transaction && go build -o $(OUTPUT)/transaction
+	cd $(SRC)/transaction && go build -o $(OUTPUT)/transaction.exe
 
 .phony build-data:
 build-data: 
-	cd $(SRC)/data && go build -o $(OUTPUT)/data
+	cd $(SRC)/data && go build -o $(OUTPUT)/data.exe
 
 .phony build-audit:
 build-audit: 
-	cd $(SRC)/audit && go build -o $(OUTPUT)/audit
+	cd $(SRC)/audit && go build -o $(OUTPUT)/audit.exe
 
 .phony build-generator:
 build-generator: 
-	cd $(SRC)/generator && go build -o $(OUTPUT)/generator
+	cd $(SRC)/generator && go build -o $(OUTPUT)/generator.exe
 
 .phony build-quote-mock:
 build-quote-mock: 
-	cd $(SRC)/test/mocks && go build -o ../$(OUTPUT)/quote-mock
+	cd $(SRC)/quote-mock && go build -o $(OUTPUT)/quote-mock.exe
 
 # Docker Compose Commands
-.phony docker-deploy:
-docker-deploy:
-	docker-compose up --build
+.phony docker-deploy-dev:
+docker-deploy-dev:
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build
 
-.phony docker-redeploy:
+.phony docker-deploy-local:
+docker-deploy-local:
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build
+
+.phony docker-deploy-lab:
+docker-deploy-lab: build
+	docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build
+
+.phony docker-redeploy-dev:
 docker-redeploy:
-	docker-compose up --build --force-recreate --no-deps -d $(c)
+	docker-compose up -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --build --force-recreate --no-deps -d $(c)
 
 .phony docker-teardown:
 docker-teardown:  
-	docker-compose down
+	docker-compose down --remove-orphans
 
 # Docker Container Commands
 .phony docker-list:
