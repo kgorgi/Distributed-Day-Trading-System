@@ -9,11 +9,12 @@ import (
 	userClient "extremeWorkload.com/daytrader/lib/user"
 )
 
-func TestTriggerBuy(t *testing.T) {
+func TestTriggerSell(t *testing.T) {
 	userid := "thewolf"
 	var addAmount uint64 = 1000234
-	var buyAmount uint64 = 5000
-	var triggerPrice uint64 = 500
+	var buyAmount uint64 = 500
+	var sellAmount uint64 = 500
+	var triggerPrice uint64 = 10
 	stockSymbol := "DOG"
 
 	status, body, _ := userClient.CancelSetBuyRequest(userid, stockSymbol)
@@ -24,19 +25,29 @@ func TestTriggerBuy(t *testing.T) {
 		t.Error("add failed\n" + strconv.Itoa(status) + body)
 	}
 
+	status, body, _ = userClient.BuyRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
+	if status != lib.StatusOk {
+		t.Error("Buy failed\n" + strconv.Itoa(status) + body)
+	}
+
+	status, body, _ = userClient.CommitBuyRequest(userid)
+	if status != lib.StatusOk {
+		t.Error("Commit buy failed\n" + strconv.Itoa(status) + body)
+	}
+
 	summaryBefore, err := userClient.GetSummary(userid)
 	if err != nil {
 		t.Error("Display Summary failed")
 	}
 
-	status, body, _ = userClient.SetBuyAmountRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
+	status, body, _ = userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount))
 	if status != lib.StatusOk {
-		t.Error("Set Buy Amount failed\n" + strconv.Itoa(status) + body)
+		t.Error("Set Sell AmountFailed\n" + strconv.Itoa(status) + body)
 	}
 
-	status, body, _ = userClient.SetBuyTriggerRequest(userid, stockSymbol, lib.CentsToDollars(triggerPrice))
+	status, body, _ = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(triggerPrice))
 	if status != lib.StatusOk {
-		t.Error("Set Buy Trigger failed\n" + strconv.Itoa(status) + body)
+		t.Error("Set Sell Trigger Failed\n" + strconv.Itoa(status) + body)
 	}
 
 	summaryAfter, err := userClient.GetSummary(userid)
@@ -59,15 +70,14 @@ func TestTriggerBuy(t *testing.T) {
 		t.Error("Trigger was not cleared")
 	}
 
-	expectedStocksBought := (buyAmount / quoteValue)
-	expectedStockCount := summaryBefore.Investments[0].Amount + expectedStocksBought
+	expectedStocksSold := (buyAmount / triggerPrice)
+	expectedStockCount := summaryBefore.Investments[0].Amount - expectedStocksSold
 	if len(summaryAfter.Investments) > 0 && summaryAfter.Investments[0].Amount != expectedStockCount {
 		t.Error("Trigger was not properly executed")
 	}
 
-	expectedBalance := summaryBefore.Cents - (expectedStocksBought * quoteValue)
-	if summaryAfter.Cents != expectedBalance {
-		t.Error("Money was not properly subtracted")
+	if summaryAfter.Cents != summaryBefore.Cents+(expectedStocksSold*quoteValue) {
+		t.Error("Money from sale was not added to account")
 	}
 
 }
