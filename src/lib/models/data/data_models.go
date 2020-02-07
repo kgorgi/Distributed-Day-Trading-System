@@ -17,6 +17,7 @@ type Trigger struct {
     Price_Cents uint64 `json:"price_cents" bson:"price_cents" `
     Amount_Cents uint64 `json:"amount_cents" bson:"amount_cents" `
     Is_Sell bool `json:"is_sell" bson:"is_sell" `
+    Transaction_Number uint64 `json:"transaction_number" bson:"transaction_number" `
 }
 
 type TriggerDisplayInfo struct {

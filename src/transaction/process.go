@@ -271,7 +271,7 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 		return
 	}
 
-	err = dataConn.createTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, false)
+	err = dataConn.createTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, false, auditClient.TransactionNum)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		// TODO replace user's balance
@@ -355,7 +355,7 @@ func handleCancelSetBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 
 func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
-	err := dataConn.createTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, true)
+	err := dataConn.createTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, true, auditClient.TransactionNum)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
