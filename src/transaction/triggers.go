@@ -35,29 +35,14 @@ func buyTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *audi
 }
 
 func sellTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *auditclient.AuditClient) error {
-	if stockPrice > trigger.Amount_Cents {
-		return nil
-	}
 
 	stocksInReserve := trigger.Amount_Cents / trigger.Price_Cents
-	numOfStocksToSell := trigger.Amount_Cents / stockPrice
-	if numOfStocksToSell == 0 {
-		numOfStocksToSell = 1
-	}
 
-	moneyToAdd := stockPrice * numOfStocksToSell
-	stocksRemaining := stocksInReserve - numOfStocksToSell
+	moneyToAdd := stockPrice * stocksInReserve
 
 	err := dataConn.addAmount(trigger.User_Command_ID, moneyToAdd, auditClient)
 	if err != nil {
 		return err
-	}
-
-	if stocksRemaining > 0 {
-		err = dataConn.addStock(trigger.User_Command_ID, trigger.Stock, stocksRemaining)
-		if err != nil {
-			return err
-		}
 	}
 
 	err = dataConn.deleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
