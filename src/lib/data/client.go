@@ -111,6 +111,23 @@ func (client *DataClient) ReadTriggers() ([]modelsdata.Trigger, error) {
 	return triggers, nil
 }
 
+func (client *DataClient) ReadTriggersByUser(userID string) ([]modelsdata.Trigger, error) {
+	triggers := make([]modelsdata.Trigger, 0)
+
+	payload := "READ_TRIGGERS|" + userID
+	_, message, err := client.sendRequest(payload)
+	if err != nil {
+		return triggers, err
+	}
+
+	jsonErr := json.Unmarshal([]byte(message), &triggers)
+	if jsonErr != nil {
+		return triggers, jsonErr
+	}
+
+	return triggers, nil
+}
+
 func (client *DataClient) ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigger, error) {
 	payload := "READ_TRIGGER|" + userID + "|" + stockName + "|" + strconv.FormatBool(isSell)
 	_, message, err := client.sendRequest(payload);
