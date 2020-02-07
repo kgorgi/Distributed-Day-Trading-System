@@ -34,6 +34,10 @@ build-generator:
 build-quote-mock: 
 	cd $(SRC)/quote-mock && go build -o $(OUTPUT)/quote-mock.exe
 
+.phony format:
+format:
+	gofmt -w ./src
+
 # Docker Compose Commands
 .phony docker-deploy-dev:
 docker-deploy-dev:
