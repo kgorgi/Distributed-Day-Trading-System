@@ -2,12 +2,11 @@ package main
 
 import (
 	"net"
-	"strconv"
-	"strings"
 	"encoding/json"
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
+	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
 )
 
 func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
@@ -508,36 +507,24 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 		return
 	}
 
-	var str strings.Builder
-	str.WriteString(lib.CentsToDollars(balanceInCents))
-	str.WriteString(",")
-
-	for i, element := range investments {
-		str.WriteString(element.Stock)
-		str.WriteString(":")
-		str.WriteString(strconv.FormatUint(element.Amount, 10))
-
-		if i < len(investments)-1 {
-			str.WriteString(",")
-		}
-	}
-
-	str.WriteString("\n")
-	str.WriteString(`"triggers" : [ ` + "\n")
-
-	var triggerJson []byte
-	var jsonErr error
+	userDisplay := modelsdata.UserDisplayInfo{}
+	userDisplay.Cents = balanceInCents
+	userDisplay.Investments = investments
+	
+	// convert triggers to triggerdisplayinfos
+	triggerDisplays := []modelsdata.TriggerDisplayInfo{}
 	for _, trigger := range triggers {
-		triggerJson, jsonErr = json.Marshal(trigger)
-		if jsonErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
-			return
-		}
-
-		str.WriteString(string(triggerJson) + "\n")
+		triggerDisplays = append(
+			triggerDisplays,
+			modelsdata.TriggerDisplayInfo{trigger.Stock, trigger.Price_Cents, trigger.Amount_Cents, trigger.Is_Sell},
+		)
 	}
+	userDisplay.Triggers = triggerDisplays
 
-	str.WriteString(` ]`)
-
-	lib.ServerSendResponse(conn, lib.StatusOk, str.String())
+	userDisplayBytes, jsonErr := json.Marshal(userDisplay);
+	if jsonErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
+		return
+	}
+	lib.ServerSendResponse(conn, lib.StatusOk, string(userDisplayBytes))
 }

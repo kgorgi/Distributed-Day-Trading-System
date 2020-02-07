@@ -18,3 +18,16 @@ type Trigger struct {
     Amount_Cents uint64 `json:"amount_cents" bson:"amount_cents" `
     Is_Sell bool `json:"is_sell" bson:"is_sell" `
 }
+
+type TriggerDisplayInfo struct {
+    Stock string `json:"stock" bson:"stock" `
+    Price_Cents uint64 `json:"price_cents" bson:"price_cents" `
+    Amount_Cents uint64 `json:"amount_cents" bson:"amount_cents" `
+    Is_Sell bool `json:"is_sell" bson:"is_sell" `
+}
+
+type UserDisplayInfo struct {
+    Cents uint64 `json:"cents" bson:"cents" `
+    Investments []Investment `json:"investments" bson:"investments" `
+    Triggers []TriggerDisplayInfo `json:"triggers" bson:"triggers" `
+}
