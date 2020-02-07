@@ -68,13 +68,13 @@ func checkTriggers(auditClient auditclient.AuditClient) {
 
 		for _, trigger := range triggers {
 			stockPrice := GetQuote(trigger.Stock, trigger.User_Command_ID, &auditClient)
-			if trigger.Price_Cents != 0 && stockPrice >= trigger.Price_Cents {
-				if trigger.Is_Sell {
+			if trigger.Price_Cents != 0 {
+				if trigger.Is_Sell && stockPrice >= trigger.Price_Cents {
 					if err := sellTrigger(trigger, stockPrice, &auditClient); err != nil {
 						fmt.Println(err)
 						continue
 					}
-				} else {
+				} else if !trigger.Is_Sell && stockPrice <= trigger.Price_Cents {
 					if err := buyTrigger(trigger, stockPrice, &auditClient); err != nil {
 						fmt.Println(err)
 						continue
