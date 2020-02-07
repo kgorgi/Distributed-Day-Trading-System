@@ -17,6 +17,6 @@ func main() {
 
 func handleConnection(conn net.Conn) {
 	bufio.NewReader(conn).ReadString('\n')
-	conn.Write([]byte("11.52,ABC,quoteMock,123456,KEY\n"))
+	conn.Write([]byte("5.00,ABC,quoteMock,123456,KEY\n"))
 	conn.Close()
 }

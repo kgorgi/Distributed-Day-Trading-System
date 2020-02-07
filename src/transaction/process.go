@@ -78,8 +78,8 @@ func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.
 	if quoteInCents > amountInCents {
 		errorMessage := "Quote price is higher than buy amount"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
-			OptionalStockSymbol: jsonCommand.StockSymbol,
+			OptionalUserID:       jsonCommand.Userid,
+			OptionalStockSymbol:  jsonCommand.StockSymbol,
 			OptionalFundsInCents: &amountInCents,
 			OptionalErrorMessage: errorMessage,
 		})
@@ -91,20 +91,17 @@ func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.
 	numOfStocks := amountInCents / quoteInCents
 	moneyToRemove := quoteInCents * numOfStocks
 
-	stack := getBuyStack(jsonCommand.Userid)
-	reserve := createReserve(jsonCommand.StockSymbol, numOfStocks, moneyToRemove)
-	stack.push(reserve, auditClient)
+	buyStackMap.push(jsonCommand.Userid, jsonCommand.StockSymbol, numOfStocks, moneyToRemove)
 
 	lib.ServerSendOKResponse(conn)
 }
 
 func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	stack := getBuyStack(jsonCommand.Userid)
-	nextBuy := stack.pop()
+	nextBuy := buyStackMap.pop(jsonCommand.Userid)
 	if nextBuy == nil {
 		errorMessage := "No Buy to Commit"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
+			OptionalUserID:       jsonCommand.Userid,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -121,7 +118,7 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 	if balanceInCents < nextBuy.cents {
 		errorMessage := "Account balance is less than stock cost"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
+			OptionalUserID:       jsonCommand.Userid,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -146,12 +143,11 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 }
 
 func handleCancelBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	stack := getBuyStack(jsonCommand.Userid)
-	nextBuy := stack.pop()
+	nextBuy := buyStackMap.pop(jsonCommand.Userid)
 	if nextBuy == nil {
 		errorMessage := "No Buy to Cancel"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
+			OptionalUserID:       jsonCommand.Userid,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -168,8 +164,8 @@ func handleSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient
 	if quoteInCents > amountInCents {
 		errorMessage := "Quote price is higher than sell amount"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
-			OptionalStockSymbol: jsonCommand.StockSymbol,
+			OptionalUserID:       jsonCommand.Userid,
+			OptionalStockSymbol:  jsonCommand.StockSymbol,
 			OptionalFundsInCents: &amountInCents,
 			OptionalErrorMessage: errorMessage,
 		})
@@ -181,20 +177,17 @@ func handleSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient
 	numOfStocks := amountInCents / quoteInCents
 	moneyToAdd := quoteInCents * numOfStocks
 
-	stack := getSellStack(jsonCommand.Userid)
-	reserve := createReserve(jsonCommand.StockSymbol, numOfStocks, moneyToAdd)
-	stack.push(reserve, auditClient)
+	sellStackMap.push(jsonCommand.Userid, jsonCommand.StockSymbol, numOfStocks, moneyToAdd)
 
 	lib.ServerSendOKResponse(conn)
 }
 
 func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	stack := getSellStack(jsonCommand.Userid)
-	nextSell := stack.pop()
+	nextSell := sellStackMap.pop(jsonCommand.Userid)
 	if nextSell == nil {
 		errorMessage := "No Sell to Commit"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
+			OptionalUserID:       jsonCommand.Userid,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -211,7 +204,7 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 	if stockAmount < nextSell.numOfStocks {
 		errorMessage := "Not enough stock is owned user to sell"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
+			OptionalUserID:       jsonCommand.Userid,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -236,12 +229,11 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 }
 
 func handleCancelSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	stack := getSellStack(jsonCommand.Userid)
-	nextSell := stack.pop()
+	nextSell := sellStackMap.pop(jsonCommand.Userid)
 	if nextSell == nil {
 		errorMessage := "No Sell to Cancel"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
+			OptionalUserID:       jsonCommand.Userid,
 			OptionalErrorMessage: errorMessage,
 		})
 		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
@@ -263,8 +255,8 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 	if amountInCents > balanceInCents {
 		errorMessage := "Account balance is less than trigger amount"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
-			OptionalStockSymbol: jsonCommand.StockSymbol,
+			OptionalUserID:       jsonCommand.Userid,
+			OptionalStockSymbol:  jsonCommand.StockSymbol,
 			OptionalFundsInCents: &balanceInCents,
 			OptionalErrorMessage: errorMessage,
 		})
@@ -295,25 +287,20 @@ func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 	if err == ErrDataNotFound {
 		errorMessage := "Trigger amount has not been set"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
-			OptionalStockSymbol: jsonCommand.StockSymbol,
+			OptionalUserID:       jsonCommand.Userid,
+			OptionalStockSymbol:  jsonCommand.StockSymbol,
 			OptionalErrorMessage: errorMessage,
 		})
-		
+
 		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
-		return
-	}
-	
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
 	}
 
 	if trigger.Amount_Cents < amountInCents {
 		errorMessage := "Amount too high trigger will never execute"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
-			OptionalStockSymbol: jsonCommand.StockSymbol,
+			OptionalUserID:       jsonCommand.Userid,
+			OptionalStockSymbol:  jsonCommand.StockSymbol,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -335,15 +322,15 @@ func handleCancelSetBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 	if err == ErrDataNotFound {
 		errorMessage := "Trigger does not exist"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
-			OptionalStockSymbol: jsonCommand.StockSymbol,
+			OptionalUserID:       jsonCommand.Userid,
+			OptionalStockSymbol:  jsonCommand.StockSymbol,
 			OptionalErrorMessage: errorMessage,
 		})
-		
+
 		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
 		return
 	}
-	
+
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -378,20 +365,20 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 }
 
 func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	priceInCents := lib.DollarsToCents(jsonCommand.Amount)	
+	priceInCents := lib.DollarsToCents(jsonCommand.Amount)
 	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
 	if err == ErrDataNotFound {
 		errorMessage := "Trigger amount has not been set"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
-			OptionalStockSymbol: jsonCommand.StockSymbol,
+			OptionalUserID:       jsonCommand.Userid,
+			OptionalStockSymbol:  jsonCommand.StockSymbol,
 			OptionalErrorMessage: errorMessage,
 		})
-		
+
 		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
 		return
 	}
-	
+
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -400,8 +387,8 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 	if priceInCents > trigger.Amount_Cents {
 		errorMessage := "Trigger amount is higher than amount of stocks to sell"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
-			OptionalStockSymbol: jsonCommand.StockSymbol,
+			OptionalUserID:       jsonCommand.Userid,
+			OptionalStockSymbol:  jsonCommand.StockSymbol,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -420,8 +407,8 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 	if numOfStocks > numOfStocksOwn {
 		errorMessage := "User does not have enough stocks"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
-			OptionalStockSymbol: jsonCommand.StockSymbol,
+			OptionalUserID:       jsonCommand.Userid,
+			OptionalStockSymbol:  jsonCommand.StockSymbol,
 			OptionalErrorMessage: errorMessage,
 		})
 
@@ -447,19 +434,19 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 
 func handleCancelSetSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
-	
+
 	if err == ErrDataNotFound {
 		errorMessage := "Trigger does not exist"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID: jsonCommand.Userid,
-			OptionalStockSymbol: jsonCommand.StockSymbol,
+			OptionalUserID:       jsonCommand.Userid,
+			OptionalStockSymbol:  jsonCommand.StockSymbol,
 			OptionalErrorMessage: errorMessage,
 		})
 
 		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
 		return
-	} 
-	
+	}
+
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
