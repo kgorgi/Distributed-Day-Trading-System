@@ -1,31 +1,31 @@
 package main
 
-import ( 
-    "fmt"
-    "net"
-    "context"
-    "log"
-    "go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
+import (
+	"context"
 	"extremeWorkload.com/daytrader/lib"
+	auditclient "extremeWorkload.com/daytrader/lib/audit"
 	"extremeWorkload.com/daytrader/lib/resolveurl"
-    auditclient "extremeWorkload.com/daytrader/lib/audit"
-);
+	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
+	"net"
+)
 
 var auditClient = auditclient.AuditClient{
 	Server: "database",
 }
 
 func handleConnection(conn net.Conn, client *mongo.Client) {
-    for {
-        payload, err := lib.ServerReceiveRequest(conn)
-        if err != nil {
-            lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-            return
-        }
+	for {
+		payload, err := lib.ServerReceiveRequest(conn)
+		if err != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+			return
+		}
 
-        processCommand(conn, client, payload);
-    }
+		processCommand(conn, client, payload)
+	}
 }
 
 func main() {

@@ -1,71 +1,71 @@
 package main
 
-import ( 
-    "context"
-    "go.mongodb.org/mongo-driver/bson"
-    "go.mongodb.org/mongo-driver/mongo"
-    "extremeWorkload.com/daytrader/lib/models/data"
-);
+import (
+	"context"
+	"extremeWorkload.com/daytrader/lib/models/data"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+)
 
 func queryTriggers(client *mongo.Client, query bson.M) ([]modelsdata.Trigger, error) {
-    collection := client.Database("extremeworkload").Collection("triggers")
-    cursor, err := collection.Find(context.TODO(), query)
-    if err != nil {
-        return nil, err
-    }
+	collection := client.Database("extremeworkload").Collection("triggers")
+	cursor, err := collection.Find(context.TODO(), query)
+	if err != nil {
+		return nil, err
+	}
 
-    //copy over users
-    var triggers []modelsdata.Trigger
-    defer cursor.Close(context.TODO())
-    for cursor.Next(context.TODO()) {
-        var trigger modelsdata.Trigger
-        cursor.Decode(&trigger)
-        triggers = append(triggers, trigger);
-    }
+	//copy over users
+	var triggers []modelsdata.Trigger
+	defer cursor.Close(context.TODO())
+	for cursor.Next(context.TODO()) {
+		var trigger modelsdata.Trigger
+		cursor.Decode(&trigger)
+		triggers = append(triggers, trigger)
+	}
 
-    return triggers, nil
+	return triggers, nil
 }
 
-func createTrigger(client *mongo.Client, trigger modelsdata.Trigger) error{
-    collection := client.Database("extremeworkload").Collection("triggers")
-    _, err := collection.InsertOne(context.TODO(), trigger);
-    return err
+func createTrigger(client *mongo.Client, trigger modelsdata.Trigger) error {
+	collection := client.Database("extremeworkload").Collection("triggers")
+	_, err := collection.InsertOne(context.TODO(), trigger)
+	return err
 }
 
 func readTriggers(client *mongo.Client) ([]modelsdata.Trigger, error) {
-    triggers, err := queryTriggers(client, bson.M{});
-    if err != nil {
-        return []modelsdata.Trigger{}, err
-    }
+	triggers, err := queryTriggers(client, bson.M{})
+	if err != nil {
+		return []modelsdata.Trigger{}, err
+	}
 
-    return triggers, nil
+	return triggers, nil
 }
 
 func readTriggersByUser(client *mongo.Client, user_command_ID string) ([]modelsdata.Trigger, error) {
-    triggers, err := queryTriggers(client, bson.M{"user_command_id": user_command_ID});
-    if err != nil {
-        return []modelsdata.Trigger{}, err
-    }
+	triggers, err := queryTriggers(client, bson.M{"user_command_id": user_command_ID})
+	if err != nil {
+		return []modelsdata.Trigger{}, err
+	}
 
-    return triggers, nil
+	return triggers, nil
 }
 
 func readTrigger(client *mongo.Client, user_command_ID string, stock string, isSell bool) (modelsdata.Trigger, error) {
-    collection := client.Database("extremeworkload").Collection("triggers")
+	collection := client.Database("extremeworkload").Collection("triggers")
 
-    var trigger modelsdata.Trigger
-    err := collection.FindOne(context.TODO(), bson.M{"user_command_id": user_command_ID, "stock": stock, "is_sell": isSell}).Decode(&trigger);
-    return trigger, err
+	var trigger modelsdata.Trigger
+	err := collection.FindOne(context.TODO(), bson.M{"user_command_id": user_command_ID, "stock": stock, "is_sell": isSell}).Decode(&trigger)
+	return trigger, err
 }
 
 func updateTrigger(client *mongo.Client, trigger modelsdata.Trigger) error {
-    collection := client.Database("extremeworkload").Collection("triggers")
-    update := bson.D{
-        {"$set", bson.M{"price_cents": trigger.Price_Cents, "amount_cents": trigger.Amount_Cents}},
-    }
-    filter := bson.M{"user_command_id": trigger.User_Command_ID, "stock": trigger.Stock}
-    _, err := collection.UpdateOne(context.TODO(), filter, update)
-    return err
+	collection := client.Database("extremeworkload").Collection("triggers")
+	update := bson.D{
+		{"$set", bson.M{"price_cents": trigger.Price_Cents, "amount_cents": trigger.Amount_Cents}},
+	}
+	filter := bson.M{"user_command_id": trigger.User_Command_ID, "stock": trigger.Stock}
+	_, err := collection.UpdateOne(context.TODO(), filter, update)
+	return err
 }
 
 func deleteTrigger(client *mongo.Client, user_command_ID string, stock string, isSell bool) error {
@@ -75,41 +75,41 @@ func deleteTrigger(client *mongo.Client, user_command_ID string, stock string, i
 	return err
 }
 
-func createUser(client *mongo.Client, user  modelsdata.User) error{
-    collection := client.Database("extremeworkload").Collection("users")
-    _, err := collection.InsertOne(context.TODO(), user);
-    return err
+func createUser(client *mongo.Client, user modelsdata.User) error {
+	collection := client.Database("extremeworkload").Collection("users")
+	_, err := collection.InsertOne(context.TODO(), user)
+	return err
 }
 
 func readUsers(client *mongo.Client) ([]modelsdata.User, error) {
-    collection := client.Database("extremeworkload").Collection("users")
-    cursor, err := collection.Find(context.TODO(), bson.M{})
-    if err != nil {
-        return nil, err
-    }
+	collection := client.Database("extremeworkload").Collection("users")
+	cursor, err := collection.Find(context.TODO(), bson.M{})
+	if err != nil {
+		return nil, err
+	}
 
-    //copy over users
-    var users []modelsdata.User
-    defer cursor.Close(context.TODO())
-    for cursor.Next(context.TODO()) {
-        var user modelsdata.User
-        cursor.Decode(&user)
-        users = append(users, user);
-    }
+	//copy over users
+	var users []modelsdata.User
+	defer cursor.Close(context.TODO())
+	for cursor.Next(context.TODO()) {
+		var user modelsdata.User
+		cursor.Decode(&user)
+		users = append(users, user)
+	}
 
-    return users, nil
+	return users, nil
 }
 
 func readUser(client *mongo.Client, command_ID string) (modelsdata.User, error) {
-    collection := client.Database("extremeworkload").Collection("users")
+	collection := client.Database("extremeworkload").Collection("users")
 
-    var user modelsdata.User
-    err := collection.FindOne(context.TODO(), bson.D{{"command_id", command_ID}}).Decode(&user);
-    return user, err
+	var user modelsdata.User
+	err := collection.FindOne(context.TODO(), bson.D{{"command_id", command_ID}}).Decode(&user)
+	return user, err
 }
 
 func updateUser(client *mongo.Client, user modelsdata.User) error {
-    collection := client.Database("extremeworkload").Collection("users")
+	collection := client.Database("extremeworkload").Collection("users")
 
 	update := bson.D{
 		{"$set", bson.M{"cents": user.Cents, "investments": user.Investments}},

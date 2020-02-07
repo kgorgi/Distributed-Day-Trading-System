@@ -1,10 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"testing"
 	dataclient "extremeWorkload.com/daytrader/lib/data"
 	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
+	"fmt"
+	"testing"
 )
 
 func TestUsers(t *testing.T) {
@@ -30,16 +30,16 @@ func TestUsers(t *testing.T) {
 
 	//Updating
 	var investments []modelsdata.Investment
-	investments = append(investments, modelsdata.Investment{"TTT", 96});
+	investments = append(investments, modelsdata.Investment{"TTT", 96})
 	updateUser := modelsdata.User{"1234", 1000, investments}
 
 	updateErr := dataClient.UpdateUser(updateUser)
 	if updateErr != nil {
 		t.Errorf("there was an error while updating the user")
-		fmt.Println(updateErr);
+		fmt.Println(updateErr)
 	}
-	
-	usersAfterUpdate, updateReadAllErr := dataClient.ReadUsers();
+
+	usersAfterUpdate, updateReadAllErr := dataClient.ReadUsers()
 	if updateReadAllErr != nil {
 		t.Errorf("there was an error while reading all users after one has been updated")
 		fmt.Println(updateReadAllErr)
@@ -47,16 +47,16 @@ func TestUsers(t *testing.T) {
 	fmt.Println(usersAfterUpdate)
 
 	//Deleting
-	deleteErr := dataClient.DeleteUser("1234");
+	deleteErr := dataClient.DeleteUser("1234")
 	if deleteErr != nil {
-		t.Errorf("there was an error while deleting a user");
+		t.Errorf("there was an error while deleting a user")
 		fmt.Println(deleteErr)
 	}
 
 	usersAfterDelete, deleteReadAllErr := dataClient.ReadUsers()
 	if deleteReadAllErr != nil {
 		t.Errorf("there was an error while reading all users after one has been deleted")
-		fmt.Println(deleteReadAllErr);
+		fmt.Println(deleteReadAllErr)
 	}
 	fmt.Println(usersAfterDelete)
 }
@@ -68,13 +68,13 @@ func TestTriggers(t *testing.T) {
 	newTrigger := modelsdata.Trigger{"1234", "ABC", 100, 100, false}
 	createErr := dataClient.CreateTrigger(newTrigger)
 	if createErr != nil {
-		t.Errorf("There was an error when creating a trigger");
-		fmt.Println(createErr);
+		t.Errorf("There was an error when creating a trigger")
+		fmt.Println(createErr)
 	}
 
 	triggers, readAllErr := dataClient.ReadTriggers()
 	if readAllErr != nil {
-		t.Errorf("There was an error when reading all triggers");
+		t.Errorf("There was an error when reading all triggers")
 
 		fmt.Println(readAllErr)
 	}
@@ -82,17 +82,17 @@ func TestTriggers(t *testing.T) {
 
 	trigger, readErr := dataClient.ReadTrigger("1234", "ABC", false)
 	if readErr != nil {
-		t.Errorf("There was an error when reading a specific trigger");
+		t.Errorf("There was an error when reading a specific trigger")
 		fmt.Println(readErr)
 	}
 	fmt.Println(trigger)
 
 	//Updating
 	updateTrigger := modelsdata.Trigger{"1234", "ABC", 200, 200, true}
-	updateErr := dataClient.UpdateTrigger(updateTrigger);
+	updateErr := dataClient.UpdateTrigger(updateTrigger)
 	if updateErr != nil {
-		t.Errorf("There was an error when updating a trigger");
-		fmt.Println(updateErr);
+		t.Errorf("There was an error when updating a trigger")
+		fmt.Println(updateErr)
 	}
 
 	triggersAfterUpdate, updateReadAllErr := dataClient.ReadTriggers()
@@ -105,10 +105,10 @@ func TestTriggers(t *testing.T) {
 	//Deleting
 	deleteErr := dataClient.DeleteTrigger("1234", "ABC", false)
 	if deleteErr != nil {
-		t.Errorf("There was an error when deleting a trigger");
+		t.Errorf("There was an error when deleting a trigger")
 	}
 
-	triggersAfterDelete, deleteReadAllErr := dataClient.ReadTriggers();
+	triggersAfterDelete, deleteReadAllErr := dataClient.ReadTriggers()
 	if deleteReadAllErr != nil {
 		t.Errorf("There was an error reading triggers after deleting one")
 	}

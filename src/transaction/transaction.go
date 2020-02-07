@@ -36,7 +36,7 @@ func handleWebConnection(conn net.Conn) {
 			break
 		}
 
-		transactionNum, _ := strconv.ParseUint(commandJSON.TransactionNum, 10, 64) 
+		transactionNum, _ := strconv.ParseUint(commandJSON.TransactionNum, 10, 64)
 
 		var auditClient = auditclient.AuditClient{
 			Server:         "transaction",
