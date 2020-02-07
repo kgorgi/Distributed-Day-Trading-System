@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 	"sync/atomic"
 
+	"github.com/gorilla/mux"
+
+	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
@@ -79,7 +81,7 @@ func heartbeat(w http.ResponseWriter, r *http.Request) {
 
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.RequestURI)
+		lib.Debugln(r.RequestURI)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -97,6 +99,6 @@ func getRouter() http.Handler {
 }
 
 func main() {
-	fmt.Println("start server")
+	fmt.Println("Starting web server...")
 	http.ListenAndServe(webServerAddress, getRouter())
 }

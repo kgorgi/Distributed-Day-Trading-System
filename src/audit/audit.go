@@ -23,7 +23,7 @@ func main() {
 		return
 	}
 
-	fmt.Println("Started Server on Port 5002")
+	fmt.Println("Started audit server on port: 5002")
 
 	client, err = connectToMongo()
 	if err != nil {
@@ -38,13 +38,13 @@ func main() {
 			continue
 		}
 
-		fmt.Println("Connection Established")
-
 		go handleConnection(conn)
 	}
 }
 
 func handleConnection(conn net.Conn) {
+	lib.Debugln("Connection Established")
+
 	for {
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
@@ -63,6 +63,8 @@ func handleConnection(conn net.Conn) {
 			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
 		}
 	}
+
+	lib.Debugln("Connection Closed")
 }
 
 func connectToMongo() (*mongo.Client, error) {
@@ -76,7 +78,8 @@ func connectToMongo() (*mongo.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Connected to MongoDB!")
+
+	fmt.Println("Connected to MongoDB")
 
 	return client, nil
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
 )
@@ -70,7 +71,7 @@ func sellTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *aud
 
 func checkTriggers(auditClient auditclient.AuditClient) {
 	for {
-		fmt.Println("Checking Triggers")
+		lib.Debugln("Checking Triggers")
 
 		triggers, err := dataConn.getTriggers()
 		for err != nil {
@@ -79,7 +80,7 @@ func checkTriggers(auditClient auditclient.AuditClient) {
 			triggers, err = dataConn.getTriggers()
 		}
 
-		fmt.Println(string(len(triggers)) + " Triggers have been fetched, analysing")
+		lib.Debugln(string(len(triggers)) + " Triggers have been fetched, analysing")
 
 		for _, trigger := range triggers {
 			stockPrice := GetQuote(trigger.Stock, trigger.User_Command_ID, &auditClient)
