@@ -2,118 +2,152 @@ package main
 
 import (
 	"bufio"
-	user "extremeWorkload.com/daytrader/lib/user"
-	"flag"
 	"fmt"
-	"io"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
+
+	user "extremeWorkload.com/daytrader/lib/user"
 )
 
-func parseLine(line string) (int, []string) {
-	// Expects line of form "[1] ADD,userid,100"
-	spaceSplit := strings.Split(line, " ")
-	lineNumber, _ := strconv.Atoi(strings.Trim(spaceSplit[0], "[]"))
-	commaSplit := strings.Split(spaceSplit[1], ",")
-
-	return lineNumber, commaSplit
-}
-
-func handleLine(line string) (int, error) {
+func handleCommand(command []string) error {
 	var status int
 	var body string
-	var err error
+	var err error = nil
 
-	lineNumber, command := parseLine(line)
-	switch command[0] {
+	switch command[1] {
 	case "ADD":
-		status, body, err = user.AddRequest(command[1], command[2])
+		status, body, err = user.AddRequest(command[2], command[3])
 	case "QUOTE":
-		status, body, err = user.QuoteRequest(command[1], command[2])
+		status, body, err = user.QuoteRequest(command[2], command[3])
 	case "BUY":
-		status, body, err = user.BuyRequest(command[1], command[2], command[3])
+		status, body, err = user.BuyRequest(command[2], command[3], command[4])
 	case "COMMIT_BUY":
-		status, body, err = user.CommitBuyRequest(command[1])
+		status, body, err = user.CommitBuyRequest(command[2])
 	case "CANCEL_BUY":
-		status, body, err = user.CancelBuyRequest(command[1])
+		status, body, err = user.CancelBuyRequest(command[2])
 	case "SELL":
-		status, body, err = user.SellRequest(command[1], command[2], command[3])
+		status, body, err = user.SellRequest(command[2], command[3], command[4])
 	case "COMMIT_SELL":
-		status, body, err = user.CommitSellRequest(command[1])
+		status, body, err = user.CommitSellRequest(command[2])
 	case "CANCEL_SELL":
-		status, body, err = user.CancelSellRequest(command[1])
+		status, body, err = user.CancelSellRequest(command[2])
 	case "SET_BUY_AMOUNT":
-		status, body, err = user.SetBuyAmountRequest(command[1], command[2], command[3])
+		status, body, err = user.SetBuyAmountRequest(command[2], command[3], command[4])
 	case "CANCEL_SET_BUY":
-		status, body, err = user.CancelSetBuyRequest(command[1], command[2])
+		status, body, err = user.CancelSetBuyRequest(command[2], command[3])
 	case "SET_BUY_TRIGGER":
-		status, body, err = user.SetBuyTriggerRequest(command[1], command[2], command[3])
+		status, body, err = user.SetBuyTriggerRequest(command[2], command[3], command[4])
 	case "SET_SELL_AMOUNT":
-		status, body, err = user.SetSellAmountRequest(command[1], command[2], command[3])
+		status, body, err = user.SetSellAmountRequest(command[2], command[3], command[4])
 	case "CANCEL_SET_SELL":
-		status, body, err = user.CancelSetSellRequest(command[1], command[2])
+		status, body, err = user.CancelSetSellRequest(command[2], command[3])
 	case "SET_SELL_TRIGGER":
-		status, body, err = user.SetSellTriggerRequest(command[1], command[2], command[3])
+		status, body, err = user.SetSellTriggerRequest(command[2], command[3], command[4])
+	case "DISPLAY_SUMMARY":
+		status, body, err = user.DisplaySummaryRequest(command[2])
 	case "DUMPLOG":
-		if len(command) > 2 {
-			status, body, err = user.DumplogRequest(command[1], command[2])
+		if len(command) > 3 {
+			status, body, err = user.DumplogRequest(command[2], command[3])
+			if err == nil && status == 200 {
+				err = user.SaveDumplog(body, command[3])
+			}
+		} else {
+			status, body, err = user.DumplogRequest("", command[2])
 			if err == nil && status == 200 {
 				err = user.SaveDumplog(body, command[2])
 			}
-		} else {
-			status, body, err = user.DumplogRequest("", command[1])
-			if err == nil && status == 200 {
-				err = user.SaveDumplog(body, command[1])
-			}
 		}
+	}
 
-	case "DISPLAY_SUMMARY":
-		status, body, err = user.DisplaySummaryRequest(command[1])
-	}
-	if err != nil {
-		return lineNumber, err
-	}
-	fmt.Println(line + " " + strconv.Itoa(status) + " - " + body)
-	return lineNumber, nil
+	return err
 }
 
-func main() {
-	var workloadFilePath string
-	flag.StringVar(&workloadFilePath, "file", "./workload.txt", "path for workload file")
-	flag.Parse()
-
-	fmt.Println("Opening file: " + workloadFilePath)
-	file, err := os.Open(workloadFilePath)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	defer file.Close()
-
-	// Start reading from the file with a reader.
-	reader := bufio.NewReader(file)
-	var readErr error
-	var line string
-	var lineNumber int
-	for {
-		line, readErr = reader.ReadString('\n')
-		if readErr != nil {
-			break
-		}
-
-		lineNumber, err = handleLine(line)
+func handleUser(userid string, commands [][]string, wg *sync.WaitGroup) {
+	for _, command := range commands {
+		err := handleCommand(command)
 		if err != nil {
-			fmt.Println(err.Error() + "\nFailed on line" + strconv.Itoa(lineNumber))
+			fmt.Println("Failed on user " + userid + " on line " + command[0] + ": " + err.Error())
+			os.Exit(1)
 			return
 		}
 	}
 
-	if readErr != nil && readErr != io.EOF {
-		fmt.Println(err)
-		fmt.Printf(" > Failed!: %v\n", err)
-	}
-	fmt.Println("Finished workload generation")
+	wg.Done()
+}
 
+func loadFile(filepath string) []string {
+	fmt.Println("Opening file: " + filepath)
+	file, err := os.Open(filepath)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+
+	file.Close()
+
+	fmt.Println("File loaded")
+	return lines
+}
+
+func sortByUser(lines []string) map[string][][]string {
+	fmt.Println("Sorting by User")
+	var byUser = make(map[string][][]string)
+
+	for _, line := range lines {
+		command := parseLine(line)
+		byUser[command[2]] = append(byUser[command[2]], command)
+	}
+
+	fmt.Println("Commands sorted by user")
+	return byUser
+}
+
+func parseLine(line string) []string {
+	// Expects line of form "[1] ADD,userid,100"
+	spaceSplit := strings.Split(line, " ")
+	lineNumber := strings.Trim(spaceSplit[0], "[]")
+	commaSplit := strings.Split(spaceSplit[1], ",")
+
+	return append([]string{lineNumber}, commaSplit...)
+}
+
+func main() {
+	filePath := "workload.txt"
+
+	if os.Args[1] != "" {
+		filePath = os.Args[1]
+	}
+
+	lines := loadFile(filePath)
+
+	dumpLogLineNum := len(lines) - 1
+	userLines := lines[:dumpLogLineNum]
+
+	commandsByUser := sortByUser(userLines)
+	numOfUsers := len(commandsByUser)
+
+	fmt.Println("Starting " + strconv.Itoa(numOfUsers) + " goroutines")
+	var wg sync.WaitGroup
+	wg.Add(numOfUsers)
+
+	for userid, commands := range commandsByUser {
+		go handleUser(userid, commands, &wg)
+	}
+
+	fmt.Println("Waiting for gorountines to finish")
+	wg.Wait()
+
+	fmt.Println("Executing DUMPLOG")
+	dumpLogCommand := parseLine(lines[dumpLogLineNum])
+	handleCommand(dumpLogCommand)
+
+	fmt.Println("Finished workload generation")
 }
