@@ -297,7 +297,7 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 }
 
 func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
+	triggerPriceInCents := lib.DollarsToCents(jsonCommand.Amount)
 	trigger, err := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, false)
 	if err == ErrDataNotFound {
 		errorMessage := "Trigger amount has not been set"
@@ -311,8 +311,8 @@ func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 		return
 	}
 
-	if trigger.Amount_Cents < amountInCents {
-		errorMessage := "Amount too high trigger will never execute"
+	if trigger.Amount_Cents < triggerPriceInCents {
+		errorMessage := "Trigger price is too high, no stocks will be able to be bought with current amount"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID:       jsonCommand.Userid,
 			OptionalStockSymbol:  jsonCommand.StockSymbol,
@@ -323,7 +323,7 @@ func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 		return
 	}
 
-	err = dataConn.setTriggerPrice(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, false)
+	err = dataConn.setTriggerPrice(jsonCommand.Userid, jsonCommand.StockSymbol, triggerPriceInCents, false)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return

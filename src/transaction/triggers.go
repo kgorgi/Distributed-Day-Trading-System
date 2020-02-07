@@ -9,9 +9,6 @@ import (
 )
 
 func buyTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *auditclient.AuditClient) error {
-	if stockPrice > trigger.Amount_Cents {
-		return nil
-	}
 
 	numOfStocks := trigger.Amount_Cents / stockPrice
 	moneyToAdd := trigger.Amount_Cents - (stockPrice * numOfStocks)
