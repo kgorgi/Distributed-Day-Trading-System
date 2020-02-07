@@ -1,17 +1,21 @@
 package main
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
-
-	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
+
+type StackMap struct {
+	stacks map[string]*stack
+	mutex  sync.RWMutex
+}
 
 // TODO This is not thread safe :(
 type stack struct {
 	items  []*reserve
 	userID string
-	isBuy  bool
+	mutex  sync.Mutex
 }
 
 type reserve struct {
@@ -25,43 +29,20 @@ type reserve struct {
 	done chan struct{}
 }
 
-var buyStack = make(map[string]*stack)
-var sellStack = make(map[string]*stack)
-
-func getBuyStack(userID string) *stack {
-	if buyStack[userID] == nil {
-		stack := new(stack)
-		stack.isBuy = true
-		stack.items = make([]*reserve, 0)
-		stack.userID = userID
-		buyStack[userID] = stack
-	}
-
-	return buyStack[userID]
+var buyStackMap = StackMap{
+	stacks: make(map[string]*stack),
 }
 
-func getSellStack(userID string) *stack {
-	if sellStack[userID] == nil {
-		stack := new(stack)
-		stack.isBuy = false
-		stack.items = make([]*reserve, 0)
-		stack.userID = userID
-		sellStack[userID] = stack
-	}
-
-	return sellStack[userID]
+var sellStackMap = StackMap{
+	stacks: make(map[string]*stack),
 }
 
 func createReserve(stockSymbol string, numOfStocks uint64, cents uint64) *reserve {
-	var instance *reserve
-	instance = new(reserve)
-	instance.stockSymbol = stockSymbol
-	instance.numOfStocks = numOfStocks
-	instance.cents = cents
-	return instance
-}
-
-func (stack *stack) push(newItem *reserve, auditClient *auditclient.AuditClient) {
+	var newItem *reserve
+	newItem = new(reserve)
+	newItem.stockSymbol = stockSymbol
+	newItem.numOfStocks = numOfStocks
+	newItem.cents = cents
 	newItem.notValid = 0
 	newItem.timer = time.NewTimer(time.Second * 60)
 	newItem.done = make(chan struct{})
@@ -77,12 +58,57 @@ func (stack *stack) push(newItem *reserve, auditClient *auditclient.AuditClient)
 		}
 	}()
 
-	stack.items = append(stack.items, newItem)
+	return newItem
+
 }
 
-func (stack *stack) pop() *reserve {
+func (stackMap *StackMap) createStack(userid string) {
+	stack := new(stack)
+	stack.items = make([]*reserve, 0)
+	stack.userID = userid
+
+	stackMap.mutex.Lock()
+	if stackMap.stacks[userid] != nil {
+		stackMap.mutex.Unlock()
+		return
+	}
+
+	stackMap.stacks[userid] = stack
+	stackMap.mutex.Unlock()
+
+}
+
+func (stackMap *StackMap) getStack(userid string) *stack {
+	stackMap.mutex.RLock()
+	stack := stackMap.stacks[userid]
+	stackMap.mutex.RUnlock()
+
+	if stack == nil {
+		stackMap.createStack(userid)
+
+		stackMap.mutex.RLock()
+		stack = stackMap.stacks[userid]
+		stackMap.mutex.RUnlock()
+	}
+
+	return stack
+}
+
+func (stackMap *StackMap) push(userid string, stockSymbol string, numOfStocks uint64, cents uint64) {
+	stack := stackMap.getStack(userid)
+	stack.mutex.Lock()
+	newItem := createReserve(stockSymbol, numOfStocks, cents)
+	stack.items = append(stack.items, newItem)
+	stack.mutex.Unlock()
+}
+
+func (stackMap *StackMap) pop(userid string) *reserve {
+	stack := stackMap.getStack(userid)
+
+	stack.mutex.Lock()
 	numOfItems := len(stack.items)
 	if numOfItems == 0 {
+		stack.mutex.Unlock()
 		return nil
 	}
 
@@ -95,10 +121,13 @@ func (stack *stack) pop() *reserve {
 		close(topOfStack.done)
 		stack.items[n] = nil
 		stack.items = stack.items[:n]
+
+		stack.mutex.Unlock()
 		return topOfStack
 	}
 
 	// Dis-regard stack all invalid
 	stack.items = make([]*reserve, 0)
+	stack.mutex.Unlock()
 	return nil
 }
