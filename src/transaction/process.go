@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net"
-
+	"errors"
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
@@ -53,13 +53,76 @@ func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditcli
 
 }
 
+func addStock(investments []modelsdata.Investment, stockSymbol string, amount uint64) []modelsdata.Investment {
+	// Find the investment in the user struct and set the amount specified in the params
+	investmentIndex := -1
+	for i, investment := range investments {
+		if investment.Stock == stockSymbol {
+			investmentIndex = i
+		}
+	}
+
+	// If you can't find the investment create a new investment, otherwise add to the existing one
+	if investmentIndex == -1 {
+		return append(investments, modelsdata.Investment{stockSymbol, amount})
+	} else {
+		investments[investmentIndex].Amount += amount
+		return investments;
+	}
+}
+
+func findStockAmount(investments []modelsdata.Investment, stockSymbol string) uint64 {
+	for _, investment := range investments {
+		if investment.Stock == stockSymbol {
+			return investment.Amount
+		}
+	}
+	return 0
+}
+
+func removeStock(investments []modelsdata.Investment, stockSymbol string, amount uint64) ([]modelsdata.Investment, error) {
+	investmentIndex := -1
+	for i, investment := range investments {
+		if investment.Stock == stockSymbol {
+			investmentIndex = i
+		}
+	}
+
+	// Make sure the stock is found
+	if investmentIndex == -1 {
+		return []modelsdata.Investment{}, errors.New("this user does not have any of the stock " + stockSymbol)
+	}
+
+	// Make sure they have enough stock to remove the amount
+	stockAmount := investments[investmentIndex].Amount
+	if stockAmount < amount {
+		return []modelsdata.Investment{}, errors.New("The user does not have sufficient stock ( " + string(stockAmount) + " ) to remove " + string(amount))
+	}
+
+	investments[investmentIndex].Amount -= amount
+
+	// If the remaining amount is 0 remove the investment from the user
+	if investments[investmentIndex].Amount == 0 {
+		investments[investmentIndex] = investments[len(investments)-1]
+		investments = investments[:len(investments)-1]
+	}
+
+	return investments, nil
+}
+
 func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amount := lib.DollarsToCents(jsonCommand.Amount)
 
-	err := dataConn.addAmount(jsonCommand.Userid, amount, auditClient)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+	user, readErr := dataClient.ReadUser(jsonCommand.Userid);
+	if readErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
 		return
+	}
+
+	user.Cents += amount
+	updateErr := dataClient.UpdateUser(user)
+	if updateErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
 	}
 
 	lib.ServerSendOKResponse(conn)
@@ -109,13 +172,13 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 		return
 	}
 
-	balanceInCents, err := dataConn.getBalance(jsonCommand.Userid)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+	user, readErr := dataClient.ReadUser(jsonCommand.Userid);
+	if readErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
 		return
 	}
 
-	if balanceInCents < nextBuy.cents {
+	if user.Cents < nextBuy.cents {
 		errorMessage := "Account balance is less than stock cost"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
 			OptionalUserID:       jsonCommand.Userid,
@@ -126,18 +189,19 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 		return
 	}
 
-	err = dataConn.removeAmount(jsonCommand.Userid, nextBuy.cents, auditClient)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+	user.Cents -= nextBuy.cents
+	user.Investments = addStock(user.Investments, nextBuy.stockSymbol, nextBuy.numOfStocks)
+	updateErr := dataClient.UpdateUser(user)
+	if updateErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
 		return
 	}
 
-	err = dataConn.addStock(jsonCommand.Userid, nextBuy.stockSymbol, nextBuy.numOfStocks)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		// TODO Retry?
-		return
-	}
+	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
+		Action:       "remove",
+		UserID:       user.Command_ID,
+		FundsInCents: nextBuy.cents,
+	})
 
 	lib.ServerSendOKResponse(conn)
 }
@@ -195,11 +259,12 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 		return
 	}
 
-	stockAmount, err := dataConn.getStockAmount(jsonCommand.Userid, nextSell.stockSymbol)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+	user, readErr := dataClient.ReadUser(jsonCommand.Userid);
+	if readErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
 		return
 	}
+	stockAmount := findStockAmount(user.Investments, nextSell.stockSymbol)
 
 	if stockAmount < nextSell.numOfStocks {
 		errorMessage := "Not enough stock is owned user to sell"
@@ -212,18 +277,26 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 		return
 	}
 
-	err = dataConn.removeStock(jsonCommand.Userid, nextSell.stockSymbol, nextSell.numOfStocks)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+	investmentsAfterRemove, removeErr := removeStock(user.Investments, nextSell.stockSymbol, nextSell.numOfStocks)
+	if removeErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, removeErr.Error())
 		return
 	}
 
-	err = dataConn.addAmount(jsonCommand.Userid, nextSell.cents, auditClient)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		// TODO Return Stock to user's portfolio
+	user.Investments = investmentsAfterRemove
+	user.Cents += nextSell.cents
+
+	updateErr := dataClient.UpdateUser(user)
+	if updateErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, removeErr.Error())
 		return
 	}
+
+	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
+		Action:       "add",
+		UserID:       user.Command_ID,
+		FundsInCents: nextSell.cents,
+	})
 
 	lib.ServerSendOKResponse(conn)
 }
@@ -476,27 +549,21 @@ func handleCancelSetSell(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 }
 
 func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
-	balanceInCents, err := dataConn.getBalance(jsonCommand.Userid)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+	user, readErr := dataClient.ReadUser(jsonCommand.Userid);
+	if readErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
 		return
 	}
 
-	investments, err := dataConn.getStocks(jsonCommand.Userid)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
-	}
-
-	triggers, err := dataConn.getTriggersByUser(jsonCommand.Userid)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+	triggers, readErr := dataClient.ReadTriggersByUser(user.Command_ID)
+	if readErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
 		return
 	}
 
 	userDisplay := modelsdata.UserDisplayInfo{}
-	userDisplay.Cents = balanceInCents
-	userDisplay.Investments = investments
+	userDisplay.Cents = user.Cents
+	userDisplay.Investments = user.Investments
 
 	// convert triggers to triggerdisplayinfos
 	triggerDisplays := []modelsdata.TriggerDisplayInfo{}
