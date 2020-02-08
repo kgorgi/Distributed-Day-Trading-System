@@ -74,12 +74,12 @@ func checkTriggers(auditClient auditclient.AuditClient) {
 
 		triggers, err := dataConn.getTriggers()
 		for err != nil {
-			fmt.Println("Something went wrong, trying again in 10 seconds");
-			time.Sleep(10 * time.Second);
+			fmt.Println("Something went wrong, trying again in 10 seconds")
+			time.Sleep(10 * time.Second)
 			triggers, err = dataConn.getTriggers()
 		}
 
-		fmt.Println(string(len(triggers)) + " Triggers have been fetched, analysing");
+		fmt.Println(string(len(triggers)) + " Triggers have been fetched, analysing")
 
 		for _, trigger := range triggers {
 			stockPrice := GetQuote(trigger.Stock, trigger.User_Command_ID, &auditClient)

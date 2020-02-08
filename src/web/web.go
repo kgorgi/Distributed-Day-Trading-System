@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	"sync/atomic"
-	"strconv"
 	"github.com/gorilla/mux"
+	"net/http"
+	"strconv"
+	"sync/atomic"
 
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 )
 
 const webServerAddress = ":8080"
+
 var transactionNum uint64 = 0
 
 func parseCommandRequest(r *http.Request) map[string]string {
@@ -28,22 +29,22 @@ func parseCommandRequest(r *http.Request) map[string]string {
 }
 
 // Creates a route method. Whenever the route is called, it always uses the same socket
-func commandRoute(w http.ResponseWriter, r *http.Request, ) {
+func commandRoute(w http.ResponseWriter, r *http.Request) {
 	command := parseCommandRequest(r)
 
 	var nextNum = atomic.AddUint64(&transactionNum, 1)
 	command["transactionNum"] = strconv.FormatUint(nextNum, 10)
 
 	var auditClient = auditclient.AuditClient{
-		Command: command["command"],
-		Server: "web",
+		Command:        command["command"],
+		Server:         "web",
 		TransactionNum: nextNum,
 	}
 
 	auditInfo := auditclient.UserCommandInfo{
-		OptionalUserID: command["userid"],
-		OptionalFilename: command["filename"],  
-		OptionalStockSymbol:  command["stockSymbol"], 
+		OptionalUserID:      command["userid"],
+		OptionalFilename:    command["filename"],
+		OptionalStockSymbol: command["stockSymbol"],
 	}
 
 	if command["amount"] != "" {
