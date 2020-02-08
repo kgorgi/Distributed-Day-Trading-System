@@ -15,6 +15,7 @@ const stockSymbol = "DOG"
 const quoteValue = 500
 const addAmount = uint64(1000234)
 const buyAmount = uint64(70000)
+const sellAmount = uint64(1000)
 
 func getUserSummary(userid string, t *testing.T) modelsdata.UserDisplayInfo {
 	status, body, err := userClient.DisplaySummaryRequest(userid)
@@ -35,6 +36,16 @@ func handleErrors(errMessage string, status int, body string, err error, t *test
 	}
 
 	if status != lib.StatusOk {
+		t.Error(errMessage + "\n" + strconv.Itoa(status) + " " + body)
+	}
+}
+
+func checkUserCommandError(errMessage string, status int, body string, err error, t *testing.T) {
+	if err != nil {
+		t.Error(errMessage + "\n" + err.Error())
+	}
+
+	if status != lib.StatusUserError {
 		t.Error(errMessage + "\n" + strconv.Itoa(status) + " " + body)
 	}
 }
