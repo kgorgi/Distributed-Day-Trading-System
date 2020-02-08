@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"strconv"
 	"testing"
 	"time"
 
@@ -9,75 +8,60 @@ import (
 	userClient "extremeWorkload.com/daytrader/lib/user"
 )
 
+func setupSellTriggerTest(t *testing.T) {
+	status, body, err := userClient.CancelSetSellRequest(userid, stockSymbol)
+	checkSystemError("Cancel Sell failed", status, body, err, t)
+	summary := getUserSummary(userid, t)
+	if getTestStockTrigger(summary, true) != nil {
+		t.Error("Trigger was not cleared initially")
+	}
+	const amountForSell = (sellAmount / sellTriggerPrice) * quoteValue
+	status, body, err = userClient.AddRequest(userid, lib.CentsToDollars(amountForSell))
+	handleErrors("Add failed", status, body, err, t)
+
+	status, body, err = userClient.BuyRequest(userid, stockSymbol, lib.CentsToDollars(amountForSell))
+	handleErrors("Buy failed", status, body, err, t)
+
+	status, body, err = userClient.CommitBuyRequest(userid)
+	handleErrors("Commit buy failed", status, body, err, t)
+
+	summaryAfter := getUserSummary(userid, t)
+	if getTestStockCount(summaryAfter) != getTestStockCount(summary)+(sellAmount/sellTriggerPrice) {
+		t.Error("Stocks required for test were not added")
+	}
+
+}
 func TestTriggerSell(t *testing.T) {
-	userid := "thewolf"
-	var addAmount uint64 = 1000234
-	var buyAmount uint64 = 500
-	var sellAmount uint64 = 500
-	var triggerPrice uint64 = 10
-	stockSymbol := "DOG"
 
-	status, body, _ := userClient.CancelSetBuyRequest(userid, stockSymbol)
-	status, body, _ = userClient.CancelSetSellRequest(userid, stockSymbol)
+	setupSellTriggerTest(t)
 
-	status, body, _ = userClient.AddRequest(userid, lib.CentsToDollars(addAmount))
-	if status != lib.StatusOk {
-		t.Error("add failed\n" + strconv.Itoa(status) + body)
-	}
+	summaryBefore := getUserSummary(userid, t)
 
-	status, body, _ = userClient.BuyRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
-	if status != lib.StatusOk {
-		t.Error("Buy failed\n" + strconv.Itoa(status) + body)
-	}
+	status, body, err := userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount))
+	handleErrors("Set Sell AmountFailed", status, body, err, t)
 
-	status, body, _ = userClient.CommitBuyRequest(userid)
-	if status != lib.StatusOk {
-		t.Error("Commit buy failed\n" + strconv.Itoa(status) + body)
-	}
+	status, body, err = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice))
+	handleErrors("Set Sell Trigger Failed", status, body, err, t)
 
-	summaryBefore, err := userClient.GetSummary(userid)
-	if err != nil {
-		t.Error("Display Summary failed")
-	}
+	summaryAfter := getUserSummary(userid, t)
 
-	status, body, _ = userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount))
-	if status != lib.StatusOk {
-		t.Error("Set Sell AmountFailed\n" + strconv.Itoa(status) + body)
-	}
-
-	status, body, _ = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(triggerPrice))
-	if status != lib.StatusOk {
-		t.Error("Set Sell Trigger Failed\n" + strconv.Itoa(status) + body)
-	}
-
-	summaryAfter, err := userClient.GetSummary(userid)
-	if err != nil {
-		t.Error("Display Summary failed")
-	}
-
-	if len(summaryAfter.Triggers) != len(summaryBefore.Triggers)+1 {
+	if getTestStockTrigger(summaryAfter, true) == nil {
 		t.Error("Trigger was not saved")
 	}
 
 	time.Sleep(65 * time.Second)
 
-	summaryAfter, err = userClient.GetSummary(userid)
-	if err != nil {
-		t.Error("Display Summary failed")
-	}
+	summaryAfter = getUserSummary(userid, t)
 
-	if len(summaryAfter.Triggers) != len(summaryBefore.Triggers) {
+	if getTestStockTrigger(summaryAfter, true) != nil {
 		t.Error("Trigger was not cleared")
 	}
 
-	expectedStocksSold := (buyAmount / triggerPrice)
-	expectedStockCount := summaryBefore.Investments[0].Amount - expectedStocksSold
-	if len(summaryAfter.Investments) > 0 && summaryAfter.Investments[0].Amount != expectedStockCount {
-		t.Error("Trigger was not properly executed")
-	}
+	expectedStocksSold := (sellAmount / sellTriggerPrice)
+	expectedStockCount := getTestStockCount(summaryBefore) - expectedStocksSold
+	isEqual(getTestStockCount(summaryAfter), expectedStockCount, "Trigger stock calculation incorrect", t)
 
-	if summaryAfter.Cents != summaryBefore.Cents+(expectedStocksSold*quoteValue) {
-		t.Error("Money from sale was not added to account")
-	}
+	expectedBalance := summaryBefore.Cents + (expectedStocksSold * quoteValue)
+	isEqual(summaryAfter.Cents, expectedBalance, "Money was not properly added", t)
 
 }

@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"strconv"
 	"testing"
 	"time"
 
@@ -9,65 +8,47 @@ import (
 	userClient "extremeWorkload.com/daytrader/lib/user"
 )
 
+func setupBuyTriggerTest(t *testing.T) {
+	status, body, err := userClient.CancelSetBuyRequest(userid, stockSymbol)
+	checkSystemError("Cancel Buy failed", status, body, err, t)
+	summary := getUserSummary(userid, t)
+	if getTestStockTrigger(summary, false) != nil {
+		t.Error("Trigger was not cleared initially")
+	}
+	status, body, err = userClient.AddRequest(userid, lib.CentsToDollars(addAmount))
+	handleErrors("Add failed", status, body, err, t)
+}
+
 func TestTriggerBuy(t *testing.T) {
-	userid := "thewolf"
-	var addAmount uint64 = 1000234
-	var buyAmount uint64 = 5000
-	var triggerPrice uint64 = 500
-	stockSymbol := "DOG"
 
-	status, body, _ := userClient.CancelSetBuyRequest(userid, stockSymbol)
-	status, body, _ = userClient.CancelSetSellRequest(userid, stockSymbol)
+	setupBuyTriggerTest(t)
 
-	status, body, _ = userClient.AddRequest(userid, lib.CentsToDollars(addAmount))
-	if status != lib.StatusOk {
-		t.Error("add failed\n" + strconv.Itoa(status) + body)
-	}
+	summaryBefore := getUserSummary(userid, t)
 
-	summaryBefore, err := userClient.GetSummary(userid)
-	if err != nil {
-		t.Error("Display Summary failed")
-	}
+	status, body, err := userClient.SetBuyAmountRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
+	handleErrors("Set Buy Amount failed", status, body, err, t)
 
-	status, body, _ = userClient.SetBuyAmountRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
-	if status != lib.StatusOk {
-		t.Error("Set Buy Amount failed\n" + strconv.Itoa(status) + body)
-	}
+	status, body, _ = userClient.SetBuyTriggerRequest(userid, stockSymbol, lib.CentsToDollars(buyTriggerPrice))
+	handleErrors("Set Buy Trigger failed", status, body, err, t)
 
-	status, body, _ = userClient.SetBuyTriggerRequest(userid, stockSymbol, lib.CentsToDollars(triggerPrice))
-	if status != lib.StatusOk {
-		t.Error("Set Buy Trigger failed\n" + strconv.Itoa(status) + body)
-	}
+	summaryAfter := getUserSummary(userid, t)
 
-	summaryAfter, err := userClient.GetSummary(userid)
-	if err != nil {
-		t.Error("Display Summary failed")
-	}
-
-	if len(summaryAfter.Triggers) != len(summaryBefore.Triggers)+1 {
+	if getTestStockTrigger(summaryAfter, false) == nil {
 		t.Error("Trigger was not saved")
 	}
-
 	time.Sleep(65 * time.Second)
 
-	summaryAfter, err = userClient.GetSummary(userid)
-	if err != nil {
-		t.Error("Display Summary failed")
-	}
+	summaryAfter = getUserSummary(userid, t)
 
-	if len(summaryAfter.Triggers) != len(summaryBefore.Triggers) {
+	if getTestStockTrigger(summaryAfter, false) != nil {
 		t.Error("Trigger was not cleared")
 	}
 
 	expectedStocksBought := (buyAmount / quoteValue)
-	expectedStockCount := summaryBefore.Investments[0].Amount + expectedStocksBought
-	if len(summaryAfter.Investments) > 0 && summaryAfter.Investments[0].Amount != expectedStockCount {
-		t.Error("Trigger was not properly executed")
-	}
+	expectedStockCount := getTestStockCount(summaryBefore) + expectedStocksBought
+	isEqual(getTestStockCount(summaryAfter), expectedStockCount, "Trigger was not properly executed", t)
 
 	expectedBalance := summaryBefore.Cents - (expectedStocksBought * quoteValue)
-	if summaryAfter.Cents != expectedBalance {
-		t.Error("Money was not properly subtracted")
-	}
+	isEqual(summaryAfter.Cents, expectedBalance, "Money was not properly subtracted", t)
 
 }
