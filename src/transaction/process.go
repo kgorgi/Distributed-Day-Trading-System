@@ -1,8 +1,8 @@
 package main
 
 import (
-	"net"
 	"encoding/json"
+	"net"
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
@@ -488,7 +488,7 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 		return
 	}
 
-	triggers, err := dataConn.getTriggersByUser(jsonCommand.Userid);
+	triggers, err := dataConn.getTriggersByUser(jsonCommand.Userid)
 	if err != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 		return
@@ -497,7 +497,7 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 	userDisplay := modelsdata.UserDisplayInfo{}
 	userDisplay.Cents = balanceInCents
 	userDisplay.Investments = investments
-	
+
 	// convert triggers to triggerdisplayinfos
 	triggerDisplays := []modelsdata.TriggerDisplayInfo{}
 	for _, trigger := range triggers {
@@ -508,7 +508,7 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 	}
 	userDisplay.Triggers = triggerDisplays
 
-	userDisplayBytes, jsonErr := json.Marshal(userDisplay);
+	userDisplayBytes, jsonErr := json.Marshal(userDisplay)
 	if jsonErr != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
 		return
