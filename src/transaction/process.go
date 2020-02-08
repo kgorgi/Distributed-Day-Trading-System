@@ -446,20 +446,24 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 		return
 	}
 
+	// If there's an existing trigger, give back the reserved stock
+	var reservedStocks uint64 = 0
 	if trigger.Price_Cents != 0 {
-		// If there's an existing trigger, give back the reserved stock
-		reservedStocks := trigger.Amount_Cents / trigger.Price_Cents
-		err := dataConn.addStock(jsonCommand.Userid, jsonCommand.StockSymbol, reservedStocks)
+		reservedStocks += trigger.Amount_Cents / trigger.Price_Cents
+	}
+
+	if reservedStocks > numOfStocks {
+		err = dataConn.addStock(jsonCommand.Userid, jsonCommand.StockSymbol, reservedStocks-numOfStocks)
 		if err != nil {
 			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 			return
 		}
-	}
-
-	err = dataConn.removeStock(jsonCommand.Userid, jsonCommand.StockSymbol, numOfStocks)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
+	} else if reservedStocks < numOfStocks {
+		err = dataConn.removeStock(jsonCommand.Userid, jsonCommand.StockSymbol, numOfStocks-reservedStocks)
+		if err != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+			return
+		}
 	}
 
 	err = dataConn.setTriggerPrice(jsonCommand.Userid, jsonCommand.StockSymbol, priceInCents, true)
