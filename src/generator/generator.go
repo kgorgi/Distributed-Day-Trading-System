@@ -122,7 +122,7 @@ func parseLine(line string) []string {
 func main() {
 	filePath := "workload.txt"
 
-	if os.Args[1] != "" {
+	if len(os.Args) > 1 {
 		filePath = os.Args[1]
 	}
 
