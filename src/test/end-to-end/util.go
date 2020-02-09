@@ -56,7 +56,7 @@ func checkSystemError(errMessage string, status int, body string, err error, t *
 		t.Error(errMessage + "\n" + err.Error())
 	}
 
-	if status != lib.StatusUserError {
+	if status == lib.StatusSystemError {
 		t.Error(errMessage + "\n" + strconv.Itoa(status) + " " + body)
 	}
 }
