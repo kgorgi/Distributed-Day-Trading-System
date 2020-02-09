@@ -414,19 +414,21 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
 		return
 	} else {
-		reservedStock := existingTrigger.Amount_Cents / existingTrigger.Price_Cents
-		newStock := amountInCents / existingTrigger.Price_Cents
-		if reservedStock > newStock {
-			err := dataConn.addStock(jsonCommand.Userid, jsonCommand.StockSymbol, reservedStock-newStock)
-			if err != nil {
-				lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		if existingTrigger.Price_Cents > 0 {
+			reservedStock := existingTrigger.Amount_Cents / existingTrigger.Price_Cents
+			newStock := amountInCents / existingTrigger.Price_Cents
+			if reservedStock > newStock {
+				err := dataConn.addStock(jsonCommand.Userid, jsonCommand.StockSymbol, reservedStock-newStock)
+				if err != nil {
+					lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+				}
 			}
-		}
-		if reservedStock < newStock {
-			err := dataConn.removeStock(jsonCommand.Userid, jsonCommand.StockSymbol, newStock-reservedStock)
-			if err != nil {
-				lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-				return
+			if reservedStock < newStock {
+				err := dataConn.removeStock(jsonCommand.Userid, jsonCommand.StockSymbol, newStock-reservedStock)
+				if err != nil {
+					lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+					return
+				}
 			}
 		}
 		existingTrigger.Amount_Cents = amountInCents
