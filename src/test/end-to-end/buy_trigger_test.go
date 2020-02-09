@@ -52,3 +52,35 @@ func TestTriggerBuy(t *testing.T) {
 	isEqual(summaryAfter.Cents, expectedBalance, "Money was not properly subtracted", t)
 
 }
+
+func TestTriggerBuyEditValues(t *testing.T) {
+	setupBuyTriggerTest(t)
+	status, body, err := userClient.SetBuyAmountRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
+	handleErrors("Set Buy Amount failed", status, body, err, t)
+
+	status, body, _ = userClient.SetBuyTriggerRequest(userid, stockSymbol, lib.CentsToDollars(buyTriggerPrice))
+	handleErrors("Set Buy Trigger failed", status, body, err, t)
+
+	summaryBefore := getUserSummary(userid, t)
+
+	status, body, err = userClient.SetBuyAmountRequest(userid, stockSymbol, lib.CentsToDollars(buyTriggerPrice-1))
+	checkUserCommandError("Should fail when setting amount < trigger price", status, body, err, t)
+
+	status, body, err = userClient.SetBuyTriggerRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount+1))
+	checkUserCommandError("Should fail when setting trigger price > amount", status, body, err, t)
+
+	status, body, err = userClient.SetBuyAmountRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount*2))
+	handleErrors("Set Buy Amount failed", status, body, err, t)
+
+	status, body, _ = userClient.SetBuyTriggerRequest(userid, stockSymbol, lib.CentsToDollars(buyTriggerPrice*2))
+	handleErrors("Set Buy Trigger failed", status, body, err, t)
+
+	summaryAfter := getUserSummary(userid, t)
+
+	isEqual(summaryBefore.Cents-buyAmount, summaryAfter.Cents, "Money was not subtracted from account", t)
+
+	triggerAfter := getTestStockTrigger(summaryAfter, false)
+
+	isEqual(triggerAfter.Amount_Cents, buyAmount*2, "Amount was not updated", t)
+	isEqual(triggerAfter.Price_Cents, buyTriggerPrice*2, "Triggerprice was not updated", t)
+}
