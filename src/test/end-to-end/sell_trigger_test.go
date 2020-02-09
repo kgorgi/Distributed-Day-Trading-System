@@ -65,3 +65,42 @@ func TestTriggerSell(t *testing.T) {
 	isEqual(summaryAfter.Cents, expectedBalance, "Money was not properly added", t)
 
 }
+
+func TestTriggerSellEditValues(t *testing.T) {
+	setupSellTriggerTest(t)
+	status, body, err := userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount))
+	handleErrors("Set Sell Amount failed", status, body, err, t)
+
+	status, body, err = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice))
+	handleErrors("Set Sell Trigger failed", status, body, err, t)
+
+	summaryBefore := getUserSummary(userid, t)
+	stocksBefore := getTestStockCount(summaryBefore)
+
+	status, body, err = userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice-1))
+	checkUserCommandError("Should fail when setting amount < trigger price", status, body, err, t)
+
+	status, body, err = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount+1))
+	checkUserCommandError("Should fail when setting trigger price > amount", status, body, err, t)
+
+	status, body, err = userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount*2))
+	handleErrors("Set Sell Amount failed", status, body, err, t)
+
+	summaryAfter := getUserSummary(userid, t)
+	stocksAfter := getTestStockCount(summaryAfter)
+
+	isEqual(stocksBefore-(sellAmount/sellTriggerPrice), stocksAfter, "Stocks were not properly subtracted from account", t)
+
+	status, body, _ = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice*2))
+	handleErrors("Set Sell Trigger failed", status, body, err, t)
+
+	summaryAfter = getUserSummary(userid, t)
+	stocksAfter = getTestStockCount(summaryAfter)
+
+	isEqual(stocksBefore, stocksAfter, "Stocks were not properly added to account", t)
+
+	triggerAfter := getTestStockTrigger(summaryAfter, true)
+
+	isEqual(triggerAfter.Amount_Cents, sellAmount*2, "Amount was not updated", t)
+	isEqual(triggerAfter.Price_Cents, sellTriggerPrice*2, "Triggerprice was not updated", t)
+}
