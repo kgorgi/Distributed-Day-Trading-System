@@ -421,6 +421,7 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 				err := dataConn.addStock(jsonCommand.Userid, jsonCommand.StockSymbol, reservedStock-newStock)
 				if err != nil {
 					lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+					return
 				}
 			}
 			if reservedStock < newStock {
