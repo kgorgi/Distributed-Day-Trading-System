@@ -2,14 +2,15 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"net"
+
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 	"extremeWorkload.com/daytrader/lib/resolveurl"
-	"fmt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
-	"net"
 )
 
 var auditClient = auditclient.AuditClient{
@@ -17,6 +18,7 @@ var auditClient = auditclient.AuditClient{
 }
 
 func handleConnection(conn net.Conn, client *mongo.Client) {
+	lib.Debugln("Connection Established")
 	for {
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
@@ -26,10 +28,12 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
 
 		processCommand(conn, client, payload)
 	}
+
+	lib.Debugln("Connection Closed")
 }
 
 func main() {
-	fmt.Println("Starting Data server...")
+	fmt.Println("Starting data server...")
 
 	//hookup to mongo
 	clientOptions := options.Client().ApplyURI(resolveurl.DatabaseDBAddress())
@@ -43,7 +47,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Connected to MongoDB!")
+	fmt.Println("Connected to MongoDB")
 
 	//start listening on the port
 	ln, err := net.Listen("tcp", ":5001")
@@ -51,7 +55,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	fmt.Println("Started Server on Port 5001")
+	fmt.Println("Started data server on port: 5001")
 
 	//connection handling
 	for {
@@ -60,7 +64,7 @@ func main() {
 			fmt.Println(err)
 			continue
 		}
-		fmt.Println("Connection Established")
+
 		go handleConnection(conn, client)
 	}
 }

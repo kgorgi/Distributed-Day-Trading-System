@@ -1,0 +1,140 @@
+package e2e
+
+import (
+	"testing"
+	"time"
+
+	"extremeWorkload.com/daytrader/lib"
+	userClient "extremeWorkload.com/daytrader/lib/user"
+)
+
+func setupBuyTest(t *testing.T) {
+	status, body, err := userClient.AddRequest(userid, lib.CentsToDollars(addAmount))
+	handleErrors("Add Failed", status, body, err, t)
+}
+
+func TestBuyDoesNotModifyAccount(t *testing.T) {
+	setupBuyTest(t)
+	summaryBefore := getUserSummary(userid, t)
+	existingStock := getTestStockCount(summaryBefore)
+	existingBalance := summaryBefore.Cents
+
+	status, body, err := userClient.BuyRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
+	handleErrors("Buy Failed", status, body, err, t)
+
+	summaryAfterBuy := getUserSummary(userid, t)
+	newStock := getTestStockCount(summaryAfterBuy)
+	isEqual(summaryAfterBuy.Cents, existingBalance, "User's account balance was modified", t)
+	isEqual(newStock, existingStock, "User's portfolio was modified", t)
+
+	status, body, err = userClient.CancelBuyRequest(userid)
+	handleErrors("Cancel Buy Failed", status, body, err, t)
+}
+
+func TestBuyWithCommit(t *testing.T) {
+	setupBuyTest(t)
+
+	summaryBefore := getUserSummary(userid, t)
+	existingStock := getTestStockCount(summaryBefore)
+	existingBalance := summaryBefore.Cents
+
+	status, body, err := userClient.BuyRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
+	handleErrors("Buy Failed", status, body, err, t)
+
+	status, body, err = userClient.CommitBuyRequest(userid)
+	handleErrors("Commit Buy Failed", status, body, err, t)
+
+	summaryAfterCommit := getUserSummary(userid, t)
+
+	stocksBoughtCheck := buyAmount / quoteValue
+	amountLeftCheck := existingBalance - (stocksBoughtCheck * quoteValue)
+	newStock := getTestStockCount(summaryAfterCommit)
+
+	isEqual(summaryAfterCommit.Cents, amountLeftCheck, "Total amount remaining in user account is not correct", t)
+	isEqual(newStock, stocksBoughtCheck+existingStock, "Stock count does not match", t)
+}
+
+func TestBuyWithCancel(t *testing.T) {
+	setupBuyTest(t)
+
+	summaryBefore := getUserSummary(userid, t)
+	existingStock := getTestStockCount(summaryBefore)
+	existingBalance := summaryBefore.Cents
+
+	status, body, err := userClient.BuyRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
+	handleErrors("Buy Failed", status, body, err, t)
+
+	status, body, err = userClient.CancelBuyRequest(userid)
+	handleErrors("Cancel Buy Failed", status, body, err, t)
+
+	summaryAfterCancel := getUserSummary(userid, t)
+	newStock := getTestStockCount(summaryAfterCancel)
+
+	isEqual(summaryAfterCancel.Cents, existingBalance, "User's account balance was modified", t)
+	isEqual(newStock, existingStock, "User's portfolio was modified", t)
+}
+
+func TestBuyTimeout(t *testing.T) {
+	setupBuyTest(t)
+
+	summaryBefore := getUserSummary(userid, t)
+	existingStock := getTestStockCount(summaryBefore)
+	existingBalance := summaryBefore.Cents
+
+	status, body, err := userClient.BuyRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
+	handleErrors("Buy Failed", status, body, err, t)
+
+	time.Sleep(61 * time.Second)
+
+	summaryAfterTimeout := getUserSummary(userid, t)
+	newStock := getTestStockCount(summaryAfterTimeout)
+
+	isEqual(summaryAfterTimeout.Cents, existingBalance, "User's account balance was modified", t)
+	isEqual(newStock, existingStock, "User's portfolio was modified", t)
+
+	status, body, err = userClient.CommitBuyRequest(userid)
+	checkUserCommandError("Commit Buy Succeeded", status, body, err, t)
+
+	status, body, err = userClient.CancelBuyRequest(userid)
+	checkUserCommandError("Cancel Buy Succeeded", status, body, err, t)
+}
+
+func TestCommitBuyFailsWithoutBuy(t *testing.T) {
+	status, body, err := userClient.CommitBuyRequest(userid)
+	checkUserCommandError("Commit Buy Succeeded", status, body, err, t)
+}
+
+func TestCancelBuyFailsWithoutBuy(t *testing.T) {
+	status, body, err := userClient.CancelBuyRequest(userid)
+	checkUserCommandError("Cancel Buy Succeeded", status, body, err, t)
+}
+
+func TestBuyStack(t *testing.T) {
+	setupBuyTest(t)
+
+	// Add to Stack
+	for i := 0; i < 4; i++ {
+		status, body, err := userClient.BuyRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
+		handleErrors("Buy Failed", status, body, err, t)
+	}
+
+	// Pop from stack
+	status, body, err := userClient.CommitBuyRequest(userid)
+	handleErrors("Commit Buy Failed", status, body, err, t)
+
+	status, body, err = userClient.CancelBuyRequest(userid)
+	handleErrors("Cancel Buy Failed", status, body, err, t)
+
+	status, body, err = userClient.CommitBuyRequest(userid)
+	handleErrors("Commit Buy Failed", status, body, err, t)
+
+	status, body, err = userClient.CancelBuyRequest(userid)
+	handleErrors("Cancel Buy Failed", status, body, err, t)
+
+	// Extra Commands which should fail
+	status, body, err = userClient.CommitBuyRequest(userid)
+	checkUserCommandError("Commit Buy Succeeded", status, body, err, t)
+
+	status, body, err = userClient.CommitBuyRequest(userid)
+	checkUserCommandError("Commit Buy Succeeded", status, body, err, t)
+}
