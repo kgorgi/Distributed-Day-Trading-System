@@ -38,6 +38,10 @@ build-quote-mock:
 format:
 	gofmt -w ./src
 
+.phony test-e2e:
+test-e2e:
+	cd $(SRC)/test/end-to-end && go test -v
+
 # Docker Compose Commands
 .phony docker-deploy-dev:
 docker-deploy-dev:
