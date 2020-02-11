@@ -64,6 +64,9 @@ func TestTriggerSell(t *testing.T) {
 	expectedBalance := summaryBefore.Cents + (expectedStocksSold * quoteValue)
 	isEqual(summaryAfter.Cents, expectedBalance, "Money was not properly added", t)
 
+	status, body, err = userClient.CancelSetSellRequest(userid, stockSymbol)
+	checkSystemError("Cancel Sell failed", status, body, err, t)
+
 }
 
 func TestTriggerSellEditValues(t *testing.T) {
@@ -103,4 +106,7 @@ func TestTriggerSellEditValues(t *testing.T) {
 
 	isEqual(triggerAfter.Amount_Cents, sellAmount*2, "Amount was not updated", t)
 	isEqual(triggerAfter.Price_Cents, sellTriggerPrice*2, "Triggerprice was not updated", t)
+
+	status, body, err = userClient.CancelSetSellRequest(userid, stockSymbol)
+	checkSystemError("Cancel Sell failed", status, body, err, t)
 }
