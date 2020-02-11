@@ -65,6 +65,7 @@ func checkTriggers(auditClient auditclient.AuditClient) {
 		lib.Debugln(string(len(triggers)) + " Triggers have been fetched, analysing")
 
 		for _, trigger := range triggers {
+			auditClient.TransactionNum = trigger.Transaction_Number
 			stockPrice := GetQuote(trigger.Stock, trigger.User_Command_ID, &auditClient)
 			if trigger.Price_Cents != 0 {
 				if trigger.Is_Sell && stockPrice >= trigger.Price_Cents {

@@ -219,9 +219,9 @@ func (client *databaseWrapper) getTrigger(userid string, stockSymbol string, isS
 	return trigger, nil
 }
 
-func (client *databaseWrapper) createTrigger(userid string, stockSymbol string, amount_cents uint64, isSell bool) error {
-	newTrigger := modelsdata.Trigger{userid, stockSymbol, 0, amount_cents, isSell}
-	createErr := dataClient.CreateTrigger(newTrigger)
+func (client *databaseWrapper) createTrigger(userid string, stockSymbol string, amountCents uint64, isSell bool, transactionNumber uint64) error {
+	newTrigger := modelsdata.Trigger{ userid, stockSymbol, 0, amountCents, isSell, transactionNumber }
+	createErr := dataClient.CreateTrigger(newTrigger);
 	if createErr != nil {
 		return createErr
 	}
