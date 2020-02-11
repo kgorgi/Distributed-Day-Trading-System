@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net"
 
 	"extremeWorkload.com/daytrader/lib"
@@ -34,9 +33,9 @@ func handleLog(conn *net.Conn, payload string) {
 func logToConsole(data interface{}) {
 	output, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
-		fmt.Println("Unable to output audit message to console: " + err.Error())
+		lib.Debugln("Unable to output audit message to console: " + err.Error())
 		return
 	}
 
-	fmt.Println(string(output))
+	lib.Debugln(string(output))
 }
