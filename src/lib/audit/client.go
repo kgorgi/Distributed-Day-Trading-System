@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 	"strconv"
-	"time"
 
 	"extremeWorkload.com/daytrader/lib"
 	"extremeWorkload.com/daytrader/lib/resolveurl"
@@ -124,7 +123,7 @@ func (client *AuditClient) sendLogs(data interface{}) {
 func (client *AuditClient) generateInternalInfo(logType string, withCommand bool) InternalLogInfo {
 	var internalInfo = InternalLogInfo{
 		LogType:        logType,
-		Timestamp:      uint64(time.Now().UnixNano()) / uint64(time.Millisecond),
+		Timestamp:      lib.GetUnixTimestamp(),
 		Server:         client.Server,
 		TransactionNum: client.TransactionNum,
 	}
