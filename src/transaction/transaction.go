@@ -58,7 +58,7 @@ func main() {
 	var auditclient = auditclient.AuditClient{
 		Server:         "transaction",
 		TransactionNum: 0,
-		Command:        "N,/A",
+		Command:        "",
 	}
 
 	go checkTriggers(auditclient)
