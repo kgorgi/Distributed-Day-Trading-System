@@ -136,18 +136,29 @@ func (q *quote) updateQuote(
 
 	// Receive Response
 	rawResponse, err := bufio.NewReader(conn).ReadString('\n')
-	rawResponse = strings.TrimRight(rawResponse, "\n")
-
 	if err != nil {
 		log.Fatalln("Failed to recieve response to quote server")
 		return 0
 	}
 
+	conn.Close()	
+
 	// Process Data
+	rawResponse = strings.TrimRight(rawResponse, "\n")
 	data := strings.Split(rawResponse, ",")
 
 	if len(data) < 4 {
 		log.Fatalln("Quote server response is incorrect")
+		return 0
+	}
+
+	if data[1] != q.stockSymbol {
+		log.Fatalln("Response's stock symbol is incorrect")
+		return 0
+	}
+
+	if data[2] != userID {
+		log.Fatalln("Response's userid is incorrect")
 		return 0
 	}
 
@@ -165,7 +176,7 @@ func (q *quote) updateQuote(
 		StockSymbol:     q.stockSymbol,
 		CryptoKey:       data[4],
 	})
-
+	
 	q.mutex.Lock()
 	q.amount = cents
 	q.timestamp = lib.GetUnixTimestamp()
