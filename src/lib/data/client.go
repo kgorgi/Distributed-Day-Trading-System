@@ -17,9 +17,8 @@ var (
 	ErrNotFound = errors.New("not found")
 )
 
-type DataClient struct{}
-
-func (client *DataClient) CreateUser(user modelsdata.User) error {
+// CreateUser takes a user struct and creates a user in the database
+func CreateUser(user modelsdata.User) error {
 	userBytes, jsonErr := json.Marshal(user)
 	if jsonErr != nil {
 		return jsonErr
@@ -27,15 +26,16 @@ func (client *DataClient) CreateUser(user modelsdata.User) error {
 	userJSON := string(userBytes)
 
 	payload := "CREATE_USER|" + userJSON
-	_, _, err := client.sendRequest(payload)
+	_, _, err := sendRequest(payload)
 	return err
 }
 
-func (client *DataClient) ReadUsers() ([]modelsdata.User, error) {
+// ReadUsers reads all users from the database
+func ReadUsers() ([]modelsdata.User, error) {
 	users := make([]modelsdata.User, 0)
 
 	payload := "READ_USERS"
-	_, message, err := client.sendRequest(payload)
+	_, message, err := sendRequest(payload)
 	if err != nil {
 		return users, err
 	}
@@ -48,9 +48,10 @@ func (client *DataClient) ReadUsers() ([]modelsdata.User, error) {
 	return users, nil
 }
 
-func (client *DataClient) ReadUser(userID string) (modelsdata.User, error) {
+// ReadUser takes userID and reads a user from the database
+func ReadUser(userID string) (modelsdata.User, error) {
 	payload := "READ_USER|" + userID
-	_, message, err := client.sendRequest(payload)
+	_, message, err := sendRequest(payload)
 	if err != nil {
 		return modelsdata.User{}, err
 	}
@@ -64,7 +65,8 @@ func (client *DataClient) ReadUser(userID string) (modelsdata.User, error) {
 	return user, nil
 }
 
-func (client *DataClient) UpdateUser(user modelsdata.User) error {
+// UpdateUser takes in a user struct and updates the corresponding user in the database
+func UpdateUser(user modelsdata.User) error {
 	userBytes, jsonErr := json.Marshal(user)
 	if jsonErr != nil {
 		return jsonErr
@@ -72,17 +74,19 @@ func (client *DataClient) UpdateUser(user modelsdata.User) error {
 	userJSON := string(userBytes)
 
 	payload := "UPDATE_USER|" + userJSON
-	_, _, err := client.sendRequest(payload)
+	_, _, err := sendRequest(payload)
 	return err
 }
 
-func (client *DataClient) DeleteUser(userID string) error {
+// DeleteUser takes a userID and deletes the corresponding user from the database
+func DeleteUser(userID string) error {
 	payload := "DELETE_USER|" + userID
-	_, _, err := client.sendRequest(payload)
+	_, _, err := sendRequest(payload)
 	return err
 }
 
-func (client *DataClient) CreateTrigger(trigger modelsdata.Trigger) error {
+// CreateTrigger takes a trigger struct and creates a trigger in the database
+func CreateTrigger(trigger modelsdata.Trigger) error {
 	triggerBytes, jsonErr := json.Marshal(trigger)
 	if jsonErr != nil {
 		return jsonErr
@@ -90,15 +94,16 @@ func (client *DataClient) CreateTrigger(trigger modelsdata.Trigger) error {
 	triggerJSON := string(triggerBytes)
 
 	payload := "CREATE_TRIGGER|" + triggerJSON
-	_, _, err := client.sendRequest(payload)
+	_, _, err := sendRequest(payload)
 	return err
 }
 
-func (client *DataClient) ReadTriggers() ([]modelsdata.Trigger, error) {
+// ReadTriggers reads all triggers from the database
+func ReadTriggers() ([]modelsdata.Trigger, error) {
 	triggers := make([]modelsdata.Trigger, 0)
 
 	payload := "READ_TRIGGERS"
-	_, message, err := client.sendRequest(payload)
+	_, message, err := sendRequest(payload)
 	if err != nil {
 		return triggers, err
 	}
@@ -111,11 +116,12 @@ func (client *DataClient) ReadTriggers() ([]modelsdata.Trigger, error) {
 	return triggers, nil
 }
 
-func (client *DataClient) ReadTriggersByUser(userID string) ([]modelsdata.Trigger, error) {
+// ReadTriggersByUser takes a userID and reads all assosiated triggers from the database
+func ReadTriggersByUser(userID string) ([]modelsdata.Trigger, error) {
 	triggers := make([]modelsdata.Trigger, 0)
 
 	payload := "READ_TRIGGERS|" + userID
-	_, message, err := client.sendRequest(payload)
+	_, message, err := sendRequest(payload)
 	if err != nil {
 		return triggers, err
 	}
@@ -128,9 +134,10 @@ func (client *DataClient) ReadTriggersByUser(userID string) ([]modelsdata.Trigge
 	return triggers, nil
 }
 
-func (client *DataClient) ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigger, error) {
+// ReadTrigger takes the primary key attributes for a trigger and reads a trigger from the database
+func ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigger, error) {
 	payload := "READ_TRIGGER|" + userID + "|" + stockName + "|" + strconv.FormatBool(isSell)
-	_, message, err := client.sendRequest(payload)
+	_, message, err := sendRequest(payload)
 	if err != nil {
 		return modelsdata.Trigger{}, err
 	}
@@ -144,7 +151,8 @@ func (client *DataClient) ReadTrigger(userID string, stockName string, isSell bo
 	return trigger, nil
 }
 
-func (client *DataClient) UpdateTrigger(trigger modelsdata.Trigger) error {
+// UpdateTrigger takes a trigger struct and updates the corresponding trigger in the database
+func UpdateTrigger(trigger modelsdata.Trigger) error {
 	triggerBytes, jsonErr := json.Marshal(trigger)
 	if jsonErr != nil {
 		return jsonErr
@@ -152,18 +160,19 @@ func (client *DataClient) UpdateTrigger(trigger modelsdata.Trigger) error {
 	triggerJSON := string(triggerBytes)
 
 	payload := "UPDATE_TRIGGER|" + triggerJSON
-	_, _, err := client.sendRequest(payload)
+	_, _, err := sendRequest(payload)
 	return err
 }
 
-func (client *DataClient) DeleteTrigger(userID string, stockName string, isSell bool) error {
+// DeleteTrigger takes the primary key attributes of a trigger and deletes the corresponding trigger in the database
+func DeleteTrigger(userID string, stockName string, isSell bool) error {
 
 	payload := "DELETE_TRIGGER|" + userID + "|" + stockName + "|" + strconv.FormatBool(isSell)
-	_, _, err := client.sendRequest(payload)
+	_, _, err := sendRequest(payload)
 	return err
 }
 
-func (client *DataClient) sendRequest(payload string) (int, string, error) {
+func sendRequest(payload string) (int, string, error) {
 	//connect to data server
 	conn, err := net.Dial("tcp", resolveurl.DataServerAddress())
 	if err != nil {

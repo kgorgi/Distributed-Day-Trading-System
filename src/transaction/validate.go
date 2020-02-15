@@ -45,7 +45,7 @@ func validateParameters(conn net.Conn, commandJSON CommandJSON) bool {
 
 	// Validate user exists
 	exists := true
-	_, readErr := dataClient.ReadUser(commandJSON.Userid)
+	_, readErr := dataclient.ReadUser(commandJSON.Userid)
 	if readErr == dataclient.ErrNotFound {
 		exists = false
 	} else if readErr != nil {
@@ -57,7 +57,7 @@ func validateParameters(conn net.Conn, commandJSON CommandJSON) bool {
 		lib.ServerSendResponse(conn, lib.StatusUserError, "User does not exist")
 		return false
 	} else if commandJSON.Command == "ADD" && !exists {
-		createErr := dataClient.CreateUser(modelsdata.User{commandJSON.Userid, 0, []modelsdata.Investment{}})
+		createErr := dataclient.CreateUser(modelsdata.User{commandJSON.Userid, 0, []modelsdata.Investment{}})
 		if createErr != nil {
 			lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
 			return false
