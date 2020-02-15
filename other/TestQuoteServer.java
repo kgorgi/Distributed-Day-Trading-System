@@ -4,8 +4,8 @@ import java.lang.*;
 import java.util.Random;
 
 public class TestQuoteServer {
-    private static int requestCount = 10;
-    private static int threadCount = 63;
+    private static int requestCount = 1;
+    private static int threadCount = 52;
 
     public static void main(String[] args) throws Exception {
         // Setup Threads
@@ -71,7 +71,7 @@ public class TestQuoteServer {
 
 class QuoteTester implements Runnable {
     private static String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static String quoteServerAddress = "localhost";
+    private static String quoteServerAddress = "192.168.1.100";
     private static int quoteServerPort = 4443;
     private Random rand = new Random();
 
