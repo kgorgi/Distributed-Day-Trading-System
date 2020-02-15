@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"extremeWorkload.com/daytrader/lib"
+	dataclient "extremeWorkload.com/daytrader/lib/data"
+	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
 )
 
 var noStockSymbolParameter = make(map[string]bool)
@@ -42,9 +44,12 @@ func validateParameters(conn net.Conn, commandJSON CommandJSON) bool {
 	}
 
 	// Validate user exists
-	exists, err := dataConn.userExists(commandJSON.Userid)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+	exists := true
+	_, readErr := dataClient.ReadUser(commandJSON.Userid)
+	if readErr == dataclient.ErrNotFound {
+		exists = false
+	} else if readErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
 		return false
 	}
 
@@ -52,7 +57,11 @@ func validateParameters(conn net.Conn, commandJSON CommandJSON) bool {
 		lib.ServerSendResponse(conn, lib.StatusUserError, "User does not exist")
 		return false
 	} else if commandJSON.Command == "ADD" && !exists {
-		dataConn.createUser(commandJSON.Userid)
+		createErr := dataClient.CreateUser(modelsdata.User{commandJSON.Userid, 0, []modelsdata.Investment{}})
+		if createErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
+			return false
+		}
 	}
 
 	// Validate StockSymbol

@@ -19,8 +19,6 @@ type CommandJSON struct {
 	StockSymbol    string
 }
 
-var dataConn databaseWrapper
-
 func handleWebConnection(conn net.Conn) {
 	for {
 		payload, err := lib.ServerReceiveRequest(conn)
