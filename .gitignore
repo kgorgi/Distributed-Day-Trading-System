@@ -24,3 +24,6 @@
 *.code-workspace
 
 /pkg/
+
+# Java
+*.class
