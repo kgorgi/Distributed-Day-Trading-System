@@ -31,8 +31,6 @@ public class TestQuoteServer {
     }
 
     private static String ReponsesToLog(QuoteTester[] testers) {
-        int transactionCount = 1;
-
         StringBuilder str = new StringBuilder();
         str.append("<?xml version=\"1.0\"?>\n");
         str.append("<log>\n");
@@ -45,7 +43,7 @@ public class TestQuoteServer {
                 String[] data = t.responses[j].split(",");
                 printTag(str, "timestamp", data[3]);
                 printTag(str, "server", "quoteTest");
-                printTag(str, "transactionNum", Integer.toString(transactionCount));
+                printTag(str, "transactionNum", "70");
                 printTag(str, "price", data[0]);
                 printTag(str, "stockSymbol", data[1]);
                 printTag(str, "username", data[2]);
@@ -53,8 +51,6 @@ public class TestQuoteServer {
                 printTag(str, "cryptokey", data[4].trim());
 
                 str.append("\t</quoteServer>\n");
-
-                transactionCount++;
             }
         }
 
