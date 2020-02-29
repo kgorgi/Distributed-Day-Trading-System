@@ -24,3 +24,5 @@
 *.code-workspace
 
 /pkg/
+
+*.pem

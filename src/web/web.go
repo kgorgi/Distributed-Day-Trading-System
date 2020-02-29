@@ -100,5 +100,8 @@ func getRouter() http.Handler {
 
 func main() {
 	fmt.Println("Starting web server...")
-	http.ListenAndServe(webServerAddress, getRouter())
+	err := http.ListenAndServeTLS(webServerAddress, "./ssl/cert.pem", "./ssl/key.pem", getRouter())
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 }
