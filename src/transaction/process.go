@@ -10,7 +10,7 @@ import (
 )
 
 func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
-	valid := validateParameters(conn, jsonCommand)
+	valid := validateUser(conn, jsonCommand)
 	if !valid {
 		return
 	}
@@ -51,6 +51,24 @@ func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditcli
 		lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid command")
 	}
 
+}
+
+func validateUser(conn net.Conn, commandJSON CommandJSON) bool {
+	// Validate user exists
+	exists, err := dataConn.userExists(commandJSON.Userid)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return false
+	}
+
+	if commandJSON.Command != "ADD" && !exists {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "User does not exist")
+		return false
+	} else if commandJSON.Command == "ADD" && !exists {
+		dataConn.createUser(commandJSON.Userid)
+	}
+
+	return true
 }
 
 func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
