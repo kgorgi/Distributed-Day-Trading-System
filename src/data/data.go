@@ -19,15 +19,16 @@ var auditClient = auditclient.AuditClient{
 
 func handleConnection(conn net.Conn, client *mongo.Client) {
 	lib.Debugln("Connection Established")
-	for {
-		payload, err := lib.ServerReceiveRequest(conn)
-		if err != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-			return
-		}
-
-		processCommand(conn, client, payload)
+	payload, err := lib.ServerReceiveRequest(conn)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return
 	}
+
+	processCommand(conn, client, payload)
+	conn.Close()
+
+	lib.Debugln("Connection Closed")
 }
 
 func main() {
@@ -60,6 +61,7 @@ func main() {
 		conn, err := ln.Accept()
 		if err != nil {
 			fmt.Println(err)
+			conn.Close()
 			continue
 		}
 

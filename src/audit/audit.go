@@ -45,25 +45,25 @@ func main() {
 func handleConnection(conn net.Conn) {
 	lib.Debugln("Connection Established")
 
-	for {
-		payload, err := lib.ServerReceiveRequest(conn)
-		if err != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-			return
-		}
-
-		data := strings.Split(payload, "|")
-
-		switch data[0] {
-		case "LOG":
-			handleLog(&conn, data[1])
-		case "DUMPLOG":
-			handleDumpLog(&conn, data[1])
-		default:
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
-		}
+	payload, err := lib.ServerReceiveRequest(conn)
+	if err != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		conn.Close()
+		return
 	}
 
+	data := strings.Split(payload, "|")
+
+	switch data[0] {
+	case "LOG":
+		handleLog(&conn, data[1])
+	case "DUMPLOG":
+		handleDumpLog(&conn, data[1])
+	default:
+		lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
+	}
+
+	conn.Close()
 	lib.Debugln("Connection Closed")
 }
 
