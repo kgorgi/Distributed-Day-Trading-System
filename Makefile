@@ -57,7 +57,7 @@ docker-deploy-lab: build
 
 .phony docker-redeploy-dev:
 docker-redeploy:
-	docker-compose up -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --build --force-recreate --no-deps -d $(c)
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build --force-recreate --no-deps -d $(c)
 
 .phony docker-teardown:
 docker-teardown:  
