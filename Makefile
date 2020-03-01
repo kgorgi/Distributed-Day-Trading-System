@@ -49,11 +49,11 @@ docker-deploy-dev:
 
 .phony docker-deploy-local:
 docker-deploy-local:
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
 
 .phony docker-deploy-lab:
 docker-deploy-lab: build
-	docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build
+	docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build -d
 
 .phony docker-redeploy-dev:
 docker-redeploy:
@@ -62,6 +62,10 @@ docker-redeploy:
 .phony docker-teardown:
 docker-teardown:  
 	docker-compose down --remove-orphans -v
+
+.phony docker-clean
+docker-clean:
+	docker system prune && docker image prune
 
 # Docker Container Commands
 .phony docker-list:
