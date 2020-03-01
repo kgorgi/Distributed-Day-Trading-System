@@ -12,6 +12,10 @@ services:
             - "8080:8080"
         environment:
             - ENV=DOCKER
+        ulimits:
+            nofile:
+                soft: "65536"
+                hard: "65536"
 
     transaction:
         container_name: "transaction-server"
@@ -23,6 +27,10 @@ services:
             dockerfile: docker-files/local/Dockerfile.transaction
         environment:
             - ENV=DOCKER
+        ulimits:
+            nofile:
+                soft: "65536"
+                hard: "65536"
 
     data:
         container_name: "data-server"
@@ -34,6 +42,10 @@ services:
             dockerfile: docker-files/local/Dockerfile.data
         environment:
             - ENV=DOCKER
+        ulimits:
+            nofile:
+                soft: "65536"
+                hard: "65536"
 
     audit:
         container_name: "audit-server"
@@ -44,14 +56,27 @@ services:
             dockerfile: docker-files/local/Dockerfile.audit
         environment:
             - ENV=DOCKER
+        ulimits:
+            nofile:
+                soft: "65536"
+                hard: "65536"
+
     dataDB:
         image: mongo:latest
         container_name: "data-mongodb"
         environment:
             MONGO_INITDB_DATABASE: data
+        ulimits:
+            nofile:
+                soft: "65536"
+                hard: "65536"
 
     auditDB:
         image: mongo:latest
         container_name: "audit-mongodb"
         environment:
             MONGO_INITDB_DATABASE: audit
+        ulimits:
+            nofile:
+                soft: "65536"
+                hard: "65536"

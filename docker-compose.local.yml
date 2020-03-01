@@ -5,3 +5,7 @@ services:
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.quote-mock
+        ulimits:
+            nofile:
+                soft: "65536"
+                hard: "65536"
