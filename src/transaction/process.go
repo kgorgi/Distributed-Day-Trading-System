@@ -66,7 +66,7 @@ func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.
 }
 
 func handleQuote(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	quote := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, auditClient)
+	quote := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, false, auditClient)
 	dollars := lib.CentsToDollars(quote)
 	lib.ServerSendResponse(conn, lib.StatusOk, dollars)
 }
@@ -74,7 +74,7 @@ func handleQuote(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclien
 func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
 
-	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, auditClient)
+	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, true, auditClient)
 	if quoteInCents > amountInCents {
 		errorMessage := "Quote price is higher than buy amount"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
@@ -160,7 +160,7 @@ func handleCancelBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 
 func handleSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
-	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, auditClient)
+	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, true, auditClient)
 	if quoteInCents > amountInCents {
 		errorMessage := "Quote price is higher than sell amount"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{

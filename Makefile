@@ -61,7 +61,7 @@ docker-redeploy:
 
 .phony docker-teardown:
 docker-teardown:  
-	docker-compose down --remove-orphans
+	docker-compose down --remove-orphans -v
 
 # Docker Container Commands
 .phony docker-list:
