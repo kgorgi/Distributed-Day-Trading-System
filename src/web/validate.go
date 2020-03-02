@@ -34,6 +34,10 @@ var isStockSymbol = regexp.MustCompile(`^[A-Z][A-Z]?[A-Z]?$`).MatchString
 var isAmount = regexp.MustCompile(`^[0-9]+\.[0-9][0-9]$`).MatchString
 
 func validateParameters(commandMap map[string]string) (bool, int, string) {
+	if commandMap["command"] == "DUMPLOG" {
+		return true, lib.StatusOk, ""
+	}
+
 	// Check userID has valid characters
 	if !isAlphanumeric(commandMap["userid"]) {
 		return false, lib.StatusUserError, "Invalid userid"
