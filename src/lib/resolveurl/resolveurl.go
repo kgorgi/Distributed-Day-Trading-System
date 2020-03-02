@@ -6,10 +6,11 @@ import "os"
 const dockerHost = "host.docker.internal"
 const localhost = "localhost"
 
+var env = os.Getenv("ENV")
+
 func resolveServerAddress(dockerServer string, port string) string {
 	var server string
 
-	env := os.Getenv("ENV")
 	switch env {
 	case "LAB":
 		server = dockerServer
@@ -28,8 +29,6 @@ func resolveServerAddress(dockerServer string, port string) string {
 func resolveMongoAddress(dockerServer string, dockerPort string, localPort string) string {
 	var server string
 	var port string
-
-	env := os.Getenv("ENV")
 
 	switch env {
 	case "LAB":
@@ -73,7 +72,6 @@ func MockQuoteServerAddress() string {
 // DatabaseDBAddress returns the mongo DB address for the database server
 func DatabaseDBAddress() string {
 	return resolveMongoAddress("data-mongodb", "27017", "27017")
-
 }
 
 // AuditDBAddress returns the mongo DB address for the audit server

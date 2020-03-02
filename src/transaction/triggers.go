@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 	dataclient "extremeWorkload.com/daytrader/lib/data"
 	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
@@ -70,7 +71,7 @@ func sellTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *aud
 
 func checkTriggers(auditClient auditclient.AuditClient) {
 	for {
-		fmt.Println("Checking Triggers")
+		lib.Debugln("Checking Triggers")
 
 		triggers, err := dataclient.ReadTriggers()
 		for err != nil {
@@ -79,9 +80,10 @@ func checkTriggers(auditClient auditclient.AuditClient) {
 			triggers, err = dataclient.ReadTriggers()
 		}
 
-		fmt.Println(string(len(triggers)) + " Triggers have been fetched, analysing")
+		lib.Debugln(string(len(triggers)) + " Triggers have been fetched, analysing")
 
 		for _, trigger := range triggers {
+			auditClient.TransactionNum = trigger.Transaction_Number
 			stockPrice := GetQuote(trigger.Stock, trigger.User_Command_ID, &auditClient)
 			if trigger.Price_Cents != 0 {
 				if trigger.Is_Sell && stockPrice >= trigger.Price_Cents {

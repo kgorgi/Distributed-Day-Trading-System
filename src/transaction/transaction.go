@@ -20,6 +20,8 @@ type CommandJSON struct {
 }
 
 func handleWebConnection(conn net.Conn) {
+	lib.Debugln("Connection Established")
+
 	for {
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
@@ -45,11 +47,11 @@ func handleWebConnection(conn net.Conn) {
 		processCommand(conn, commandJSON, auditClient)
 	}
 
-	fmt.Println("closed client")
+	lib.Debugln("Connection Closed")
 }
 
 func main() {
-	fmt.Println("Establishing Database Connection")
+	fmt.Println("Starting transaction server...")
 
 	var auditclient = auditclient.AuditClient{
 		Server:         "transaction",
@@ -60,9 +62,9 @@ func main() {
 	go checkTriggers(auditclient)
 
 	initParameterMaps()
-	fmt.Println("Database Server Connected")
 
 	ln, _ := net.Listen("tcp", ":5000")
+	fmt.Println("Started transaction server on port: 5000")
 
 	for {
 		conn, _ := ln.Accept()
