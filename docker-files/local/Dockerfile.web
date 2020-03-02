@@ -10,6 +10,9 @@ RUN go mod download
 
 RUN cd ./web && go build
 
+COPY ./ssl/cert.pem ./ssl/cert.pem
+COPY ./ssl/key.pem ./ssl/key.pem
+
 EXPOSE 8080 
 
 CMD ["./web/web"]

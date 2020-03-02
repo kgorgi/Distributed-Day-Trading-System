@@ -57,7 +57,7 @@ docker-deploy-lab: build
 
 .phony docker-redeploy-dev:
 docker-redeploy:
-	docker-compose up -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --build --force-recreate --no-deps -d $(c)
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build --force-recreate --no-deps -d $(c)
 
 .phony docker-teardown:
 docker-teardown:  
@@ -85,3 +85,7 @@ docker-start:
 .phony docker-remove:
 docker-remove:
 	docker rm $(c)
+
+.phony cert-generate:
+cert-generate:
+	cd ./ssl && sudo openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out cert.pem -subj '/CN=localhost'

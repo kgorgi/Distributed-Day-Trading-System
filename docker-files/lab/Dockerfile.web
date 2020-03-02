@@ -3,6 +3,9 @@ FROM golang:latest
 WORKDIR ./server
 COPY ./build/web.exe .
 
+COPY ./ssl/cert.pem ./ssl/cert.pem
+COPY ./ssl/key.pem ./ssl/key.pem
+
 EXPOSE 8080 
 
 CMD ["./web.exe"]
