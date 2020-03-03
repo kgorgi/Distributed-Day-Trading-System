@@ -68,7 +68,7 @@ func handleConnection(conn net.Conn) {
 }
 
 func connectToMongo() (*mongo.Client, error) {
-	clientOptions := options.Client().ApplyURI(resolveurl.AuditDBAddress())
+	clientOptions := options.Client().ApplyURI(resolveurl.AuditDBAddress)
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		return nil, err

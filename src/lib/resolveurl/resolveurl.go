@@ -6,6 +6,8 @@ import "os"
 const dockerHost = "host.docker.internal"
 const localhost = "localhost"
 
+const auditHost = "192.168.1.200"
+
 var env = os.Getenv("ENV")
 
 func resolveServerAddress(dockerServer string, port string) string {
@@ -50,9 +52,26 @@ func resolveMongoAddress(dockerServer string, dockerPort string, localPort strin
 }
 
 // AuditServerAddress returns the audit server address
-func AuditServerAddress() string {
-	return resolveServerAddress("audit-server", "5002")
+func resolveAuditServerAddress() string {
+	var server string
+
+	switch env {
+	case "LAB":
+		server = auditHost
+	case "DOCKER":
+		server = "audit-server"
+	case "DEV":
+		server = dockerHost
+	default:
+		// Running server locally
+		server = localhost
+	}
+
+	return server + ":" + "5002"
 }
+
+// AuditServerAddress returns the audit server address
+var AuditServerAddress = resolveAuditServerAddress()
 
 // TransactionServerAddress returns the transaction server address
 func TransactionServerAddress() string {
