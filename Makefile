@@ -56,7 +56,7 @@ docker-deploy-lab: build
 	docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build -d
 
 .phony docker-deploy-audit-lab:
-docker-deploy-lab: build
+docker-deploy-audit-lab: build
 	docker-compose -f docker-compose-audit.yml -f docker-compose-audit.lab.yml up --build -d
 
 .phony docker-redeploy-dev:
