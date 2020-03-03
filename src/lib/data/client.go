@@ -174,7 +174,7 @@ func UpdateTriggerAmount(userID string, stock string, isSell bool, amount uint64
 
 func sendRequest(payload string) (int, string, error) {
 	//connect to data server
-	conn, err := net.Dial("tcp", resolveurl.DataServerAddress())
+	conn, err := net.Dial("tcp", resolveurl.DataServerAddress)
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
 		return -1, "", err

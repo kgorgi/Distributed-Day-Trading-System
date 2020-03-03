@@ -35,7 +35,7 @@ func main() {
 	fmt.Println("Starting data server...")
 
 	//hookup to mongo
-	clientOptions := options.Client().ApplyURI(resolveurl.DatabaseDBAddress())
+	clientOptions := options.Client().ApplyURI(resolveurl.DatabaseDBAddress)
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		log.Fatal(err)

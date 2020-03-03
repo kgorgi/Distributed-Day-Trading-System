@@ -74,26 +74,16 @@ func resolveAuditServerAddress() string {
 var AuditServerAddress = resolveAuditServerAddress()
 
 // TransactionServerAddress returns the transaction server address
-func TransactionServerAddress() string {
-	return resolveServerAddress("transaction-server", "5000")
-}
+var TransactionServerAddress = resolveServerAddress("transaction-server", "5000")
 
 // DataServerAddress returns the database server address
-func DataServerAddress() string {
-	return resolveServerAddress("data-server", "5001")
-}
+var DataServerAddress = resolveServerAddress("data-server", "5001")
 
 // MockQuoteServerAddress returns the mock legacy quote server address
-func MockQuoteServerAddress() string {
-	return resolveServerAddress("quote-mock-server", "4443")
-}
+var MockQuoteServerAddress = resolveServerAddress("quote-mock-server", "4443")
 
 // DatabaseDBAddress returns the mongo DB address for the database server
-func DatabaseDBAddress() string {
-	return resolveMongoAddress("data-mongodb", "27017", "27017")
-}
+var DatabaseDBAddress = resolveMongoAddress("data-mongodb", "27017", "27017")
 
 // AuditDBAddress returns the mongo DB address for the audit server
-func AuditDBAddress() string {
-	return resolveMongoAddress("audit-mongodb", "27017", "5003")
-}
+var AuditDBAddress = resolveMongoAddress("audit-mongodb", "27017", "5003")

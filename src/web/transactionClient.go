@@ -19,7 +19,7 @@ func (transactionClient *TransactionClient) SendCommand(command map[string]strin
 		return lib.StatusSystemError, "", err
 	}
 
-	conn, err := net.Dial("tcp", resolveurl.TransactionServerAddress())
+	conn, err := net.Dial("tcp", resolveurl.TransactionServerAddress)
 	if err != nil {
 		return lib.StatusSystemError, "", err
 	}
