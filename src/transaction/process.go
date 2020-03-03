@@ -340,17 +340,27 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 		return
 	}
 
-	existingTrigger, getTriggerErr := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, false)
-	if getTriggerErr != nil && getTriggerErr != ErrDataNotFound {
+	existingTrigger, getTriggerErr := dataclient.ReadTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, false)
+	if getTriggerErr != nil && getTriggerErr != dataclient.ErrNotFound {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, getTriggerErr.Error())
 		return
 	}
 
 	var existingAmount uint64 = 0
-	if getTriggerErr == ErrDataNotFound {
-		err = dataConn.createTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, false, auditClient.TransactionNum)
-		if err != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+
+	// start
+
+	if getTriggerErr == dataclient.ErrNotFound {
+		newTrigger := modelsdata.Trigger{jsonCommand.Userid,
+			jsonCommand.StockSymbol,
+			0,
+			amountInCents,
+			false,
+			auditClient.TransactionNum}
+
+		createErr := dataclient.CreateTrigger(newTrigger)
+		if createErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, createErr.Error())
 			return
 		}
 	} else {
@@ -368,25 +378,25 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 
 		existingAmount = existingTrigger.Amount_Cents
 		existingTrigger.Amount_Cents = amountInCents
-		err = dataClient.UpdateTrigger(existingTrigger)
-		if err != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		updateErr := dataclient.UpdateTrigger(existingTrigger)
+		if updateErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
 			return
 		}
 	}
 
-	if existingAmount > amountInCents {
-		err = dataConn.addAmount(jsonCommand.Userid, existingAmount-amountInCents, auditClient)
-		if err != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-			return
-		}
-	} else if existingAmount < amountInCents {
-		err = dataConn.removeAmount(jsonCommand.Userid, amountInCents-existingAmount, auditClient)
-		if err != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-			return
-		}
+	//stop
+
+	User, userReadErr := dataclient.ReadUser(jsonCommand.Userid)
+	if userReadErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, userReadErr.Error())
+		return
+	}
+	User.Cents += existingAmount - amountInCents
+	updateErr := dataclient.UpdateUser(User)
+	if updateErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
+		return
 	}
 
 	lib.ServerSendOKResponse(conn)
@@ -473,15 +483,22 @@ func handleCancelSetBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 }
 
 func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	existingTrigger, getTriggerErr := dataConn.getTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
-	if getTriggerErr != nil && getTriggerErr != ErrDataNotFound {
+
+	existingTrigger, getTriggerErr := dataclient.ReadTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
+	if getTriggerErr != nil && getTriggerErr != dataclient.ErrNotFound {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, getTriggerErr.Error())
 		return
 	}
 
 	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
-	if getTriggerErr == ErrDataNotFound {
-		err := dataConn.createTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, amountInCents, true, auditClient.TransactionNum)
+	if getTriggerErr == dataclient.ErrNotFound {
+		newTrigger := modelsdata.Trigger{jsonCommand.Userid,
+			jsonCommand.StockSymbol,
+			0,
+			amountInCents,
+			true,
+			auditClient.TransactionNum}
+		err := dataclient.CreateTrigger(newTrigger)
 		if err != nil {
 			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 			return
@@ -500,23 +517,31 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 		if existingTrigger.Price_Cents > 0 {
 			reservedStock := existingTrigger.Amount_Cents / existingTrigger.Price_Cents
 			newStock := amountInCents / existingTrigger.Price_Cents
+
+			user, readErr := dataclient.ReadUser(jsonCommand.Userid)
+			if readErr != nil {
+				lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
+				return
+			}
 			if reservedStock > newStock {
-				err := dataConn.addStock(jsonCommand.Userid, jsonCommand.StockSymbol, reservedStock-newStock)
-				if err != nil {
-					lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+				user.Investments = addStock(user.Investments, jsonCommand.StockSymbol, reservedStock-newStock)
+			}
+			if reservedStock < newStock {
+				var removeStockErr error
+				user.Investments, removeStockErr = removeStock(user.Investments, jsonCommand.StockSymbol, newStock-reservedStock)
+				if removeStockErr != nil {
+					lib.ServerSendResponse(conn, lib.StatusSystemError, readErr.Error())
 					return
 				}
 			}
-			if reservedStock < newStock {
-				err := dataConn.removeStock(jsonCommand.Userid, jsonCommand.StockSymbol, newStock-reservedStock)
-				if err != nil {
-					lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-					return
-				}
+			updateUserErr := dataclient.UpdateUser(user)
+			if updateUserErr != nil {
+				lib.ServerSendResponse(conn, lib.StatusSystemError, updateUserErr.Error())
+				return
 			}
 		}
 		existingTrigger.Amount_Cents = amountInCents
-		err := dataClient.UpdateTrigger(existingTrigger)
+		err := dataclient.UpdateTrigger(existingTrigger)
 		if err != nil {
 			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 			return
