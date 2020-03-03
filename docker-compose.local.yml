@@ -7,5 +7,16 @@ services:
             dockerfile: docker-files/local/Dockerfile.quote-mock
         ulimits:
             nofile:
-                soft: "65536"
-                hard: "65536"
+                soft: 65536
+                hard: 65536
+    web:
+        depends_on:
+            - audit
+
+    transaction:
+        depends_on:
+            - audit
+
+    data:
+        depends_on:
+            - audit

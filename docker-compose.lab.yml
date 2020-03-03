@@ -17,9 +17,3 @@ services:
             dockerfile: docker-files/lab/Dockerfile.data
         environment:
             - ENV=LAB
-
-    audit:
-        build:
-            dockerfile: docker-files/lab/Dockerfile.audit
-        environment:
-            - ENV=LAB

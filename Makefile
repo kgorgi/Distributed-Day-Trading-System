@@ -45,27 +45,31 @@ test-e2e:
 # Docker Compose Commands
 .phony docker-deploy-dev:
 docker-deploy-dev:
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build
+	docker-compose -f docker-compose.yml -f docker-compose-audit.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build
 
 .phony docker-deploy-local:
 docker-deploy-local:
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
+	docker-compose -f docker-compose.yml -f docker-compose-audit.yml -f docker-compose.local.yml up --build -d
 
 .phony docker-deploy-lab:
 docker-deploy-lab: build
 	docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build -d
 
+.phony docker-deploy-audit-lab:
+docker-deploy-lab: build
+	docker-compose -f docker-compose-audit.yml -f docker-compose-audit.lab.yml up --build -d
+
 .phony docker-redeploy-dev:
 docker-redeploy:
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build --force-recreate --no-deps -d $(c)
+	docker-compose -f docker-compose.yml -f docker-compose-audit.yml -f docker-compose.local.yml -f docker-compose.dev.yml --build --force-recreate --no-deps -d $(c)
 
 .phony docker-teardown:
 docker-teardown:  
 	docker-compose down --remove-orphans -v
 
-.phony docker-clean
+.phony docker-clean:
 docker-clean:
-	docker system prune && docker image prune
+	docker system prune && docker volume prune
 
 # Docker Container Commands
 .phony docker-list:
