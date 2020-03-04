@@ -4,8 +4,11 @@ import java.lang.*;
 import java.util.Random;
 
 public class TestQuoteServer {
+    // The number of concurrent requests
+    private static int threadCount = 1;
+
+    // The number of consectuive requests each thread makes
     private static int requestCount = 1;
-    private static int threadCount = 52;
 
     public static void main(String[] args) throws Exception {
         // Setup Threads
@@ -94,6 +97,7 @@ class QuoteTester implements Runnable {
 
                 String fromUser = createStock() + "," + this.userid + "\n";
                 out.println(fromUser);
+                out.flush();
 
                 String fromServer = in.readLine();
 
