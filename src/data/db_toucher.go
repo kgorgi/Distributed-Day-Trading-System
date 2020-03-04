@@ -67,12 +67,12 @@ func readTrigger(client *mongo.Client, commandID string, stock string, isSell bo
 	return trigger, err
 }
 
-func updateTrigger(client *mongo.Client, trigger modelsdata.Trigger) error {
+func updateTrigger(client *mongo.Client, trigger modelsdata.Trigger, isSell bool) error {
 	collection := client.Database("extremeworkload").Collection("triggers")
 	update := bson.M{
 		"$set": bson.M{"price_cents": trigger.Price_Cents, "amount_cents": trigger.Amount_Cents},
 	}
-	filter := bson.M{"user_command_id": trigger.User_Command_ID, "stock": trigger.Stock}
+	filter := bson.M{"user_command_id": trigger.User_Command_ID, "stock": trigger.Stock, "is_sell": isSell}
 	_, err := collection.UpdateOne(context.TODO(), filter, update)
 	return err
 }
