@@ -76,3 +76,11 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+
+    load:
+        container_name: "load-balancer"
+        build:
+            context: .
+            dockerfile: ./loadbalancer/Dockerfile
+        ports:
+            - "9090:80"
