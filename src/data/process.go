@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"extremeWorkload.com/daytrader/lib"
-	"extremeWorkload.com/daytrader/lib/models/data"
-	"go.mongodb.org/mongo-driver/mongo"
 	"net"
+	"strconv"
 	"strings"
+
+	"extremeWorkload.com/daytrader/lib"
+	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 func generateIsSellBool(isSellString string) bool {
@@ -182,6 +184,148 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		lib.ServerSendOKResponse(conn)
+
+	case "BUY_STOCK":
+		userCommandID := data[1]
+		stock := data[2]
+		amount := data[3]
+		cents := data[4]
+
+		amountInt, conversionErr1 := strconv.ParseUint(amount, 10, 64)
+		centsInt, conversionErr2 := strconv.ParseUint(cents, 10, 64)
+		if conversionErr1 != nil || conversionErr2 != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Amount must be an unsigned integer")
+		}
+
+		buyErr := buyStock(client, userCommandID, stock, amountInt, centsInt)
+		if buyErr != nil {
+
+			if buyErr == ErrNotFound {
+				lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist, or they do not have the specified amount of money")
+				break
+			}
+
+			lib.ServerSendResponse(conn, lib.StatusSystemError, buyErr.Error())
+			break
+		}
+
+		lib.ServerSendOKResponse(conn)
+
+	case "SELL_STOCK":
+		userCommandID := data[1]
+		stock := data[2]
+		amount := data[3]
+		cents := data[4]
+
+		amountInt, conversionErr1 := strconv.ParseUint(amount, 10, 64)
+		centsInt, conversionErr2 := strconv.ParseUint(cents, 10, 64)
+		if conversionErr1 != nil || conversionErr2 != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Amount must be an unsigned integer")
+		}
+
+		sellErr := sellStock(client, userCommandID, stock, amountInt, centsInt)
+		if sellErr != nil {
+
+			if sellErr == ErrNotFound {
+				lib.ServerSendResponse(conn, lib.StatusNotFound, "Either the user or stock does not exist, or the user does not have a sufficient amount of stock")
+			}
+
+			lib.ServerSendResponse(conn, lib.StatusSystemError, sellErr.Error())
+			break
+		}
+
+		lib.ServerSendOKResponse(conn)
+
+	case "ADD_AMOUNT":
+		userCommandID := data[1]
+		amount := data[2]
+
+		amountInt, conversionErr := strconv.ParseUint(amount, 10, 64)
+		if conversionErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Amount must be an unsigned integer")
+		}
+
+		addErr := addAmount(client, userCommandID, amountInt)
+		if addErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, addErr.Error())
+			break
+		}
+
+		lib.ServerSendOKResponse(conn)
+
+	case "REM_AMOUNT":
+		userCommandID := data[1]
+		amount := data[2]
+
+		amountInt, conversionErr := strconv.ParseUint(amount, 10, 64)
+		if conversionErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Amount must be an unsigned integer")
+		}
+
+		remErr := remAmount(client, userCommandID, amountInt)
+		if remErr != nil {
+
+			if remErr == ErrNotFound {
+				lib.ServerSendResponse(conn, lib.StatusNotFound, "Either the specified user does not exist, or they do not have sufficient funds to remove "+amount+" cents")
+				break
+			}
+
+			lib.ServerSendResponse(conn, lib.StatusSystemError, remErr.Error())
+			break
+		}
+
+		lib.ServerSendOKResponse(conn)
+
+	case "UPDATE_TRIGGER_PRICE":
+		userCommandID := data[1]
+		stock := data[2]
+		isSellString := data[3]
+		price := data[4]
+
+		priceInt, conversionErr := strconv.ParseUint(price, 10, 64)
+		if conversionErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Price must be an unsigned integer")
+		}
+
+		updateErr := updateTriggerPrice(client, userCommandID, stock, generateIsSellBool(isSellString), priceInt)
+		if updateErr != nil {
+
+			if updateErr == ErrNotFound {
+				lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified Trigger does not exist")
+				break
+			}
+
+			lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
+			break
+		}
+
+		lib.ServerSendOKResponse(conn)
+
+	case "UPDATE_TRIGGER_AMOUNT":
+		userCommandID := data[1]
+		stock := data[2]
+		isSellString := data[3]
+		amount := data[4]
+
+		amountInt, conversionErr := strconv.ParseUint(amount, 10, 64)
+		if conversionErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Amount must be an unsigned integer")
+		}
+
+		updateErr := updateTriggerAmount(client, userCommandID, stock, generateIsSellBool(isSellString), amountInt)
+		if updateErr != nil {
+
+			if updateErr == ErrNotFound {
+				lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified Trigger does not exist")
+				break
+			}
+
+			lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
+			break
+		}
+
+		lib.ServerSendOKResponse(conn)
+
 	default:
 		lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Data Server Command")
 	}

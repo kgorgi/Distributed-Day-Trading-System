@@ -172,6 +172,42 @@ func DeleteTrigger(userID string, stockName string, isSell bool) error {
 	return err
 }
 
+func BuyStock(userID string, stockName string, amount uint64, cents uint64) error {
+	payload := "BUY_STOCK|" + userID + "|" + stockName + "|" + strconv.FormatUint(amount, 10) + "|" + strconv.FormatUint(cents, 10)
+	_, _, err := sendRequest(payload)
+	return err
+}
+
+func SellStock(userID string, stockName string, amount uint64, cents uint64) error {
+	payload := "SELL_STOCK|" + userID + "|" + stockName + "|" + strconv.FormatUint(amount, 10) + "|" + strconv.FormatUint(cents, 10)
+	_, _, err := sendRequest(payload)
+	return err
+}
+
+func AddAmount(userID string, amount uint64) error {
+	payload := "ADD_AMOUNT|" + userID + "|" + strconv.FormatUint(amount, 10)
+	_, _, err := sendRequest(payload)
+	return err
+}
+
+func RemAmount(userID string, amount uint64) error {
+	payload := "REM_AMOUNT|" + userID + "|" + strconv.FormatUint(amount, 10)
+	_, _, err := sendRequest(payload)
+	return err
+}
+
+func UpdateTriggerPrice(userID string, stock string, isSell bool, price uint64) error {
+	payload := "UPDATE_TRIGGER_PRICE|" + userID + "|" + stock + "|" + strconv.FormatBool(isSell) + "|" + strconv.FormatUint(price, 10)
+	_, _, err := sendRequest(payload)
+	return err
+}
+
+func UpdateTriggerAmount(userID string, stock string, isSell bool, amount uint64) error {
+	payload := "UPDATE_TRIGGER_PRICE|" + userID + "|" + stock + "|" + strconv.FormatBool(isSell) + "|" + strconv.FormatUint(amount, 10)
+	_, _, err := sendRequest(payload)
+	return err
+}
+
 func sendRequest(payload string) (int, string, error) {
 	//connect to data server
 	conn, err := net.Dial("tcp", resolveurl.DataServerAddress())
