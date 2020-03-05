@@ -1,13 +1,15 @@
 package user
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 )
 
-const webserverAddress = "http://localhost:8080/command/"
+const webserverAddress = "https://localhost:8080/command/"
 
 const caCert = `-----BEGIN CERTIFICATE-----
 MIIDCTCCAfGgAwIBAgIUJEv0GYYf5NgCkSt99YAlApZ/kgQwDQYJKoZIhvcNAQEL
@@ -54,8 +56,17 @@ func createParameters(command commandParams) url.Values {
 }
 
 func makeRequest(httpMethod string, command string, params url.Values) (int, string, error) {
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM([]byte(caCert))
 	// // Create a HTTPS client and supply the created CA pool and certificate
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: caCertPool,
+			},
+		},
+	}
 	req, err := http.NewRequest(httpMethod, webserverAddress+command+"?"+params.Encode(), nil)
 	if err != nil {
 		return 0, "", err

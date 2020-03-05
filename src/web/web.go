@@ -110,7 +110,7 @@ func main() {
 	initParameterMaps()
 
 	fmt.Println("Starting web server...")
-	err := http.ListenAndServe(webServerAddress, getRouter())
+	err := http.ListenAndServeTLS(webServerAddress, "./ssl/cert.pem", "./ssl/key.pem", getRouter())
 	if err != nil {
 		fmt.Println(err.Error())
 	}
