@@ -7,7 +7,7 @@ public class TestQuoteServer {
     // The number of concurrent requests
     private static int threadCount = 21;
 
-    // The number of consectuive requests each thread makes
+    // The number of consecutive requests each thread makes
     private static int requestCount = 10;
 
     public static void main(String[] args) throws Exception {
