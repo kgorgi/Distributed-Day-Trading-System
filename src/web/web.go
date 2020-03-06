@@ -34,6 +34,17 @@ func parseCommandRequest(r *http.Request) map[string]string {
 func commandRoute(w http.ResponseWriter, r *http.Request) {
 	command := parseCommandRequest(r)
 
+	var message string
+	var err error
+	var status int
+
+	isValid, status, message := validateParameters(command)
+	if !isValid {
+		w.WriteHeader(status)
+		w.Write([]byte(message))
+		return
+	}
+
 	var nextNum = atomic.AddUint64(&transactionNum, 1)
 	command["transactionNum"] = strconv.FormatUint(nextNum, 10)
 
@@ -56,9 +67,6 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 
 	auditClient.LogUserCommandRequest(auditInfo)
 
-	var message string
-	var err error
-	var status int
 	if command["command"] == "DUMPLOG" {
 		message, err = auditClient.DumpLogAll()
 		status = 200
@@ -99,6 +107,8 @@ func getRouter() http.Handler {
 }
 
 func main() {
+	initParameterMaps()
+
 	fmt.Println("Starting web server...")
 	err := http.ListenAndServeTLS(webServerAddress, "./ssl/cert.pem", "./ssl/key.pem", getRouter())
 	if err != nil {

@@ -63,8 +63,6 @@ func main() {
 
 	go checkTriggers(auditclient)
 
-	initParameterMaps()
-
 	ln, _ := net.Listen("tcp", ":5000")
 	fmt.Println("Started transaction server on port: 5000")
 
