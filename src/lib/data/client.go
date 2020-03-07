@@ -216,7 +216,7 @@ func UpdateTriggerPrice(userID string, stock string, isSell bool, price uint64) 
 
 // UpdateTriggerAmount updates the amount of cents worth of a stock a trigger will buy or sell if it's price condition is met
 func UpdateTriggerAmount(userID string, stock string, isSell bool, amount uint64) error {
-	payload := "UPDATE_TRIGGER_PRICE|" + userID + "|" + stock + "|" + strconv.FormatBool(isSell) + "|" + strconv.FormatUint(amount, 10)
+	payload := "UPDATE_TRIGGER_AMOUNT|" + userID + "|" + stock + "|" + strconv.FormatBool(isSell) + "|" + strconv.FormatUint(amount, 10)
 	_, _, err := sendRequest(payload)
 	return err
 }

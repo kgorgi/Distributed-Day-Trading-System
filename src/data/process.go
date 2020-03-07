@@ -169,13 +169,12 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		isSellString := data[3]
 
 		deletedTrigger, deleteErr := deleteTrigger(client, userCommandID, stock, generateIsSellBool(isSellString))
+		if deleteErr == ErrNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, deleteErr.Error())
+			return
+		}
+
 		if deleteErr != nil {
-
-			if deleteErr == ErrNotFound {
-				lib.ServerSendResponse(conn, lib.StatusNotFound, deleteErr.Error())
-				return
-			}
-
 			lib.ServerSendResponse(conn, lib.StatusSystemError, deleteErr.Error())
 			break
 		}
@@ -201,13 +200,12 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		buyErr := buyStock(client, userCommandID, stock, amountInt, centsInt)
+		if buyErr == ErrNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist, or they do not have the specified amount of money")
+			break
+		}
+
 		if buyErr != nil {
-
-			if buyErr == ErrNotFound {
-				lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist, or they do not have the specified amount of money")
-				break
-			}
-
 			lib.ServerSendResponse(conn, lib.StatusSystemError, buyErr.Error())
 			break
 		}
@@ -227,12 +225,11 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		sellErr := sellStock(client, userCommandID, stock, amountInt, centsInt)
+		if sellErr == ErrNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "Either the user or stock does not exist, or the user does not have a sufficient amount of stock")
+		}
+
 		if sellErr != nil {
-
-			if sellErr == ErrNotFound {
-				lib.ServerSendResponse(conn, lib.StatusNotFound, "Either the user or stock does not exist, or the user does not have a sufficient amount of stock")
-			}
-
 			lib.ServerSendResponse(conn, lib.StatusSystemError, sellErr.Error())
 			break
 		}
@@ -266,13 +263,12 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		remErr := remAmount(client, userCommandID, amountInt)
+		if remErr == ErrNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "Either the specified user does not exist, or they do not have sufficient funds to remove "+amount+" cents")
+			break
+		}
+
 		if remErr != nil {
-
-			if remErr == ErrNotFound {
-				lib.ServerSendResponse(conn, lib.StatusNotFound, "Either the specified user does not exist, or they do not have sufficient funds to remove "+amount+" cents")
-				break
-			}
-
 			lib.ServerSendResponse(conn, lib.StatusSystemError, remErr.Error())
 			break
 		}
@@ -291,13 +287,12 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		updateErr := updateTriggerPrice(client, userCommandID, stock, generateIsSellBool(isSellString), priceInt)
+		if updateErr == ErrNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified Trigger does not exist, or its amount is less than the specified price")
+			break
+		}
+
 		if updateErr != nil {
-
-			if updateErr == ErrNotFound {
-				lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified Trigger does not exist, or its amount is less than the specified price")
-				break
-			}
-
 			lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
 			break
 		}
@@ -316,13 +311,12 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		updateErr := updateTriggerAmount(client, userCommandID, stock, generateIsSellBool(isSellString), amountInt)
+		if updateErr == ErrNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified Trigger does not exist")
+			break
+		}
+
 		if updateErr != nil {
-
-			if updateErr == ErrNotFound {
-				lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified Trigger does not exist")
-				break
-			}
-
 			lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
 			break
 		}

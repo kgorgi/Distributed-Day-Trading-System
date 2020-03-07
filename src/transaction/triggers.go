@@ -32,7 +32,7 @@ func buyTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *audi
 		FundsInCents: moneyToAdd,
 	})
 
-	deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
+	_, deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
 	if deleteErr != nil {
 		return deleteErr
 	}
@@ -61,7 +61,7 @@ func sellTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *aud
 		FundsInCents: moneyToAdd,
 	})
 
-	deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
+	_, deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
 	if deleteErr != nil {
 		return deleteErr
 	}
