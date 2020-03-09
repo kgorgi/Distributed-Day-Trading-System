@@ -14,21 +14,14 @@ func buyTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *audi
 	numOfStocks := trigger.Amount_Cents / stockPrice
 	moneyToAdd := trigger.Amount_Cents - (stockPrice * numOfStocks)
 
-	user, readErr := dataclient.ReadUser(trigger.User_Command_ID)
-	if readErr != nil {
-		return readErr
-	}
-	user.Cents += moneyToAdd
-	user.Investments = addStock(user.Investments, trigger.Stock, numOfStocks)
-
-	updateErr := dataclient.UpdateUser(user)
+	updateErr := dataclient.UpdateUser(trigger.User_Command_ID, trigger.Stock, int(numOfStocks), int(moneyToAdd))
 	if updateErr != nil {
 		return updateErr
 	}
 
 	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
 		Action:       "add",
-		UserID:       user.Command_ID,
+		UserID:       trigger.User_Command_ID,
 		FundsInCents: moneyToAdd,
 	})
 
@@ -44,20 +37,14 @@ func sellTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *aud
 	stocksInReserve := trigger.Amount_Cents / trigger.Price_Cents
 	moneyToAdd := stockPrice * stocksInReserve
 
-	user, readErr := dataclient.ReadUser(trigger.User_Command_ID)
-	if readErr != nil {
-		return readErr
-	}
-	user.Cents += moneyToAdd
-
-	updateErr := dataclient.UpdateUser(user)
+	updateErr := dataclient.UpdateUser(trigger.User_Command_ID, "", 0, int(moneyToAdd))
 	if updateErr != nil {
 		return updateErr
 	}
 
 	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
 		Action:       "add",
-		UserID:       user.Command_ID,
+		UserID:       trigger.User_Command_ID,
 		FundsInCents: moneyToAdd,
 	})
 

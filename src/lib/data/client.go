@@ -65,15 +65,9 @@ func ReadUser(userID string) (modelsdata.User, error) {
 	return user, nil
 }
 
-// UpdateUser takes in a user struct and updates the corresponding user in the database
-func UpdateUser(user modelsdata.User) error {
-	userBytes, jsonErr := json.Marshal(user)
-	if jsonErr != nil {
-		return jsonErr
-	}
-	userJSON := string(userBytes)
-
-	payload := "UPDATE_USER|" + userJSON
+// UpdateUser increments/decrements a users stocks and money
+func UpdateUser(userID string, stock string, amount int, cents int) error {
+	payload := "UPDATE_USER|" + userID + "|" + stock + "|" + strconv.Itoa(amount) + "|" + strconv.Itoa(cents)
 	_, _, err := sendRequest(payload)
 	return err
 }
@@ -175,36 +169,6 @@ func DeleteTrigger(userID string, stockName string, isSell bool) (modelsdata.Tri
 	}
 
 	return deletedTrigger, nil
-}
-
-// BuyStock adds the specified amount of stock to a user, and removes the specified number of cents from a user
-// error handling here needs work
-func BuyStock(userID string, stockName string, amount uint64, cents uint64) error {
-	payload := "BUY_STOCK|" + userID + "|" + stockName + "|" + strconv.FormatUint(amount, 10) + "|" + strconv.FormatUint(cents, 10)
-	_, _, err := sendRequest(payload)
-	return err
-}
-
-// SellStock removes the specified amount of stock from a user, and adds the specified number of cents to a user
-// error handling here needs work
-func SellStock(userID string, stockName string, amount uint64, cents uint64) error {
-	payload := "SELL_STOCK|" + userID + "|" + stockName + "|" + strconv.FormatUint(amount, 10) + "|" + strconv.FormatUint(cents, 10)
-	_, _, err := sendRequest(payload)
-	return err
-}
-
-// AddAmount adds a specified amount of cents to a user
-func AddAmount(userID string, amount uint64) error {
-	payload := "ADD_AMOUNT|" + userID + "|" + strconv.FormatUint(amount, 10)
-	_, _, err := sendRequest(payload)
-	return err
-}
-
-// RemAmount removes a specified amount of cents from a user
-func RemAmount(userID string, amount uint64) error {
-	payload := "REM_AMOUNT|" + userID + "|" + strconv.FormatUint(amount, 10)
-	_, _, err := sendRequest(payload)
-	return err
 }
 
 // UpdateTriggerPrice updates the price at which a trigger will fire for its stock

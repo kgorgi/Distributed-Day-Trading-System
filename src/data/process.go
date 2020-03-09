@@ -69,18 +69,44 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 
 		lib.ServerSendResponse(conn, lib.StatusOk, string(usersBytes))
 	case "UPDATE_USER":
-		userJson := data[1]
-		var userUpdate modelsdata.User
-		jsonErr := json.Unmarshal([]byte(userJson), &userUpdate)
-		if jsonErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error())
-			break
+		userCommandID := data[1]
+		stock := data[2]
+		amount := data[3]
+		cents := data[4]
+
+		//If no stock should be added or removed
+		if stock == "" || amount == "" || amount == "0" {
+			centsInt, conversionErr := strconv.Atoi(cents)
+			if conversionErr != nil {
+				lib.ServerSendResponse(conn, lib.StatusUserError, "Cents and Amount must be integers")
+				break
+			}
+
+			updateErr := updateCents(client, userCommandID, centsInt)
+			if updateErr != nil {
+				lib.ServerSendResponse(conn, lib.StatusUserError, "The specified user does not exist, or they do not have the specified amount of money")
+			}
+
+			lib.ServerSendOKResponse(conn)
 		}
 
-		updateErr := updateUser(client, userUpdate)
+		//Otherwise we need to modify the users stock and money
+		centsInt, conversionErr1 := strconv.Atoi(cents) //TODO: command structs
+		amountInt, conversionErr2 := strconv.Atoi(amount)
+		if conversionErr1 != nil || conversionErr2 != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Cents and Amount must be integers")
+			return
+		}
+
+		updateErr := updateStockAndCents(client, userCommandID, stock, amountInt, centsInt)
+		if updateErr == ErrNotFound {
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Either the user does not exist, or they do not have sufficient stock or funds to remove")
+			return
+		}
+
 		if updateErr != nil {
 			lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
-			break
+			return
 		}
 
 		lib.ServerSendOKResponse(conn)
@@ -186,94 +212,6 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		lib.ServerSendResponse(conn, lib.StatusOk, string(triggerBytes))
-
-	case "BUY_STOCK":
-		userCommandID := data[1]
-		stock := data[2]
-		amount := data[3]
-		cents := data[4]
-
-		amountInt, conversionErr1 := strconv.ParseUint(amount, 10, 64)
-		centsInt, conversionErr2 := strconv.ParseUint(cents, 10, 64)
-		if conversionErr1 != nil || conversionErr2 != nil {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Amount must be an unsigned integer")
-		}
-
-		buyErr := buyStock(client, userCommandID, stock, amountInt, centsInt)
-		if buyErr == ErrNotFound {
-			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist, or they do not have the specified amount of money")
-			break
-		}
-
-		if buyErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, buyErr.Error())
-			break
-		}
-
-		lib.ServerSendOKResponse(conn)
-
-	case "SELL_STOCK":
-		userCommandID := data[1]
-		stock := data[2]
-		amount := data[3]
-		cents := data[4]
-
-		amountInt, conversionErr1 := strconv.ParseUint(amount, 10, 64)
-		centsInt, conversionErr2 := strconv.ParseUint(cents, 10, 64)
-		if conversionErr1 != nil || conversionErr2 != nil {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Amount must be an unsigned integer")
-		}
-
-		sellErr := sellStock(client, userCommandID, stock, amountInt, centsInt)
-		if sellErr == ErrNotFound {
-			lib.ServerSendResponse(conn, lib.StatusNotFound, "Either the user or stock does not exist, or the user does not have a sufficient amount of stock")
-		}
-
-		if sellErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, sellErr.Error())
-			break
-		}
-
-		lib.ServerSendOKResponse(conn)
-
-	case "ADD_AMOUNT":
-		userCommandID := data[1]
-		amount := data[2]
-
-		amountInt, conversionErr := strconv.ParseUint(amount, 10, 64)
-		if conversionErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Amount must be an unsigned integer")
-		}
-
-		addErr := addAmount(client, userCommandID, amountInt)
-		if addErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, addErr.Error())
-			break
-		}
-
-		lib.ServerSendOKResponse(conn)
-
-	case "REM_AMOUNT":
-		userCommandID := data[1]
-		amount := data[2]
-
-		amountInt, conversionErr := strconv.ParseUint(amount, 10, 64)
-		if conversionErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Amount must be an unsigned integer")
-		}
-
-		remErr := remAmount(client, userCommandID, amountInt)
-		if remErr == ErrNotFound {
-			lib.ServerSendResponse(conn, lib.StatusNotFound, "Either the specified user does not exist, or they do not have sufficient funds to remove "+amount+" cents")
-			break
-		}
-
-		if remErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, remErr.Error())
-			break
-		}
-
-		lib.ServerSendOKResponse(conn)
 
 	case "UPDATE_TRIGGER_PRICE":
 		userCommandID := data[1]

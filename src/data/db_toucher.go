@@ -138,84 +138,62 @@ func updateUser(client *mongo.Client, user modelsdata.User) error {
 
 // Add a specified amount of stock, and remove a specified amount of cents to a user.
 // If a user cannot be found, or they lack sufficent funds, ErrNotFound is returned.
-func buyStock(client *mongo.Client, command_ID string, stock string, amount uint64, cents uint64) error {
+func updateStockAndCents(client *mongo.Client, command_ID string, stock string, amount int, cents int) error {
 	collection := client.Database("extremeworkload").Collection("users")
 
-	// First, add the stock with an amount of 0 if the user doesn't have any
-	emptyInvestment := modelsdata.Investment{stock, 0}
-	filter := bson.M{"command_id": command_ID, "investments.stock": bson.M{"$ne": stock}}
-	update := bson.M{"$push": bson.M{"investments": emptyInvestment}}
-	result, err := collection.UpdateOne(context.TODO(), filter, update)
-	if err != nil {
-		return err
+	var filter bson.M
+	var update bson.M
+	var err error
+
+	if amount == 0 {
+		return errors.New("If you don't want to update stock use the updateCents function")
 	}
 
-	// Next, increment the stock by the specified amount
-	filter = bson.M{"command_id": command_ID, "cents": bson.M{"$gte": cents}, "investments.stock": stock}
-	update = bson.M{"$inc": bson.M{"investments.$.amount": amount, "cents": (int(cents) * -1)}}
-	result, err = collection.UpdateOne(context.TODO(), filter, update)
+	// First, if the stock is being added, if the user has no stock add some
+	if amount > 0 {
+		emptyInvestment := modelsdata.Investment{stock, 0}
+		filter := bson.M{"command_id": command_ID, "investments.stock": bson.M{"$ne": stock}}
+		update := bson.M{"$push": bson.M{"investments": emptyInvestment}}
+		_, err := collection.UpdateOne(context.TODO(), filter, update)
+		if err != nil {
+			return err
+		}
+	}
 
+	// Next, increment the stock by the specified amount making sure the user has enough money and stock
+	filter = bson.M{"command_id": command_ID, "cents": bson.M{"$gte": -cents}, "investments.stock": stock, "investments.amount": bson.M{"$gte": -amount}}
+	update = bson.M{"$inc": bson.M{"investments.$.amount": amount, "cents": cents}}
+	result, err := collection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		return err
 	}
 
 	// If nothing was updated, return an error
 	if result.MatchedCount == 0 || result.ModifiedCount == 0 {
-		fmt.Println("Either the user doesn't exist or they do not have sufficient funds")
+		fmt.Println("Either the user doesn't exist or they do not have sufficient funds or stock")
 		return ErrNotFound
+	}
+
+	// if stock was removed and the user has none left remove the investment from the user
+	if amount < 0 {
+		// If there's no stock left, remove the investment from the user
+		emptyInvestment := modelsdata.Investment{stock, 0}
+		filter = bson.M{"command_id": command_ID, "investments.stock": stock, "investments.amount": 0}
+		update = bson.M{"$pull": bson.M{"investments": emptyInvestment}}
+		_, err = collection.UpdateOne(context.TODO(), filter, update)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-// Remove a specified amount of stock, and add a specified amount of cents from a user.
-// If a user cannot be found, or they lack the sufficient amount of stock ErrNotFound
-// is returned.
-func sellStock(client *mongo.Client, command_ID string, stock string, amount uint64, cents uint64) error {
+func updateCents(client *mongo.Client, command_ID string, amount int) error {
 	collection := client.Database("extremeworkload").Collection("users")
 
-	// First, if the user has an investment that is large enough to remove the specified amount, then remove it.
-	filter := bson.M{"command_id": command_ID, "investments.stock": stock, "investments.amount": bson.M{"$gte": amount}}
-	update := bson.M{"$inc": bson.M{"investments.$.amount": (int(amount) * -1), "cents": cents}}
-	result, err := collection.UpdateOne(context.TODO(), filter, update)
-
-	if err != nil {
-		return err
-	}
-
-	// If not, return an error
-	if result.MatchedCount == 0 || result.ModifiedCount == 0 {
-		fmt.Println("The user with id " + command_ID + " doesn't exist or does not have enough stock to remove the amount " + string(amount))
-		return ErrNotFound
-	}
-
-	// If there's no stock left, remove the investment from the user
-	emptyInvestment := modelsdata.Investment{stock, 0}
-	filter = bson.M{"command_id": command_ID, "investments.stock": stock, "investments.amount": 0}
-	update = bson.M{"$pull": bson.M{"investments": emptyInvestment}}
-	result, err = collection.UpdateOne(context.TODO(), filter, update)
-	return err
-}
-
-// Add a specified amount of money to a user
-func addAmount(client *mongo.Client, command_ID string, amount uint64) error {
-	collection := client.Database("extremeworkload").Collection("users")
-
-	filter := bson.M{"command_id": command_ID}
+	filter := bson.M{"command_id": command_ID, "cents": bson.M{"$gte": -amount}}
 	update := bson.M{"$inc": bson.M{"cents": amount}}
-	_, err := collection.UpdateOne(context.TODO(), filter, update)
-
-	// possibly add upserting here so the check doesn't need to happen else where in the system
-
-	return err
-}
-
-// Remove a specified amount of money from a user
-func remAmount(client *mongo.Client, command_ID string, amount uint64) error {
-	collection := client.Database("extremeworkload").Collection("users")
-
-	filter := bson.M{"command_id": command_ID, "cents": bson.M{"$gte": amount}}
-	update := bson.M{"$inc": bson.M{"cents": (int(amount) * -1)}}
 	result, err := collection.UpdateOne(context.TODO(), filter, update)
 
 	if err != nil {
