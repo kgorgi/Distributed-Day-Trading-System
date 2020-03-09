@@ -138,19 +138,6 @@ func ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigg
 	return trigger, nil
 }
 
-// UpdateTrigger takes a trigger struct and updates the corresponding trigger in the database
-func UpdateTrigger(trigger modelsdata.Trigger) error {
-	triggerBytes, jsonErr := json.Marshal(trigger)
-	if jsonErr != nil {
-		return jsonErr
-	}
-	triggerJSON := string(triggerBytes)
-
-	payload := "UPDATE_TRIGGER|" + triggerJSON
-	_, _, err := sendRequest(payload)
-	return err
-}
-
 // DeleteTrigger takes the primary key attributes of a trigger and deletes the corresponding trigger in the database
 // it returns the successfully deleted trigger
 func DeleteTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigger, error) {

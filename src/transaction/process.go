@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"net"
 	"strconv"
 
@@ -56,24 +55,6 @@ func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditcli
 
 }
 
-func addStock(investments []modelsdata.Investment, stockSymbol string, amount uint64) []modelsdata.Investment {
-	// Find the investment in the user struct and set the amount specified in the params
-	investmentIndex := -1
-	for i, investment := range investments {
-		if investment.Stock == stockSymbol {
-			investmentIndex = i
-		}
-	}
-
-	// If you can't find the investment create a new investment, otherwise add to the existing one
-	if investmentIndex == -1 {
-		return append(investments, modelsdata.Investment{stockSymbol, amount})
-	} else {
-		investments[investmentIndex].Amount += amount
-		return investments
-	}
-}
-
 func findStockAmount(investments []modelsdata.Investment, stockSymbol string) uint64 {
 	for _, investment := range investments {
 		if investment.Stock == stockSymbol {
@@ -81,36 +62,6 @@ func findStockAmount(investments []modelsdata.Investment, stockSymbol string) ui
 		}
 	}
 	return 0
-}
-
-func removeStock(investments []modelsdata.Investment, stockSymbol string, amount uint64) ([]modelsdata.Investment, error) {
-	investmentIndex := -1
-	for i, investment := range investments {
-		if investment.Stock == stockSymbol {
-			investmentIndex = i
-		}
-	}
-
-	// Make sure the stock is found
-	if investmentIndex == -1 {
-		return []modelsdata.Investment{}, errors.New("this user does not have any of the stock " + stockSymbol)
-	}
-
-	// Make sure they have enough stock to remove the amount
-	stockAmount := investments[investmentIndex].Amount
-	if stockAmount < amount {
-		return []modelsdata.Investment{}, errors.New("The user does not have sufficient stock ( " + string(stockAmount) + " ) to remove " + string(amount))
-	}
-
-	investments[investmentIndex].Amount -= amount
-
-	// If the remaining amount is 0 remove the investment from the user
-	if investments[investmentIndex].Amount == 0 {
-		investments[investmentIndex] = investments[len(investments)-1]
-		investments = investments[:len(investments)-1]
-	}
-
-	return investments, nil
 }
 
 func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
@@ -316,12 +267,13 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 
 	var existingAmount uint64 = 0
 	if getTriggerErr == dataclient.ErrNotFound {
-		newTrigger := modelsdata.Trigger{jsonCommand.Userid,
-			jsonCommand.StockSymbol,
-			0,
-			amountInCents,
-			false,
-			auditClient.TransactionNum}
+		newTrigger := modelsdata.Trigger{
+			User_Command_ID:    jsonCommand.Userid,
+			Stock:              jsonCommand.StockSymbol,
+			Price_Cents:        0,
+			Amount_Cents:       amountInCents,
+			Is_Sell:            false,
+			Transaction_Number: auditClient.TransactionNum}
 
 		createErr := dataclient.CreateTrigger(newTrigger)
 		if createErr != nil {
@@ -428,12 +380,13 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
 
 	if getTriggerErr == dataclient.ErrNotFound {
-		newTrigger := modelsdata.Trigger{jsonCommand.Userid,
-			jsonCommand.StockSymbol,
-			0,
-			amountInCents,
-			true,
-			auditClient.TransactionNum}
+		newTrigger := modelsdata.Trigger{
+			User_Command_ID:    jsonCommand.Userid,
+			Stock:              jsonCommand.StockSymbol,
+			Price_Cents:        0,
+			Amount_Cents:       amountInCents,
+			Is_Sell:            true,
+			Transaction_Number: auditClient.TransactionNum}
 		err := dataclient.CreateTrigger(newTrigger)
 		if err != nil {
 			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
@@ -526,9 +479,6 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 		return
 	}
 
-	// At this point, the trigger can't change in price or amount and the user can only gain stock and money
-	// so it is safe to continue
-
 	updateErr := dataclient.UpdateTriggerPrice(jsonCommand.Userid, jsonCommand.StockSymbol, true, priceInCents)
 	if updateErr == dataclient.ErrNotFound {
 		errorMessage := "The specified trigger has fired, or the trigger amount is higher than amount of stocks to sell"
@@ -546,9 +496,6 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 		lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
 		return
 	}
-
-	// Now that we know the trigger has been succesfully updated
-	// we can safely make sure the user has the correct amount of stock
 
 	var reservedStocks uint64 = 0
 	if trigger.Price_Cents != 0 {
@@ -619,12 +566,15 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 	userDisplay.Cents = user.Cents
 	userDisplay.Investments = user.Investments
 
-	// convert triggers to triggerdisplayinfos
 	triggerDisplays := []modelsdata.TriggerDisplayInfo{}
 	for _, trigger := range triggers {
 		triggerDisplays = append(
 			triggerDisplays,
-			modelsdata.TriggerDisplayInfo{trigger.Stock, trigger.Price_Cents, trigger.Amount_Cents, trigger.Is_Sell},
+			modelsdata.TriggerDisplayInfo{
+				Stock:        trigger.Stock,
+				Price_Cents:  trigger.Price_Cents,
+				Amount_Cents: trigger.Amount_Cents,
+				Is_Sell:      trigger.Is_Sell},
 		)
 	}
 	userDisplay.Triggers = triggerDisplays
