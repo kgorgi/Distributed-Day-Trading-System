@@ -185,28 +185,6 @@ func UpdateTriggerAmount(userID string, stock string, isSell bool, amount uint64
 	return err
 }
 
-// SetTriggerAmount Updates the amount of cents worth of a stock a trigger will buy or sell if it's price condition is met.
-// If no trigger exists with the specified userID, stock, and isSell parameters then a new trigger with
-// with those parameters and a price of 0 and the transaction number provided will be created. If no new trigger
-// is created, then a pointer to the trigger with values from before the update will be returned. Otherwise, if
-// a new trigger is created a nil pointer will be returned.
-func SetTriggerAmount(userID string, stock string, isSell bool, amount uint64, transactionNumber uint64) (*modelsdata.Trigger, error) {
-	payload := "SET_TRIGGER_AMOUNT|" + userID + "|" + stock + "|" + strconv.FormatBool(isSell) + "|" + strconv.FormatUint(amount, 10) + "|" + strconv.FormatUint(transactionNumber, 10)
-	_, message, err := sendRequest(payload)
-
-	if message == "" {
-		return nil, err
-	}
-
-	var oldTrigger modelsdata.Trigger
-	jsonErr := json.Unmarshal([]byte(message), &oldTrigger)
-	if jsonErr != nil {
-		return nil, jsonErr
-	}
-
-	return &oldTrigger, nil
-}
-
 func sendRequest(payload string) (int, string, error) {
 	//connect to data server
 	conn, err := net.Dial("tcp", resolveurl.DataServerAddress())

@@ -8,11 +8,12 @@ import (
 	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// TODO: Better, more detailed error handling.
+
 var (
-	ErrNotFound = errors.New("The specified document does not exist")
+	errNotFound = errors.New("The specified document does not exist")
 )
 
 func queryTriggers(client *mongo.Client, query bson.M) ([]modelsdata.Trigger, error) {
@@ -49,8 +50,8 @@ func readTriggers(client *mongo.Client) ([]modelsdata.Trigger, error) {
 	return triggers, nil
 }
 
-func readTriggersByUser(client *mongo.Client, user_command_ID string) ([]modelsdata.Trigger, error) {
-	triggers, err := queryTriggers(client, bson.M{"user_command_id": user_command_ID})
+func readTriggersByUser(client *mongo.Client, commandID string) ([]modelsdata.Trigger, error) {
+	triggers, err := queryTriggers(client, bson.M{"user_command_id": commandID})
 	if err != nil {
 		return []modelsdata.Trigger{}, err
 	}
@@ -58,33 +59,33 @@ func readTriggersByUser(client *mongo.Client, user_command_ID string) ([]modelsd
 	return triggers, nil
 }
 
-func readTrigger(client *mongo.Client, user_command_ID string, stock string, isSell bool) (modelsdata.Trigger, error) {
+func readTrigger(client *mongo.Client, commandID string, stock string, isSell bool) (modelsdata.Trigger, error) {
 	collection := client.Database("extremeworkload").Collection("triggers")
 
 	var trigger modelsdata.Trigger
-	err := collection.FindOne(context.TODO(), bson.M{"user_command_id": user_command_ID, "stock": stock, "is_sell": isSell}).Decode(&trigger)
+	err := collection.FindOne(context.TODO(), bson.M{"user_command_id": commandID, "stock": stock, "is_sell": isSell}).Decode(&trigger)
 	return trigger, err
 }
 
 func updateTrigger(client *mongo.Client, trigger modelsdata.Trigger) error {
 	collection := client.Database("extremeworkload").Collection("triggers")
-	update := bson.D{
-		{"$set", bson.M{"price_cents": trigger.Price_Cents, "amount_cents": trigger.Amount_Cents}},
+	update := bson.M{
+		"$set": bson.M{"price_cents": trigger.Price_Cents, "amount_cents": trigger.Amount_Cents},
 	}
 	filter := bson.M{"user_command_id": trigger.User_Command_ID, "stock": trigger.Stock}
 	_, err := collection.UpdateOne(context.TODO(), filter, update)
 	return err
 }
 
-func deleteTrigger(client *mongo.Client, user_command_ID string, stock string, isSell bool) (modelsdata.Trigger, error) {
+func deleteTrigger(client *mongo.Client, commandID string, stock string, isSell bool) (modelsdata.Trigger, error) {
 	collection := client.Database("extremeworkload").Collection("triggers")
-	filter := bson.M{"user_command_id": user_command_ID, "stock": stock, "is_sell": isSell}
+	filter := bson.M{"user_command_id": commandID, "stock": stock, "is_sell": isSell}
 
 	var deletedTrigger modelsdata.Trigger
 	err := collection.FindOneAndDelete(context.TODO(), filter).Decode(&deletedTrigger)
 
 	if err == mongo.ErrNoDocuments {
-		return deletedTrigger, ErrNotFound
+		return deletedTrigger, errNotFound
 	}
 
 	return deletedTrigger, err
@@ -115,19 +116,19 @@ func readUsers(client *mongo.Client) ([]modelsdata.User, error) {
 	return users, nil
 }
 
-func readUser(client *mongo.Client, command_ID string) (modelsdata.User, error) {
+func readUser(client *mongo.Client, commandID string) (modelsdata.User, error) {
 	collection := client.Database("extremeworkload").Collection("users")
 
 	var user modelsdata.User
-	err := collection.FindOne(context.TODO(), bson.D{{"command_id", command_ID}}).Decode(&user)
+	err := collection.FindOne(context.TODO(), bson.M{"command_id": commandID}).Decode(&user)
 	return user, err
 }
 
 func updateUser(client *mongo.Client, user modelsdata.User) error {
 	collection := client.Database("extremeworkload").Collection("users")
 
-	update := bson.D{
-		{"$set", bson.M{"cents": user.Cents, "investments": user.Investments}},
+	update := bson.M{
+		"$set": bson.M{"cents": user.Cents, "investments": user.Investments},
 	}
 
 	filter := bson.M{"command_id": user.Command_ID}
@@ -137,8 +138,8 @@ func updateUser(client *mongo.Client, user modelsdata.User) error {
 }
 
 // Add a specified amount of stock, and remove a specified amount of cents to a user.
-// If a user cannot be found, or they lack sufficent funds, ErrNotFound is returned.
-func updateStockAndCents(client *mongo.Client, command_ID string, stock string, amount int, cents int) error {
+// If a user cannot be found, or they lack sufficent funds or stock, errNotFound is returned.
+func updateStockAndCents(client *mongo.Client, commandID string, stock string, amount int, cents int) error {
 	collection := client.Database("extremeworkload").Collection("users")
 
 	var filter bson.M
@@ -151,8 +152,8 @@ func updateStockAndCents(client *mongo.Client, command_ID string, stock string, 
 
 	// First, if the stock is being added, if the user has no stock add some
 	if amount > 0 {
-		emptyInvestment := modelsdata.Investment{stock, 0}
-		filter := bson.M{"command_id": command_ID, "investments.stock": bson.M{"$ne": stock}}
+		emptyInvestment := modelsdata.Investment{Stock: stock, Amount: 0}
+		filter := bson.M{"command_id": commandID, "investments.stock": bson.M{"$ne": stock}}
 		update := bson.M{"$push": bson.M{"investments": emptyInvestment}}
 		_, err := collection.UpdateOne(context.TODO(), filter, update)
 		if err != nil {
@@ -161,7 +162,7 @@ func updateStockAndCents(client *mongo.Client, command_ID string, stock string, 
 	}
 
 	// Next, increment the stock by the specified amount making sure the user has enough money and stock
-	filter = bson.M{"command_id": command_ID, "cents": bson.M{"$gte": -cents}, "investments.stock": stock, "investments.amount": bson.M{"$gte": -amount}}
+	filter = bson.M{"command_id": commandID, "cents": bson.M{"$gte": -cents}, "investments.stock": stock, "investments.amount": bson.M{"$gte": -amount}}
 	update = bson.M{"$inc": bson.M{"investments.$.amount": amount, "cents": cents}}
 	result, err := collection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
@@ -171,14 +172,14 @@ func updateStockAndCents(client *mongo.Client, command_ID string, stock string, 
 	// If nothing was updated, return an error
 	if result.MatchedCount == 0 || result.ModifiedCount == 0 {
 		fmt.Println("Either the user doesn't exist or they do not have sufficient funds or stock")
-		return ErrNotFound
+		return errNotFound
 	}
 
 	// if stock was removed and the user has none left remove the investment from the user
 	if amount < 0 {
 		// If there's no stock left, remove the investment from the user
-		emptyInvestment := modelsdata.Investment{stock, 0}
-		filter = bson.M{"command_id": command_ID, "investments.stock": stock, "investments.amount": 0}
+		emptyInvestment := modelsdata.Investment{Stock: stock, Amount: 0}
+		filter = bson.M{"command_id": commandID, "investments.stock": stock, "investments.amount": 0}
 		update = bson.M{"$pull": bson.M{"investments": emptyInvestment}}
 		_, err = collection.UpdateOne(context.TODO(), filter, update)
 		if err != nil {
@@ -189,10 +190,10 @@ func updateStockAndCents(client *mongo.Client, command_ID string, stock string, 
 	return nil
 }
 
-func updateCents(client *mongo.Client, command_ID string, amount int) error {
+func updateCents(client *mongo.Client, commandID string, amount int) error {
 	collection := client.Database("extremeworkload").Collection("users")
 
-	filter := bson.M{"command_id": command_ID, "cents": bson.M{"$gte": -amount}}
+	filter := bson.M{"command_id": commandID, "cents": bson.M{"$gte": -amount}}
 	update := bson.M{"$inc": bson.M{"cents": amount}}
 	result, err := collection.UpdateOne(context.TODO(), filter, update)
 
@@ -202,16 +203,16 @@ func updateCents(client *mongo.Client, command_ID string, amount int) error {
 
 	if result.MatchedCount == 0 || result.ModifiedCount == 0 {
 		fmt.Println("The specified user either does not exist or does not have sufficient funds to remove " + string(amount) + " cents")
-		return ErrNotFound
+		return errNotFound
 	}
 
 	return nil
 }
 
-func updateTriggerPrice(client *mongo.Client, command_ID string, stock string, isSell bool, price uint64) error {
+func updateTriggerPrice(client *mongo.Client, commandID string, stock string, isSell bool, price uint64) error {
 	collection := client.Database("extremeworkload").Collection("triggers")
 
-	filter := bson.M{"user_command_id": command_ID, "stock": stock, "is_sell": isSell, "amount_cents": bson.M{"$gte": price}}
+	filter := bson.M{"user_command_id": commandID, "stock": stock, "is_sell": isSell, "amount_cents": bson.M{"$gte": price}}
 	update := bson.M{"$set": bson.M{"price_cents": price}}
 	result, err := collection.UpdateOne(context.TODO(), filter, update)
 
@@ -220,38 +221,16 @@ func updateTriggerPrice(client *mongo.Client, command_ID string, stock string, i
 	}
 
 	if result.MatchedCount == 0 || result.ModifiedCount == 0 {
-		return ErrNotFound
+		return errNotFound
 	}
 
 	return nil
 }
 
-func setTriggerAmount(client *mongo.Client, command_ID string, stock string, isSell bool, amount uint64, transaction_number uint64) (*modelsdata.Trigger, error) {
+func updateTriggerAmount(client *mongo.Client, commandID string, stock string, isSell bool, amount uint64) error {
 	collection := client.Database("extremeworkload").Collection("triggers")
 
-	filter := bson.M{"user_command_id": command_ID, "stock": stock, "is_sell": isSell}
-	update := bson.M{"$set": bson.M{"amount_cents": amount}, "$setOnInsert": bson.M{"price_cents": 0, "transaction_number": transaction_number}}
-	options := options.FindOneAndUpdate().SetUpsert(true)
-
-	var oldTrigger modelsdata.Trigger
-	err := collection.FindOneAndUpdate(context.TODO(), filter, update, options).Decode(&oldTrigger)
-	if err != nil {
-
-		// If no documents matched, a new document was created and there is no old trigger to return
-		if err == mongo.ErrNoDocuments {
-			return nil, nil
-		}
-
-		return nil, err
-	}
-
-	return &oldTrigger, nil
-}
-
-func updateTriggerAmount(client *mongo.Client, command_ID string, stock string, isSell bool, amount uint64) error {
-	collection := client.Database("extremeworkload").Collection("triggers")
-
-	filter := bson.M{"user_command_id": command_ID, "stock": stock, "is_sell": isSell}
+	filter := bson.M{"user_command_id": commandID, "stock": stock, "is_sell": isSell}
 	update := bson.M{"$set": bson.M{"amount_cents": amount}}
 	result, err := collection.UpdateOne(context.TODO(), filter, update)
 
@@ -260,7 +239,7 @@ func updateTriggerAmount(client *mongo.Client, command_ID string, stock string, 
 	}
 
 	if result.MatchedCount == 0 || result.ModifiedCount == 0 {
-		return ErrNotFound
+		return errNotFound
 	}
 
 	return nil

@@ -11,6 +11,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// TODO: Instead of having a massive switch statement write functions for handling each request
+// Create some command structs, how I verify command inputs is pretty bad
+// Better more detailed error handling
+// Figure out a nice way to combine UPDATE_TRIGGER_AMOUNT and UPDATE_TRIGGER_PRICE into one command
+
 func generateIsSellBool(isSellString string) bool {
 	return isSellString == "true"
 }
@@ -20,9 +25,9 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 	command := data[0]
 	switch command {
 	case "CREATE_USER":
-		userJson := data[1]
+		userJSON := data[1]
 		var newUser modelsdata.User
-		jsonErr := json.Unmarshal([]byte(userJson), &newUser)
+		jsonErr := json.Unmarshal([]byte(userJSON), &newUser)
 		if jsonErr != nil {
 			lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error())
 			break
@@ -99,7 +104,7 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		updateErr := updateStockAndCents(client, userCommandID, stock, amountInt, centsInt)
-		if updateErr == ErrNotFound {
+		if updateErr == errNotFound {
 			lib.ServerSendResponse(conn, lib.StatusUserError, "Either the user does not exist, or they do not have sufficient stock or funds to remove")
 			return
 		}
@@ -112,9 +117,9 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		lib.ServerSendOKResponse(conn)
 
 	case "CREATE_TRIGGER":
-		triggerJson := data[1]
+		triggerJSON := data[1]
 		var newTrigger modelsdata.Trigger
-		jsonErr := json.Unmarshal([]byte(triggerJson), &newTrigger)
+		jsonErr := json.Unmarshal([]byte(triggerJSON), &newTrigger)
 		if jsonErr != nil {
 			lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
 			break
@@ -172,30 +177,14 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		lib.ServerSendResponse(conn, lib.StatusOk, string(triggersBytes))
-	case "UPDATE_TRIGGER":
-		triggerJson := data[1]
-		var triggerUpdate modelsdata.Trigger
-		jsonErr := json.Unmarshal([]byte(triggerJson), &triggerUpdate)
 
-		if jsonErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error())
-			break
-		}
-
-		updateErr := updateTrigger(client, triggerUpdate)
-		if updateErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
-			break
-		}
-
-		lib.ServerSendOKResponse(conn)
 	case "DELETE_TRIGGER":
 		userCommandID := data[1]
 		stock := data[2]
 		isSellString := data[3]
 
 		deletedTrigger, deleteErr := deleteTrigger(client, userCommandID, stock, generateIsSellBool(isSellString))
-		if deleteErr == ErrNotFound {
+		if deleteErr == errNotFound {
 			lib.ServerSendResponse(conn, lib.StatusNotFound, deleteErr.Error())
 			return
 		}
@@ -225,7 +214,7 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		updateErr := updateTriggerPrice(client, userCommandID, stock, generateIsSellBool(isSellString), priceInt)
-		if updateErr == ErrNotFound {
+		if updateErr == errNotFound {
 			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified Trigger does not exist, or its amount is less than the specified price")
 			break
 		}
@@ -249,7 +238,7 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		updateErr := updateTriggerAmount(client, userCommandID, stock, generateIsSellBool(isSellString), amountInt)
-		if updateErr == ErrNotFound {
+		if updateErr == errNotFound {
 			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified Trigger does not exist")
 			break
 		}
@@ -260,41 +249,6 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		lib.ServerSendOKResponse(conn)
-
-	case "SET_TRIGGER_AMOUNT":
-		userCommandID := data[1]
-		stock := data[2]
-		isSellString := data[3]
-		amount := data[4]
-		transactionNumber := data[5]
-
-		amountInt, conversionErr1 := strconv.ParseUint(amount, 10, 64)
-		transactionNumberInt, conversionErr2 := strconv.ParseUint(transactionNumber, 10, 64)
-		if conversionErr1 != nil && conversionErr2 != nil {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Amount must be an unsigned integer")
-		}
-
-		oldTrigger, setErr := setTriggerAmount(client, userCommandID, stock, generateIsSellBool(isSellString), amountInt, transactionNumberInt)
-		if setErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, setErr.Error())
-			break
-		}
-
-		// If the trigger and the error are nil, that means a new trigger was created and there is no old
-		// Trigger to return to the client
-		if oldTrigger == nil {
-			lib.ServerSendOKResponse(conn)
-			break
-		}
-
-		triggerBytes, jsonErr := json.Marshal(*oldTrigger)
-		if jsonErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
-			break
-		}
-
-		lib.ServerSendResponse(conn, lib.StatusOk, string(triggerBytes))
-
 	default:
 		lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Data Server Command")
 	}
