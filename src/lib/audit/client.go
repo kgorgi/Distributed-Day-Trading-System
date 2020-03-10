@@ -53,6 +53,8 @@ func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) uint64 {
 		log.Fatalln(err)
 	}
 
+	client.TransactionNum = result
+
 	return result
 }
 
