@@ -43,6 +43,7 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var auditClient = auditclient.AuditClient{
+		Command:        command["command"],
 		Server:         "web",
 		TransactionNum: 0,
 	}

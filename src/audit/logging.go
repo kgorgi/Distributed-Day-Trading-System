@@ -35,19 +35,31 @@ func handleLog(conn *net.Conn, payload string) {
 }
 
 func handleUserCommand(conn *net.Conn, payload string) {
-	var result struct {
-		*auditclient.InternalLogInfo
-		*auditclient.ErrorEventInfo
+	// Set Proper Transaction Number
+	var internalInfo auditclient.InternalLogInfo
+	err := json.Unmarshal([]byte(payload), &internalInfo)
+	if err != nil {
+		lib.ServerSendResponse(*conn, lib.StatusSystemError, err.Error())
+		return
 	}
 
-	err := json.Unmarshal([]byte(payload), &result)
+	var userCommandInfo auditclient.UserCommandInfo
+	err = json.Unmarshal([]byte(payload), &userCommandInfo)
 	if err != nil {
 		lib.ServerSendResponse(*conn, lib.StatusSystemError, err.Error())
 		return
 	}
 
 	nextNum := atomic.AddUint64(&transactionNum, 1)
-	result.TransactionNum = nextNum
+	internalInfo.TransactionNum = nextNum
+
+	result := struct {
+		*auditclient.InternalLogInfo `bson:",inline"`
+		*auditclient.UserCommandInfo `bson:",inline"`
+	}{
+		&internalInfo,
+		&userCommandInfo,
+	}
 
 	logToConsole(result)
 
@@ -57,6 +69,7 @@ func handleUserCommand(conn *net.Conn, payload string) {
 		return
 	}
 
+	// Send TransactionNumber to Web Server
 	lib.ServerSendResponse(*conn, lib.StatusOk, strconv.FormatUint(nextNum, 10))
 }
 
