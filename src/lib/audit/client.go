@@ -29,7 +29,7 @@ func (client *AuditClient) DumpLog(userID string) (string, error) {
 }
 
 // LogUserCommandRequest sends a log of UserCommandType to the audit server
-func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) {
+func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) uint64 {
 	var internalInfo = client.generateInternalInfo("userCommand", true)
 	payload := struct {
 		*InternalLogInfo
@@ -39,85 +39,135 @@ func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) {
 		&info,
 	}
 
-	client.sendLogs(payload)
+	status, message, err := client.sendLogs(payload, true)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if status != lib.StatusOk {
+		log.Fatalln("Status was not okay: " + strconv.FormatInt(int64(status), 10))
+	}
+
+	result, err := strconv.ParseUint(message, 10, 64)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	return result
 }
 
-// LogQuoteServerResponse sends a UserCommandType to the audit server
-func (client *AuditClient) LogQuoteServerResponse(info QuoteServerResponseInfo) {
+// LogQuoteServerResponse sends a QuoteServerType to the audit server
+func (client *AuditClient) LogQuoteServerResponse(
+	priceInCents uint64,
+	stockSymbol string,
+	userID string,
+	quoteServerTime uint64,
+	cryptoKey string,
+) {
 	var internalInfo = client.generateInternalInfo("quoteServer", false)
+	var transactionInfo = QuoteServerResponseInfo{
+		PriceInCents:    priceInCents,
+		StockSymbol:     stockSymbol,
+		UserID:          userID,
+		QuoteServerTime: quoteServerTime,
+		CryptoKey:       cryptoKey,
+	}
+
 	payload := struct {
 		*InternalLogInfo
 		*QuoteServerResponseInfo
 	}{
 		&internalInfo,
-		&info,
+		&transactionInfo,
 	}
-	client.sendLogs(payload)
+	client.sendLogs(payload, false)
 }
 
-// LogAccountTransaction sends a log of UserCommandType to the audit server
-func (client *AuditClient) LogAccountTransaction(info AccountTransactionInfo) {
+// LogAccountTransaction sends a log of AccountTransactionType to the audit server
+func (client *AuditClient) LogAccountTransaction(
+	action string,
+	userID string,
+	fundsInCents uint64,
+) {
 	var internalInfo = client.generateInternalInfo("accountTransaction", false)
+	var transactionInfo = AccountTransactionInfo{
+		Action:       action,
+		UserID:       userID,
+		FundsInCents: fundsInCents,
+	}
+
 	payload := struct {
 		*InternalLogInfo
 		*AccountTransactionInfo
 	}{
 		&internalInfo,
-		&info,
+		&transactionInfo,
 	}
-	client.sendLogs(payload)
+	client.sendLogs(payload, false)
 }
 
-// LogSystemEvent sends a log of UserCommandType to the audit server
-func (client *AuditClient) LogSystemEvent(info SystemEventInfo) {
+// LogSystemEvent sends a log of SystemEventType to the audit server
+func (client *AuditClient) LogSystemEvent() {
 	var internalInfo = client.generateInternalInfo("systemEvent", true)
-	payload := struct {
-		*InternalLogInfo
-		*SystemEventInfo
-	}{
-		&internalInfo,
-		&info,
-	}
-	client.sendLogs(payload)
+	client.sendLogs(internalInfo, false)
 }
 
-// LogErrorEvent sends a log of UserCommandType to the audit server
-func (client *AuditClient) LogErrorEvent(info ErrorEventInfo) {
+// LogErrorEvent sends a log of ErrorEventType to the audit server
+func (client *AuditClient) LogErrorEvent(errorMessage string) {
 	var internalInfo = client.generateInternalInfo("errorEvent", true)
+	var errorInfo = ErrorEventInfo{
+		ErrorMessage: errorMessage,
+	}
+
 	payload := struct {
 		*InternalLogInfo
 		*ErrorEventInfo
 	}{
 		&internalInfo,
-		&info,
+		&errorInfo,
 	}
-	client.sendLogs(payload)
+	client.sendLogs(payload, false)
 }
 
-// LogDebugEvent sends a log of UserCommandType to the audit server
-func (client *AuditClient) LogDebugEvent(info DebugEventInfo) {
+// SendServerResponseWithErrorEvent sends a log of ErrorEventType to the audit server
+// and sends the error response to the client
+func (client *AuditClient) SendServerResponseWithErrorEvent(conn net.Conn, status int, errorMessage string) {
+	client.LogErrorEvent(errorMessage)
+	lib.ServerSendResponse(conn, status, errorMessage)
+}
+
+// LogDebugEvent sends a log of DebugEventType to the audit server
+func (client *AuditClient) LogDebugEvent(debugMessage string) {
 	var internalInfo = client.generateInternalInfo("debugEvent", true)
+	var debugInfo = DebugEventInfo{
+		DebugMessage: debugMessage,
+	}
+
 	payload := struct {
 		*InternalLogInfo
 		*DebugEventInfo
 	}{
 		&internalInfo,
-		&info,
+		&debugInfo,
 	}
-	client.sendLogs(payload)
+	client.sendLogs(payload, false)
 }
 
-func (client *AuditClient) sendLogs(data interface{}) {
+func (client *AuditClient) sendLogs(data interface{}, isUser bool) (int, string, error) {
 	// Convert JSON to Payload
 	jsonText, err := json.Marshal(data)
 	if err != nil {
 		log.Println("JSON stringify error: " + err.Error())
-		return
+		return -1, "", nil
 	}
 
-	payload := "LOG|" + string(jsonText)
+	var requestType = "LOG"
+	if isUser {
+		requestType = "USERCOMMAND"
+	}
+	payload := requestType + "|" + string(jsonText)
 
-	client.sendRequest(payload)
+	return client.sendRequest(payload)
 }
 
 func (client *AuditClient) generateInternalInfo(logType string, withCommand bool) InternalLogInfo {

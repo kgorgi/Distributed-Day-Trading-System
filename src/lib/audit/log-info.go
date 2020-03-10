@@ -34,28 +34,12 @@ type AccountTransactionInfo struct {
 	FundsInCents uint64 `json:"fundsInCents" bson:"fundsInCents"`
 }
 
-// SystemEventInfo audit message for any system events
-type SystemEventInfo struct {
-	OptionalUserID       string  `json:"userID,omitempty" bson:"userID,omitempty"`
-	OptionalStockSymbol  string  `json:"stockSymbol,omitempty" bson:"stockSymbol,omitempty"`
-	OptionalFilename     string  `json:"filename,omitempty" bson:"filename,omitempty"`
-	OptionalFundsInCents *uint64 `json:"fundsInCents,omitempty" bson:"fundsInCents,omitempty"`
-}
-
 // ErrorEventInfo audit message for any system error events
 type ErrorEventInfo struct {
-	OptionalUserID       string  `json:"userID,omitempty" bson:"userID,omitempty"`
-	OptionalStockSymbol  string  `json:"stockSymbol,omitempty" bson:"stockSymbol,omitempty"`
-	OptionalFilename     string  `json:"filename,omitempty" bson:"filename,omitempty"`
-	OptionalFundsInCents *uint64 `json:"fundsInCents,omitempty" bson:"fundsInCents,omitempty"`
-	OptionalErrorMessage string  `json:"errorMessage,omitempty" bson:"errorMessage,omitempty"`
+	ErrorMessage string `json:"errorMessage" bson:"errorMessage"`
 }
 
 // DebugEventInfo audit message for any system debug events
 type DebugEventInfo struct {
-	OptionalUserID       string  `json:"userID,omitempty" bson:"userID,omitempty"`
-	OptionalStockSymbol  string  `json:"stockSymbol,omitempty" bson:"stockSymbol,omitempty"`
-	OptionalFilename     string  `json:"filename,omitempty" bson:"filename,omitempty"`
-	OptionalFundsInCents *uint64 `json:"fundsInCents,omitempty" bson:"fundsInCents,omitempty"`
-	OptionalDebugMessage string  `json:"debugMessage,omitempty" bson:"debugMessage,omitempty"`
+	DebugMessage string `json:"debugMessage" bson:"debugMessage"`
 }
