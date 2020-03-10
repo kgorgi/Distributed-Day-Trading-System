@@ -26,49 +26,15 @@ func TestAuditServer(t *testing.T) {
 		},
 	)
 
-	auditClient.LogQuoteServerResponse(
-		auditclient.QuoteServerResponseInfo{
-			PriceInCents:    2,
-			StockSymbol:     "ABC",
-			UserID:          "testUser",
-			QuoteServerTime: 5,
-			CryptoKey:       "crypto1",
-		},
-	)
+	auditClient.LogQuoteServerResponse(2, "ABC", "testUser", 5, "crypto1")
 
-	auditClient.LogAccountTransaction(
-		auditclient.AccountTransactionInfo{
-			Action:       "TEST",
-			UserID:       "testUser",
-			FundsInCents: 5,
-		},
-	)
+	auditClient.LogAccountTransaction("Test", "testUser", 5)
 
-	auditClient.LogSystemEvent(
-		auditclient.SystemEventInfo{
-			OptionalUserID:       "testUser",
-			OptionalFilename:     "testFile",
-			OptionalFundsInCents: &funds,
-		},
-	)
+	auditClient.LogSystemEvent()
 
-	auditClient.LogErrorEvent(
-		auditclient.ErrorEventInfo{
-			OptionalUserID:       "testUser",
-			OptionalFilename:     "testFile",
-			OptionalFundsInCents: &funds,
-			OptionalErrorMessage: "This is an error event",
-		},
-	)
+	auditClient.LogErrorEvent("This is an error event")
 
-	auditClient.LogDebugEvent(
-		auditclient.DebugEventInfo{
-			OptionalUserID:       "testUser2",
-			OptionalFilename:     "testFile",
-			OptionalFundsInCents: &funds,
-			OptionalDebugMessage: "This is an debug event",
-		},
-	)
+	auditClient.LogDebugEvent("This is an debug event")
 
 	fmt.Println("Logs of testUser2")
 	logs, _ := auditClient.DumpLog("testUser2")
