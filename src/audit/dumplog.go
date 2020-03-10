@@ -62,10 +62,6 @@ func createLog(cursor *mongo.Cursor) string {
 			var accountLog auditclient.AccountTransactionInfo
 			cursor.Decode(&accountLog)
 			writeAccountTransactionTags(&str, accountLog)
-		case "systemEvent":
-			var systemEvent auditclient.SystemEventInfo
-			cursor.Decode(&systemEvent)
-			writeSystemEventTags(&str, systemEvent)
 		case "errorEvent":
 			var errorEvent auditclient.ErrorEventInfo
 			cursor.Decode(&errorEvent)

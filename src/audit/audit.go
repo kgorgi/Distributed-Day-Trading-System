@@ -54,13 +54,16 @@ func handleConnection(conn net.Conn) {
 
 	data := strings.Split(payload, "|")
 
-	switch data[0] {
-	case "LOG":
-		handleLog(&conn, data[1])
-	case "DUMPLOG":
-		handleDumpLog(&conn, data[1])
-	default:
-		lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
+		switch data[0] {
+		case "USERCOMMAND":
+			handleUserCommand(&conn, data[1])
+		case "LOG":
+			handleLog(&conn, data[1])
+		case "DUMPLOG":
+			handleDumpLog(&conn, data[1])
+		default:
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
+		}
 	}
 
 	conn.Close()
