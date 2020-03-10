@@ -119,14 +119,7 @@ func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.
 	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, true, auditClient)
 	if quoteInCents > amountInCents {
 		errorMessage := "Quote price is higher than buy amount"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalStockSymbol:  jsonCommand.StockSymbol,
-			OptionalFundsInCents: &amountInCents,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
@@ -142,24 +135,17 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 	nextBuy := buyStackMap.pop(jsonCommand.Userid)
 	if nextBuy == nil {
 		errorMessage := "No Buy to Commit"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
 	buyErr := dataclient.UpdateUser(jsonCommand.Userid, nextBuy.stockSymbol, int(nextBuy.numOfStocks), int(nextBuy.cents)*-1)
 	if buyErr != nil {
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalErrorMessage: buyErr.Error(),
-		})
+		auditClient.LogErrorEvent(buyErr.Error())
 
 		if buyErr == dataclient.ErrNotFound {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "The specified user either does not exist or does not have sufficient funds to remove "+strconv.FormatUint(nextBuy.cents, 10)+" cents")
+			errorMessage := "The specified user either does not exist or does not have sufficient funds to remove " + strconv.FormatUint(nextBuy.cents, 10) + " cents"
+			auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 			return
 		}
 
@@ -167,11 +153,7 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 		return
 	}
 
-	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
-		Action:       "remove",
-		UserID:       jsonCommand.Userid,
-		FundsInCents: nextBuy.cents,
-	})
+	auditClient.LogAccountTransaction("remove", jsonCommand.Userid, nextBuy.cents)
 
 	lib.ServerSendOKResponse(conn)
 }
@@ -180,12 +162,7 @@ func handleCancelBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 	nextBuy := buyStackMap.pop(jsonCommand.Userid)
 	if nextBuy == nil {
 		errorMessage := "No Buy to Cancel"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
@@ -197,14 +174,7 @@ func handleSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient
 	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, true, auditClient)
 	if quoteInCents > amountInCents {
 		errorMessage := "Quote price is higher than sell amount"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalStockSymbol:  jsonCommand.StockSymbol,
-			OptionalFundsInCents: &amountInCents,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
@@ -220,25 +190,17 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 	nextSell := sellStackMap.pop(jsonCommand.Userid)
 	if nextSell == nil {
 		errorMessage := "No Sell to Commit"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
 	sellErr := dataclient.UpdateUser(jsonCommand.Userid, nextSell.stockSymbol, int(nextSell.numOfStocks)*-1, int(nextSell.cents))
 	if sellErr != nil {
-
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalErrorMessage: sellErr.Error(),
-		})
+		auditClient.LogErrorEvent(sellErr.Error())
 
 		if sellErr == dataclient.ErrNotFound {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Either the specified user does not exist, or they do not have a sufficient amount of stock")
+			errorMessage := "Either the specified user does not exist, or they do not have a sufficient amount of stock"
+			auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 			return
 		}
 
@@ -246,11 +208,7 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 		return
 	}
 
-	auditClient.LogAccountTransaction(auditclient.AccountTransactionInfo{
-		Action:       "add",
-		UserID:       jsonCommand.Userid,
-		FundsInCents: nextSell.cents,
-	})
+	auditClient.LogAccountTransaction("add", jsonCommand.Userid, nextSell.cents)
 
 	lib.ServerSendOKResponse(conn)
 }
@@ -259,11 +217,7 @@ func handleCancelSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 	nextSell := sellStackMap.pop(jsonCommand.Userid)
 	if nextSell == nil {
 		errorMessage := "No Sell to Cancel"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalErrorMessage: errorMessage,
-		})
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
@@ -281,14 +235,7 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 
 	if amountInCents > balanceInCents {
 		errorMessage := "Account balance is less than trigger amount"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalStockSymbol:  jsonCommand.StockSymbol,
-			OptionalFundsInCents: &balanceInCents,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
@@ -317,13 +264,7 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 	} else {
 		if amountInCents < existingTrigger.Price_Cents {
 			errorMessage := "An existing trigger on this stock has a higher trigger price than the set amount"
-			auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-				OptionalUserID:       jsonCommand.Userid,
-				OptionalStockSymbol:  jsonCommand.StockSymbol,
-				OptionalFundsInCents: &balanceInCents,
-				OptionalErrorMessage: errorMessage,
-			})
-			lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+			auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 			return
 		}
 
@@ -354,13 +295,7 @@ func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 	updateErr := dataclient.UpdateTriggerPrice(jsonCommand.Userid, jsonCommand.StockSymbol, false, triggerPriceInCents)
 	if updateErr == dataclient.ErrNotFound {
 		errorMessage := "Either the trigger doesn't exist, or the specified price is too high, no stocks will be able to be bought with current amount"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalStockSymbol:  jsonCommand.StockSymbol,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
@@ -378,13 +313,7 @@ func handleCancelSetBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 	// If the trigger doesn't exist or has been deleted by the time this is executing
 	if deleteErr == dataclient.ErrNotFound {
 		errorMessage := "Trigger does not exist"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalStockSymbol:  jsonCommand.StockSymbol,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
@@ -432,13 +361,7 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 
 	if amountInCents < existingTrigger.Price_Cents {
 		errorMessage := "An existing trigger on this stock has a higher trigger price than the set amount"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalStockSymbol:  jsonCommand.StockSymbol,
-			OptionalFundsInCents: &amountInCents,
-			OptionalErrorMessage: errorMessage,
-		})
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
@@ -477,13 +400,7 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 	trigger, readErr := dataclient.ReadTrigger(jsonCommand.Userid, jsonCommand.StockSymbol, true)
 	if readErr == dataclient.ErrNotFound {
 		errorMessage := "Trigger amount has not been set"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalStockSymbol:  jsonCommand.StockSymbol,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
@@ -502,26 +419,14 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 
 	if numOfStocks > numOfStocksOwn {
 		errorMessage := "User does not have enough stocks"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalStockSymbol:  jsonCommand.StockSymbol,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
 	updateErr := dataclient.UpdateTriggerPrice(jsonCommand.Userid, jsonCommand.StockSymbol, true, priceInCents)
 	if updateErr == dataclient.ErrNotFound {
 		errorMessage := "The specified trigger has fired, or the trigger amount is higher than amount of stocks to sell"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalStockSymbol:  jsonCommand.StockSymbol,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
@@ -550,13 +455,7 @@ func handleCancelSetSell(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 	// If the trigger doesn't exist, or was fired before this was by the time this part of the function executes
 	if deleteErr == dataclient.ErrNotFound {
 		errorMessage := "Trigger does not exist"
-		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
-			OptionalUserID:       jsonCommand.Userid,
-			OptionalStockSymbol:  jsonCommand.StockSymbol,
-			OptionalErrorMessage: errorMessage,
-		})
-
-		lib.ServerSendResponse(conn, lib.StatusUserError, errorMessage)
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
