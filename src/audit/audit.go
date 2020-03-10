@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
 	"extremeWorkload.com/daytrader/lib/resolveurl"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -30,6 +32,8 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+
+	setupIndexes(client)
 
 	for {
 		conn, err := ln.Accept()
@@ -68,6 +72,22 @@ func handleConnection(conn net.Conn) {
 
 	conn.Close()
 	lib.Debugln("Connection Closed")
+}
+
+func setupIndexes(client *mongo.Client) {
+	logsCol := client.Database("audit").Collection("logs")
+	mod := mongo.IndexModel{
+		Keys: bson.M{
+			"userID":         1, // index in ascending order
+			"timestamp":      1, // index in ascending order
+			"transactionNum": 1, // index in ascending order
+		}, Options: nil,
+	}
+
+	_, err := logsCol.Indexes().CreateOne(context.TODO(), mod)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func connectToMongo() (*mongo.Client, error) {
