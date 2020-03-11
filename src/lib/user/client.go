@@ -9,19 +9,26 @@ import (
 	"os"
 )
 
-const webserverAddress = "https://localhost:9090/command/"
+const webserverAddress = "https://localhost:8080/"
 
-var caCertPool *x509.CertPool
+var client *http.Client
 
-func InitCertPool() error {
+func InitClient() error {
 	envCaCertLocation := os.Getenv("CLIENT_SSL_CERT_LOCATION")
 	caCert, err := ioutil.ReadFile(envCaCertLocation)
 	if err != nil {
 		return err
 	}
 
-	caCertPool = x509.NewCertPool()
+	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
+	client = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: caCertPool,
+			},
+		},
+	}
 
 	return nil
 }
@@ -50,15 +57,7 @@ func createParameters(command commandParams) url.Values {
 }
 
 func makeRequest(httpMethod string, command string, params url.Values) (int, string, error) {
-	// // Create a HTTPS client and supply the created CA pool and certificate
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: caCertPool,
-			},
-		},
-	}
-	req, err := http.NewRequest(httpMethod, webserverAddress+command+"?"+params.Encode(), nil)
+	req, err := http.NewRequest(httpMethod, webserverAddress+"command/"+command+"?"+params.Encode(), nil)
 	if err != nil {
 		return 0, "", err
 	}
@@ -74,6 +73,14 @@ func makeRequest(httpMethod string, command string, params url.Values) (int, str
 	}
 
 	return resp.StatusCode, string(body), nil
+}
+
+func HeartRequest() (int, string, error) {
+	resp, err := client.Get(webserverAddress + "heartbeat")
+	if err != nil {
+		return 0, "", err
+	}
+	return resp.StatusCode, "", nil
 }
 
 func SaveDumplog(body string, filename string) error {

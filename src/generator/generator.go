@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"strconv"
@@ -63,6 +64,8 @@ func handleCommand(command []string) error {
 				err = user.SaveDumplog(body, command[2])
 			}
 		}
+	case "HEART":
+		status, body, err = user.HeartRequest()
 	}
 
 	return err
@@ -72,7 +75,7 @@ func handleUser(userid string, commands [][]string, wg *sync.WaitGroup) {
 	for _, command := range commands {
 		err := handleCommand(command)
 		if err != nil {
-			fmt.Printf("Failed on user %d on line %d\nError message: %s\n", userid, command[0], err.Error())
+			fmt.Println("Failed on user " + userid + " on line " + command[0] + ": " + err.Error())
 			os.Exit(1)
 			return
 		}
@@ -125,15 +128,49 @@ func parseLine(line string) []string {
 	return append([]string{lineNumber}, commaSplit...)
 }
 
-func main() {
+func createWorkloadFile(numberCommands int, numberUsers int, filename string) error{
 
-	filePath := "workload.txt"
+	perUserCommands := numberCommands/numberUsers
 
-	if len(os.Args) > 1 {
-		filePath = os.Args[1]
+	fmt.Printf("Creating heartbeat workload file with %d users and %d commmands\n",numberUsers,numberUsers * perUserCommands)
+
+	f, err := os.Create(filename)
+	defer f.Close()
+	if err != nil {
+		return err
 	}
 
-	user.InitCertPool()
+	commandNum := 1
+	for userIdx := 0; userIdx < numberUsers; userIdx++ {
+		for i := 0; i < perUserCommands; i++ {
+			fmt.Fprintf(f, "[%d] HEART,goh%d\n", commandNum, userIdx)
+			commandNum++
+		}
+	}
+	fmt.Fprintf(f,"[%d] DUMPLOG,./testLOG\n",commandNum)
+	return nil
+}
+
+func main() {
+
+	var filePath string
+
+	flag.StringVar(&filePath, "f", "workload.txt", "filepath of workload")
+	makeWorkload := flag.Bool("w", false, "Switch for generating workload")
+	U := flag.Int("U", 50, "Number of users")
+	N := flag.Int("N", 5000, "Number of commands")
+	flag.Parse()
+
+	if *makeWorkload {
+		filePath = "heartworkload.txt"
+		err := createWorkloadFile(*N, *U, filePath)
+		if err != nil{
+			fmt.Println(err.Error())
+			return 
+		}
+	}
+
+	user.InitClient()
 
 	lines := loadFile(filePath)
 
@@ -149,7 +186,7 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(numOfUsers)
 	for userid, commands := range commandsByUser {
-		handleUser(userid, commands, &wg)
+		go handleUser(userid, commands, &wg)
 	}
 
 	var currentCount = atomic.LoadUint64(&transactionCount)
