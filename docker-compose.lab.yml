@@ -19,6 +19,8 @@ services:
             - ENV=LAB
 
     audit:
+        ports:
+            - "5002:5002"
         build:
             dockerfile: docker-files/lab/Dockerfile.audit
         environment:

@@ -42,26 +42,36 @@ format:
 test-e2e:
 	cd $(SRC)/test/end-to-end && go test -v
 
-# Docker Compose Commands
+# Docker Local Deployment Commands
 .phony docker-deploy-dev:
 docker-deploy-dev:
 	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build
 
 .phony docker-deploy-local:
 docker-deploy-local:
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build
-
-.phony docker-deploy-lab:
-docker-deploy-lab: build
-	docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
 
 .phony docker-redeploy-dev:
 docker-redeploy:
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build --force-recreate --no-deps -d $(c)
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --build --force-recreate --no-deps -d $(c)
 
+# Docker Lab Deployment Commands 
+.phony docker-deploy-lab:
+docker-deploy-lab: build
+	docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build -d
+
+.phony docker-deploy-audit-lab:
+docker-deploy-audit-lab: build
+	docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build -d audit auditDB
+
+# Docker Cleanup
 .phony docker-teardown:
 docker-teardown:  
 	docker-compose down --remove-orphans -v
+
+.phony docker-clean:
+docker-clean:
+	docker system prune && docker volume prune
 
 # Docker Container Commands
 .phony docker-list:
@@ -86,6 +96,7 @@ docker-start:
 docker-remove:
 	docker rm $(c)
 
+# Utility Commands
 .phony cert-generate:
 cert-generate:
 	cd ./ssl && sudo openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out cert.pem -subj '/CN=localhost'

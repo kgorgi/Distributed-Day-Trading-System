@@ -6,6 +6,8 @@ import "os"
 const dockerHost = "host.docker.internal"
 const localhost = "localhost"
 
+const auditHost = "192.168.1.200"
+
 var env = os.Getenv("ENV")
 
 func resolveServerAddress(dockerServer string, port string) string {
@@ -50,31 +52,38 @@ func resolveMongoAddress(dockerServer string, dockerPort string, localPort strin
 }
 
 // AuditServerAddress returns the audit server address
-func AuditServerAddress() string {
-	return resolveServerAddress("audit-server", "5002")
+func resolveAuditServerAddress() string {
+	var server string
+
+	switch env {
+	case "LAB":
+		server = auditHost
+	case "DOCKER":
+		server = "audit-server"
+	case "DEV":
+		server = dockerHost
+	default:
+		// Running server locally
+		server = localhost
+	}
+
+	return server + ":" + "5002"
 }
+
+// AuditServerAddress returns the audit server address
+var AuditServerAddress = resolveAuditServerAddress()
 
 // TransactionServerAddress returns the transaction server address
-func TransactionServerAddress() string {
-	return resolveServerAddress("transaction-server", "5000")
-}
+var TransactionServerAddress = resolveServerAddress("transaction-server", "5000")
 
 // DataServerAddress returns the database server address
-func DataServerAddress() string {
-	return resolveServerAddress("data-server", "5001")
-}
+var DataServerAddress = resolveServerAddress("data-server", "5001")
 
 // MockQuoteServerAddress returns the mock legacy quote server address
-func MockQuoteServerAddress() string {
-	return resolveServerAddress("quote-mock-server", "4443")
-}
+var MockQuoteServerAddress = resolveServerAddress("quote-mock-server", "4443")
 
 // DatabaseDBAddress returns the mongo DB address for the database server
-func DatabaseDBAddress() string {
-	return resolveMongoAddress("data-mongodb", "27017", "27017")
-}
+var DatabaseDBAddress = resolveMongoAddress("data-mongodb", "27017", "27017")
 
 // AuditDBAddress returns the mongo DB address for the audit server
-func AuditDBAddress() string {
-	return resolveMongoAddress("audit-mongodb", "27017", "5003")
-}
+var AuditDBAddress = resolveMongoAddress("audit-mongodb", "27017", "5003")

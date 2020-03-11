@@ -115,8 +115,8 @@ func (q *quote) updateQuote(
 	userID string,
 	auditClient *auditclient.AuditClient) uint64 {
 
-	var address = resolveurl.MockQuoteServerAddress()
-	if lib.UseLabQuoteServer() {
+	var address = resolveurl.MockQuoteServerAddress
+	if lib.IsLab {
 		address = quoteServerAddress
 	}
 
@@ -141,7 +141,7 @@ func (q *quote) updateQuote(
 		return 0
 	}
 
-	conn.Close()	
+	conn.Close()
 
 	// Process Data
 	rawResponse = strings.TrimRight(rawResponse, "\n")
@@ -152,14 +152,16 @@ func (q *quote) updateQuote(
 		return 0
 	}
 
-	if data[1] != q.stockSymbol {
-		log.Fatalln("Response's stock symbol is incorrect")
-		return 0
-	}
+	if lib.IsLab {
+		if data[1] != q.stockSymbol {
+			log.Fatalln("Response's stock symbol is incorrect")
+			return 0
+		}
 
-	if data[2] != userID {
-		log.Fatalln("Response's userid is incorrect")
-		return 0
+		if data[2] != userID {
+			log.Fatalln("Response's userid is incorrect")
+			return 0
+		}
 	}
 
 	timestamp, err := strconv.ParseUint(data[3], 10, 64)
@@ -176,7 +178,7 @@ func (q *quote) updateQuote(
 		StockSymbol:     q.stockSymbol,
 		CryptoKey:       data[4],
 	})
-	
+
 	q.mutex.Lock()
 	q.amount = cents
 	q.timestamp = lib.GetUnixTimestamp()

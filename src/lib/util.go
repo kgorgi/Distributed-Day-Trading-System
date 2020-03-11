@@ -11,6 +11,9 @@ import (
 var env = os.Getenv("ENV")
 var debuggingEnabled = env == "" || env == "DEV"
 
+// IsLab returns true if in the lab environment
+var IsLab = env == "LAB"
+
 // DollarsToCents converts a dollar string to uint cents
 func DollarsToCents(dollars string) uint64 {
 	data := strings.Split(dollars, ".")
@@ -25,12 +28,6 @@ func CentsToDollars(cents uint64) string {
 	dollars := cents / uint64(100)
 	remainingCents := cents % uint64(100)
 	return fmt.Sprintf("%d.%02d", dollars, remainingCents)
-}
-
-// UseLabQuoteServer returns true if in the lab environment
-func UseLabQuoteServer() bool {
-	env := os.Getenv("ENV")
-	return env == "LAB"
 }
 
 // Debugln only prints to console if environment variable is empty or DEV

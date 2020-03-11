@@ -7,9 +7,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	user "extremeWorkload.com/daytrader/lib/user"
 )
+
+var transactionCount uint64 = 0
 
 func handleCommand(command []string) error {
 	var status int
@@ -72,6 +76,8 @@ func handleUser(userid string, commands [][]string, wg *sync.WaitGroup) {
 			os.Exit(1)
 			return
 		}
+
+		atomic.AddUint64(&transactionCount, 1)
 	}
 
 	wg.Done()
@@ -128,7 +134,7 @@ func main() {
 
 	lines := loadFile(filePath)
 
-	dumpLogLineNum := len(lines) - 1
+	dumpLogLineNum := uint64(len(lines) - 1)
 	userLines := lines[:dumpLogLineNum]
 
 	commandsByUser := sortByUser(userLines)
@@ -140,6 +146,13 @@ func main() {
 
 	for userid, commands := range commandsByUser {
 		go handleUser(userid, commands, &wg)
+	}
+
+	var currentCount = atomic.LoadUint64(&transactionCount)
+	for currentCount < dumpLogLineNum {
+		fmt.Println("Transaction Count: " + strconv.FormatUint(currentCount, 10))
+		time.Sleep(10 * time.Second)
+		currentCount = atomic.LoadUint64(&transactionCount)
 	}
 
 	fmt.Println("Waiting for gorountines to finish")

@@ -22,31 +22,30 @@ type CommandJSON struct {
 func handleWebConnection(conn net.Conn) {
 	lib.Debugln("Connection Established")
 
-	for {
-		payload, err := lib.ServerReceiveRequest(conn)
-		if err != nil {
-			conn.Close()
-			break
-		}
-
-		var commandJSON CommandJSON
-		err = json.Unmarshal([]byte(payload), &commandJSON)
-		if err != nil {
-			conn.Close()
-			break
-		}
-
-		transactionNum, _ := strconv.ParseUint(commandJSON.TransactionNum, 10, 64)
-
-		var auditClient = auditclient.AuditClient{
-			Server:         "transaction",
-			Command:        commandJSON.Command,
-			TransactionNum: transactionNum,
-		}
-
-		processCommand(conn, commandJSON, auditClient)
+	payload, err := lib.ServerReceiveRequest(conn)
+	if err != nil {
+		conn.Close()
+		return
 	}
 
+	var commandJSON CommandJSON
+	err = json.Unmarshal([]byte(payload), &commandJSON)
+	if err != nil {
+		conn.Close()
+		return
+	}
+
+	transactionNum, _ := strconv.ParseUint(commandJSON.TransactionNum, 10, 64)
+
+	var auditClient = auditclient.AuditClient{
+		Server:         "transaction",
+		Command:        commandJSON.Command,
+		TransactionNum: transactionNum,
+	}
+
+	processCommand(conn, commandJSON, auditClient)
+
+	conn.Close()
 	lib.Debugln("Connection Closed")
 }
 
