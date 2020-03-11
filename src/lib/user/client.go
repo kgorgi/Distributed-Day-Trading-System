@@ -47,7 +47,7 @@ func createParameters(command commandParams) url.Values {
 		params.Add("amount", command.Amount)
 	}
 	if len(command.StockSymbol) > 0 {
-		params.Add("stocksymbol", command.StockSymbol)
+		params.Add("stockSymbol", command.StockSymbol)
 	}
 	if len(command.Filename) > 0 {
 		params.Add("filename", command.StockSymbol)

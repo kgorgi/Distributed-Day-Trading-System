@@ -28,8 +28,6 @@ func handleConnection(conn net.Conn, client *mongo.Client) {
 
 		processCommand(conn, client, payload)
 	}
-
-	lib.Debugln("Connection Closed")
 }
 
 func main() {
