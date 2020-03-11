@@ -80,6 +80,8 @@ func main() {
 	}
 	fmt.Println("Connected to MongoDB")
 
+	setupIndexes(client)
+
 	//start listening on the port
 	ln, err := net.Listen("tcp", ":5001")
 	if err != nil {
