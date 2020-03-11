@@ -10,7 +10,7 @@ import (
 	userClient "extremeWorkload.com/daytrader/lib/user"
 )
 
-const userid = "thewolf"
+const userid = "quoteMock"
 const stockSymbol = "DOG"
 const quoteValue = 500
 const addAmount = uint64(1000234)

@@ -24,7 +24,7 @@ func main() {
 func handleConnection(conn net.Conn) {
 	lib.Debugln("Connection Established")
 	bufio.NewReader(conn).ReadString('\n')
-	conn.Write([]byte("5.00,ABC,quoteMock,123456,KEY\n"))
+	conn.Write([]byte("5.00,DOG,quoteMock,123456,4DxwFafID/pjlWjAUpX+1xpHLvP6EzX7BWeZVUjq2Ev9RT0CDnd8mQ==\n"))
 	conn.Close()
 	lib.Debugln("Connection Closed")
 }

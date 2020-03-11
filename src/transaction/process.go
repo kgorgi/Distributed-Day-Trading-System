@@ -12,7 +12,7 @@ import (
 )
 
 func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditclient.AuditClient) {
-	valid := validateParameters(conn, jsonCommand)
+	valid := validateUser(conn, jsonCommand)
 	if !valid {
 		return
 	}
@@ -64,6 +64,39 @@ func findStockAmount(investments []modelsdata.Investment, stockSymbol string) ui
 	return 0
 }
 
+func validateUser(conn net.Conn, commandJSON CommandJSON) bool {
+	// Validate user exists
+	_, err := dataclient.ReadUser(commandJSON.Userid)
+	if err != nil && err != dataclient.ErrNotFound {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		return false
+	}
+
+	// If the user exist return true
+	if err == nil {
+		return true
+	}
+
+	// If the user doesn't exist, and the command is not ADD return false
+	if commandJSON.Command != "ADD" {
+		lib.ServerSendResponse(conn, lib.StatusUserError, "User does not exist")
+		return false
+	}
+
+	// If the user doens't exist and the command is ADD create a new user
+	newUser := modelsdata.User{
+		Command_ID:  commandJSON.Userid,
+		Cents:       0,
+		Investments: []modelsdata.Investment{}}
+	createErr := dataclient.CreateUser(newUser)
+	if createErr != nil {
+		lib.ServerSendResponse(conn, lib.StatusSystemError, createErr.Error())
+		return false
+	}
+
+	return true
+}
+
 func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amount := lib.DollarsToCents(jsonCommand.Amount)
 	addErr := dataclient.UpdateUser(jsonCommand.Userid, "", 0, int(amount))
@@ -75,7 +108,7 @@ func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.
 }
 
 func handleQuote(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	quote := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, auditClient)
+	quote := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, false, auditClient)
 	dollars := lib.CentsToDollars(quote)
 	lib.ServerSendResponse(conn, lib.StatusOk, dollars)
 }
@@ -83,7 +116,7 @@ func handleQuote(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclien
 func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
 
-	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, auditClient)
+	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, true, auditClient)
 	if quoteInCents > amountInCents {
 		errorMessage := "Quote price is higher than buy amount"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{
@@ -161,7 +194,7 @@ func handleCancelBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 
 func handleSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
-	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, auditClient)
+	quoteInCents := GetQuote(jsonCommand.StockSymbol, jsonCommand.Userid, true, auditClient)
 	if quoteInCents > amountInCents {
 		errorMessage := "Quote price is higher than sell amount"
 		auditClient.LogErrorEvent(auditclient.ErrorEventInfo{

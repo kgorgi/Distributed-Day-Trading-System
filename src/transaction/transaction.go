@@ -56,12 +56,10 @@ func main() {
 	var auditclient = auditclient.AuditClient{
 		Server:         "transaction",
 		TransactionNum: 0,
-		Command:        "N,/A",
+		Command:        "",
 	}
 
 	go checkTriggers(auditclient)
-
-	initParameterMaps()
 
 	ln, _ := net.Listen("tcp", ":5000")
 	fmt.Println("Started transaction server on port: 5000")
