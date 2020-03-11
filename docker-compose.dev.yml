@@ -3,9 +3,6 @@ services:
     web:
         environment:
             - ENV=DEV
-    web2:
-        environment:
-            - ENV=DEV
 
     transaction:
         ports:
