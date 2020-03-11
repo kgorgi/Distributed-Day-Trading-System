@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"sync/atomic"
 
 	"github.com/gorilla/mux"
 
@@ -13,8 +12,6 @@ import (
 )
 
 const webServerAddress = ":8080"
-
-var transactionNum uint64 = 0
 
 func parseCommandRequest(r *http.Request) map[string]string {
 
@@ -45,13 +42,10 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var nextNum = atomic.AddUint64(&transactionNum, 1)
-	command["transactionNum"] = strconv.FormatUint(nextNum, 10)
-
 	var auditClient = auditclient.AuditClient{
 		Command:        command["command"],
 		Server:         "web",
-		TransactionNum: nextNum,
+		TransactionNum: 0,
 	}
 
 	auditInfo := auditclient.UserCommandInfo{
@@ -65,7 +59,8 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 		auditInfo.OptionalFundsInCents = &funds
 	}
 
-	auditClient.LogUserCommandRequest(auditInfo)
+	transactionNum := auditClient.LogUserCommandRequest(auditInfo)
+	command["transactionNum"] = strconv.FormatUint(transactionNum, 10)
 
 	if command["command"] == "DUMPLOG" {
 		message, err = auditClient.DumpLogAll()

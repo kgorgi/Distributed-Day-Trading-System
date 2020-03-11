@@ -47,27 +47,12 @@ func writeAccountTransactionTags(str *strings.Builder, info auditclient.AccountT
 	writeDecimalTag(str, fundsInCents, info.FundsInCents)
 }
 
-func writeSystemEventTags(str *strings.Builder, info auditclient.SystemEventInfo) {
-	writeOptionalStringTag(str, userID, info.OptionalUserID)
-	writeOptionalStringTag(str, stockSymbol, info.OptionalStockSymbol)
-	writeOptionalStringTag(str, filename, info.OptionalFilename)
-	writeOptionalDecimalTag(str, fundsInCents, info.OptionalFundsInCents)
-}
-
 func writeErrorEventTags(str *strings.Builder, info auditclient.ErrorEventInfo) {
-	writeOptionalStringTag(str, userID, info.OptionalUserID)
-	writeOptionalStringTag(str, stockSymbol, info.OptionalStockSymbol)
-	writeOptionalStringTag(str, filename, info.OptionalFilename)
-	writeOptionalDecimalTag(str, fundsInCents, info.OptionalFundsInCents)
-	writeOptionalStringTag(str, "errorMessage", info.OptionalErrorMessage)
+	writeStringTag(str, "errorMessage", info.ErrorMessage)
 }
 
 func writeDebugEventTags(str *strings.Builder, info auditclient.DebugEventInfo) {
-	writeOptionalStringTag(str, userID, info.OptionalUserID)
-	writeOptionalStringTag(str, stockSymbol, info.OptionalStockSymbol)
-	writeOptionalStringTag(str, filename, info.OptionalFilename)
-	writeOptionalDecimalTag(str, fundsInCents, info.OptionalFundsInCents)
-	writeOptionalStringTag(str, "debugMessage", info.OptionalDebugMessage)
+	writeStringTag(str, "debugMessage", info.DebugMessage)
 }
 
 func writeOptionalDecimalTag(str *strings.Builder, tag string, amount *uint64) {

@@ -96,11 +96,7 @@ func (q *quote) getCents(
 		message := "Retrieved quote from cache (timestamp: " + strconv.FormatUint(timestamp, 10) +
 			", cryptokey: " + cryptokey + ")"
 
-		auditClient.LogDebugEvent(auditclient.DebugEventInfo{
-			OptionalUserID:       userID,
-			OptionalFundsInCents: &amount,
-			OptionalDebugMessage: message,
-		})
+		auditClient.LogDebugEvent(message)
 
 		return amount
 	}
@@ -171,13 +167,7 @@ func (q *quote) updateQuote(
 	}
 
 	cents := lib.DollarsToCents(data[0])
-	auditClient.LogQuoteServerResponse(auditclient.QuoteServerResponseInfo{
-		QuoteServerTime: timestamp,
-		UserID:          userID,
-		PriceInCents:    cents,
-		StockSymbol:     q.stockSymbol,
-		CryptoKey:       data[4],
-	})
+	auditClient.LogQuoteServerResponse(cents, q.stockSymbol, userID, timestamp, data[4])
 
 	q.mutex.Lock()
 	q.amount = cents
