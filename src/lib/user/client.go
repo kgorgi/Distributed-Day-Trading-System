@@ -7,16 +7,14 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"fmt"
 )
 
 const webserverAddress = "https://localhost:9090/command/"
 
 var caCertPool *x509.CertPool
 
-func initCertPool() error {
+func InitCertPool() error {
 	envCaCertLocation := os.Getenv("CLIENT_SSL_CERT_LOCATION")
-	fmt.Println(envCaCertLocation)
 	caCert, err := ioutil.ReadFile(envCaCertLocation)
 	if err != nil {
 		return err
@@ -52,9 +50,6 @@ func createParameters(command commandParams) url.Values {
 }
 
 func makeRequest(httpMethod string, command string, params url.Values) (int, string, error) {
-	if caCertPool == nil{
-		initCertPool()
-	}
 	// // Create a HTTPS client and supply the created CA pool and certificate
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -67,6 +62,7 @@ func makeRequest(httpMethod string, command string, params url.Values) (int, str
 	if err != nil {
 		return 0, "", err
 	}
+	req.Close = true
 	resp, err := client.Do(req)
 	if err != nil {
 		return 0, "", err

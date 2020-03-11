@@ -72,7 +72,7 @@ func handleUser(userid string, commands [][]string, wg *sync.WaitGroup) {
 	for _, command := range commands {
 		err := handleCommand(command)
 		if err != nil {
-			fmt.Println("Failed on user " + userid + " on line " + command[0] + ": " + err.Error())
+			fmt.Printf("Failed on user %d on line %d\nError message: %s\n", userid, command[0], err.Error())
 			os.Exit(1)
 			return
 		}
@@ -126,11 +126,14 @@ func parseLine(line string) []string {
 }
 
 func main() {
+
 	filePath := "workload.txt"
 
 	if len(os.Args) > 1 {
 		filePath = os.Args[1]
 	}
+
+	user.InitCertPool()
 
 	lines := loadFile(filePath)
 
@@ -141,11 +144,12 @@ func main() {
 	numOfUsers := len(commandsByUser)
 
 	fmt.Println("Starting " + strconv.Itoa(numOfUsers) + " goroutines")
+	start := time.Now()
+
 	var wg sync.WaitGroup
 	wg.Add(numOfUsers)
-
 	for userid, commands := range commandsByUser {
-		go handleUser(userid, commands, &wg)
+		handleUser(userid, commands, &wg)
 	}
 
 	var currentCount = atomic.LoadUint64(&transactionCount)
@@ -158,6 +162,8 @@ func main() {
 	fmt.Println("Waiting for gorountines to finish")
 	wg.Wait()
 
+	elapsed := time.Now().Sub(start)
+	fmt.Printf("Elapsed Time %f\n", elapsed.Seconds())
 	fmt.Println("Executing DUMPLOG")
 	dumpLogCommand := parseLine(lines[dumpLogLineNum])
 	handleCommand(dumpLogCommand)
