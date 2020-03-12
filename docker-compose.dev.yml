@@ -4,6 +4,13 @@ services:
         environment:
             - ENV=DEV
 
+        # These limits only apply when 'docker-compose --compatibility' flag is used
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.5"
+                    memory: "100M"
+
     transaction:
         ports:
             - "5000:5000"
