@@ -45,6 +45,10 @@ test-e2e:
 # Docker Local Deployment Commands
 .phony docker-deploy-dev:
 docker-deploy-dev:
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --build
+
+.phony docker-deploy-dev-d:
+docker-deploy-dev-d:
 	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --build -d
 
 .phony docker-deploy-local:
