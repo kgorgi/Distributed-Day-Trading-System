@@ -11,20 +11,21 @@ import (
 	"net"
 )
 
-const webserverAddress = "https://localhost:8080/"
+type UserClient struct{
+	WebServerAddress string
+	Client	*http.Client
+}
 
-var client *http.Client
 
-func InitClient() error {
-	envCaCertLocation := os.Getenv("CLIENT_SSL_CERT_LOCATION")
+func CreateClient(webServerAddress string, envCaCertLocation string)  (*UserClient, error) {
 	caCert, err := ioutil.ReadFile(envCaCertLocation)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
-	client = &http.Client{
+	client := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				RootCAs: caCertPool,
@@ -43,7 +44,7 @@ func InitClient() error {
 		},
 	}
 
-	return nil
+	return &UserClient{webServerAddress, client}, nil
 }
 
 type commandParams struct {
@@ -69,13 +70,13 @@ func createParameters(command commandParams) url.Values {
 	return params
 }
 
-func makeRequest(httpMethod string, command string, params url.Values) (int, string, error) {
-	req, err := http.NewRequest(httpMethod, webserverAddress+"command/"+command+"?"+params.Encode(), nil)
+func (client *UserClient) makeRequest(httpMethod string, command string, params url.Values) (int, string, error) {
+	req, err := http.NewRequest(httpMethod, client.WebServerAddress+"command/"+command+"?"+params.Encode(), nil)
 	if err != nil {
 		return 0, "", err
 	}
 	req.Close = true
-	resp, err := client.Do(req)
+	resp, err := client.Client.Do(req)
 	if err != nil {
 		return 0, "", err
 	}
@@ -88,8 +89,8 @@ func makeRequest(httpMethod string, command string, params url.Values) (int, str
 	return resp.StatusCode, string(body), nil
 }
 
-func HeartRequest() (int, string, error) {
-	resp, err := client.Get(webserverAddress + "heartbeat")
+func (client *UserClient) HeartRequest() (int, string, error) {
+	resp, err := client.Client.Get(client.WebServerAddress + "heartbeat")
 	if err != nil {
 		return 0, "", err
 	}
@@ -111,131 +112,131 @@ func SaveDumplog(body string, filename string) error {
 	return nil
 }
 
-func AddRequest(userid string, amount string) (int, string, error) {
+func (client *UserClient) AddRequest(userid string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 		Amount: amount,
 	}
-	return makeRequest("POST", "ADD", createParameters(command))
+	return client.makeRequest("POST", "ADD", createParameters(command))
 }
 
-func QuoteRequest(userid string, stockSymbol string) (int, string, error) {
+func (client *UserClient) QuoteRequest(userid string, stockSymbol string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		StockSymbol: stockSymbol,
 	}
-	return makeRequest("GET", "QUOTE", createParameters(command))
+	return client.makeRequest("GET", "QUOTE", createParameters(command))
 }
 
-func BuyRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+func (client *UserClient) BuyRequest(userid string, stockSymbol string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		Amount:      amount,
 		StockSymbol: stockSymbol,
 	}
-	return makeRequest("POST", "BUY", createParameters(command))
+	return client.makeRequest("POST", "BUY", createParameters(command))
 }
 
-func CommitBuyRequest(userid string) (int, string, error) {
+func (client *UserClient) CommitBuyRequest(userid string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 	}
-	return makeRequest("POST", "COMMIT_BUY", createParameters(command))
+	return client.makeRequest("POST", "COMMIT_BUY", createParameters(command))
 }
 
-func CancelBuyRequest(userid string) (int, string, error) {
+func (client *UserClient) CancelBuyRequest(userid string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 	}
-	return makeRequest("POST", "CANCEL_BUY", createParameters(command))
+	return client.makeRequest("POST", "CANCEL_BUY", createParameters(command))
 }
 
-func SellRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+func (client *UserClient) SellRequest(userid string, stockSymbol string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		Amount:      amount,
 		StockSymbol: stockSymbol,
 	}
-	return makeRequest("POST", "SELL", createParameters(command))
+	return client.makeRequest("POST", "SELL", createParameters(command))
 }
 
-func CommitSellRequest(userid string) (int, string, error) {
+func (client *UserClient) CommitSellRequest(userid string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 	}
-	return makeRequest("POST", "COMMIT_SELL", createParameters(command))
+	return client.makeRequest("POST", "COMMIT_SELL", createParameters(command))
 }
 
-func CancelSellRequest(userid string) (int, string, error) {
+func (client *UserClient) CancelSellRequest(userid string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 	}
-	return makeRequest("POST", "CANCEL_SELL", createParameters(command))
+	return client.makeRequest("POST", "CANCEL_SELL", createParameters(command))
 }
 
-func SetBuyAmountRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+func (client *UserClient) SetBuyAmountRequest(userid string, stockSymbol string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		Amount:      amount,
 		StockSymbol: stockSymbol,
 	}
-	return makeRequest("POST", "SET_BUY_AMOUNT", createParameters(command))
+	return client.makeRequest("POST", "SET_BUY_AMOUNT", createParameters(command))
 }
 
-func CancelSetBuyRequest(userid string, stockSymbol string) (int, string, error) {
+func (client *UserClient) CancelSetBuyRequest(userid string, stockSymbol string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		StockSymbol: stockSymbol,
 	}
-	return makeRequest("GET", "CANCEL_SET_BUY", createParameters(command))
+	return client.makeRequest("GET", "CANCEL_SET_BUY", createParameters(command))
 }
 
-func SetBuyTriggerRequest(userid string, stockSymbol string, amount string) (int, string, error) {
-	var command = commandParams{
-		UserID:      userid,
-		Amount:      amount,
-		StockSymbol: stockSymbol,
-	}
-	return makeRequest("POST", "SET_BUY_TRIGGER", createParameters(command))
-}
-
-func SetSellAmountRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+func (client *UserClient) SetBuyTriggerRequest(userid string, stockSymbol string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		Amount:      amount,
 		StockSymbol: stockSymbol,
 	}
-	return makeRequest("POST", "SET_SELL_AMOUNT", createParameters(command))
+	return client.makeRequest("POST", "SET_BUY_TRIGGER", createParameters(command))
 }
 
-func CancelSetSellRequest(userid string, stockSymbol string) (int, string, error) {
-	var command = commandParams{
-		UserID:      userid,
-		StockSymbol: stockSymbol,
-	}
-	return makeRequest("GET", "CANCEL_SET_SELL", createParameters(command))
-}
-
-func SetSellTriggerRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+func (client *UserClient) SetSellAmountRequest(userid string, stockSymbol string, amount string) (int, string, error) {
 	var command = commandParams{
 		UserID:      userid,
 		Amount:      amount,
 		StockSymbol: stockSymbol,
 	}
-	return makeRequest("POST", "SET_SELL_TRIGGER", createParameters(command))
+	return client.makeRequest("POST", "SET_SELL_AMOUNT", createParameters(command))
 }
 
-func DumplogRequest(userid string, filename string) (int, string, error) {
+func (client *UserClient) CancelSetSellRequest(userid string, stockSymbol string) (int, string, error) {
+	var command = commandParams{
+		UserID:      userid,
+		StockSymbol: stockSymbol,
+	}
+	return client.makeRequest("GET", "CANCEL_SET_SELL", createParameters(command))
+}
+
+func (client *UserClient) SetSellTriggerRequest(userid string, stockSymbol string, amount string) (int, string, error) {
+	var command = commandParams{
+		UserID:      userid,
+		Amount:      amount,
+		StockSymbol: stockSymbol,
+	}
+	return client.makeRequest("POST", "SET_SELL_TRIGGER", createParameters(command))
+}
+
+func (client *UserClient) DumplogRequest(userid string, filename string) (int, string, error) {
 	var command = commandParams{
 		UserID:   userid,
 		Filename: filename,
 	}
-	return makeRequest("POST", "DUMPLOG", createParameters(command))
+	return client.makeRequest("POST", "DUMPLOG", createParameters(command))
 }
 
-func DisplaySummaryRequest(userid string) (int, string, error) {
+func (client *UserClient) DisplaySummaryRequest(userid string) (int, string, error) {
 	var command = commandParams{
 		UserID: userid,
 	}
-	return makeRequest("POST", "DISPLAY_SUMMARY", createParameters(command))
+	return client.makeRequest("POST", "DISPLAY_SUMMARY", createParameters(command))
 }

@@ -14,66 +14,75 @@ import (
 	user "extremeWorkload.com/daytrader/lib/user"
 )
 
+const webserverAddress = "https://localhost:8080/"
+var sslCertLocation string
 var transactionCount uint64 = 0
 
-func handleCommand(command []string) error {
+func handleCommand(userClient *user.UserClient, command []string) error {
 	var status int
 	var body string
 	var err error = nil
 
 	switch command[1] {
 	case "ADD":
-		status, body, err = user.AddRequest(command[2], command[3])
+		status, body, err = userClient.AddRequest(command[2], command[3])
 	case "QUOTE":
-		status, body, err = user.QuoteRequest(command[2], command[3])
+		status, body, err = userClient.QuoteRequest(command[2], command[3])
 	case "BUY":
-		status, body, err = user.BuyRequest(command[2], command[3], command[4])
+		status, body, err = userClient.BuyRequest(command[2], command[3], command[4])
 	case "COMMIT_BUY":
-		status, body, err = user.CommitBuyRequest(command[2])
+		status, body, err = userClient.CommitBuyRequest(command[2])
 	case "CANCEL_BUY":
-		status, body, err = user.CancelBuyRequest(command[2])
+		status, body, err = userClient.CancelBuyRequest(command[2])
 	case "SELL":
-		status, body, err = user.SellRequest(command[2], command[3], command[4])
+		status, body, err = userClient.SellRequest(command[2], command[3], command[4])
 	case "COMMIT_SELL":
-		status, body, err = user.CommitSellRequest(command[2])
+		status, body, err = userClient.CommitSellRequest(command[2])
 	case "CANCEL_SELL":
-		status, body, err = user.CancelSellRequest(command[2])
+		status, body, err = userClient.CancelSellRequest(command[2])
 	case "SET_BUY_AMOUNT":
-		status, body, err = user.SetBuyAmountRequest(command[2], command[3], command[4])
+		status, body, err = userClient.SetBuyAmountRequest(command[2], command[3], command[4])
 	case "CANCEL_SET_BUY":
-		status, body, err = user.CancelSetBuyRequest(command[2], command[3])
+		status, body, err = userClient.CancelSetBuyRequest(command[2], command[3])
 	case "SET_BUY_TRIGGER":
-		status, body, err = user.SetBuyTriggerRequest(command[2], command[3], command[4])
+		status, body, err = userClient.SetBuyTriggerRequest(command[2], command[3], command[4])
 	case "SET_SELL_AMOUNT":
-		status, body, err = user.SetSellAmountRequest(command[2], command[3], command[4])
+		status, body, err = userClient.SetSellAmountRequest(command[2], command[3], command[4])
 	case "CANCEL_SET_SELL":
-		status, body, err = user.CancelSetSellRequest(command[2], command[3])
+		status, body, err = userClient.CancelSetSellRequest(command[2], command[3])
 	case "SET_SELL_TRIGGER":
-		status, body, err = user.SetSellTriggerRequest(command[2], command[3], command[4])
+		status, body, err = userClient.SetSellTriggerRequest(command[2], command[3], command[4])
 	case "DISPLAY_SUMMARY":
-		status, body, err = user.DisplaySummaryRequest(command[2])
+		status, body, err = userClient.DisplaySummaryRequest(command[2])
 	case "DUMPLOG":
 		if len(command) > 3 {
-			status, body, err = user.DumplogRequest(command[2], command[3])
+			status, body, err = userClient.DumplogRequest(command[2], command[3])
 			if err == nil && status == 200 {
 				err = user.SaveDumplog(body, command[3])
 			}
 		} else {
-			status, body, err = user.DumplogRequest("", command[2])
+			status, body, err = userClient.DumplogRequest("", command[2])
 			if err == nil && status == 200 {
 				err = user.SaveDumplog(body, command[2])
 			}
 		}
 	case "HEART":
-		status, body, err = user.HeartRequest()
+		status, body, err = userClient.HeartRequest()
 	}
 
 	return err
 }
 
 func handleUser(userid string, commands [][]string, wg *sync.WaitGroup) {
+	client, err := user.CreateClient(webserverAddress, sslCertLocation)
+	if err != nil {
+		fmt.Println("Failed while creating a user client")
+		os.Exit(1)
+		return
+	}
+
 	for _, command := range commands {
-		err := handleCommand(command)
+		err := handleCommand(client, command)
 		if err != nil {
 			fmt.Println("Failed on user " + userid + " on line " + command[0] + ": " + err.Error())
 			os.Exit(1)
@@ -170,7 +179,7 @@ func main() {
 		}
 	}
 
-	user.InitClient()
+	sslCertLocation = os.Getenv("CLIENT_SSL_CERT_LOCATION")
 
 	lines := loadFile(filePath)
 
@@ -203,7 +212,13 @@ func main() {
 	fmt.Printf("Elapsed Time %f\n", elapsed.Seconds())
 	fmt.Println("Executing DUMPLOG")
 	dumpLogCommand := parseLine(lines[dumpLogLineNum])
-	handleCommand(dumpLogCommand)
+
+	dumpClient, err := user.CreateClient(webserverAddress, sslCertLocation)
+	if err != nil {
+		fmt.Println("Failed while creating dump log client")
+		return
+	}
+	handleCommand(dumpClient, dumpLogCommand)
 
 	fmt.Println("Finished workload generation")
 }
