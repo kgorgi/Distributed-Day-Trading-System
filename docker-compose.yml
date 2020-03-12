@@ -28,6 +28,18 @@ services:
                 soft: 65536
                 hard: 65536
 
+    quote-cache:
+        container_name: "quote-cache"
+        build:
+            context: .
+            dockerfile: docker-files/local/Dockerfile.quote-cache
+        environment:
+            - ENV=DOCKER
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
+
     data:
         container_name: "data-server"
         depends_on:

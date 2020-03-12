@@ -1,0 +1,8 @@
+FROM golang:latest
+
+WORKDIR ./server
+COPY ./build/quote-cache.exe .
+
+EXPOSE 5004
+
+CMD ["./quote-cache.exe"]

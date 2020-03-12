@@ -17,6 +17,10 @@ services:
         depends_on:
             - audit
 
+    quote-cache:
+        depends_on:
+            - audit
+
     data:
         depends_on:
             - audit

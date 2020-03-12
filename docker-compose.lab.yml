@@ -27,6 +27,12 @@ services:
         environment:
             - ENV=LAB
 
+    quote-cache:
+        build:
+            dockerfile: docker-files/lab/Dockerfile.quote-cache
+        environment:
+            - ENV=LAB
+
     data:
         build:
             dockerfile: docker-files/lab/Dockerfile.data
