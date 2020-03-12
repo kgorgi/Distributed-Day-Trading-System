@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
+	"net"
 )
 
 const webserverAddress = "https://localhost:8080/"
@@ -27,6 +29,17 @@ func InitClient() error {
 			TLSClientConfig: &tls.Config{
 				RootCAs: caCertPool,
 			},
+			DialContext: (
+				&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+				DualStack: true,
+			}).DialContext,
+			ForceAttemptHTTP2:     true,
+			MaxIdleConns:          1000,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}
 
