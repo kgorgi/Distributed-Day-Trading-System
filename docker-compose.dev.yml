@@ -3,6 +3,14 @@ services:
     web:
         environment:
             - ENV=DEV
+        ports:
+            - "8080:8080"
+        # These limits only apply when 'docker-compose --compatibility' flag is used
+        deploy:
+            resources:
+                limits:
+                    cpus: "0.5"
+                    memory: "100M"
 
     transaction:
         ports:

@@ -6,6 +6,21 @@ services:
         environment:
             - ENV=LAB
 
+    web2:
+        container_name: "web-server2"
+        depends_on:
+            - transaction
+            - audit
+        build:
+            context: .
+            dockerfile: docker-files/lab/Dockerfile.web
+        environment:
+            - ENV=LAB
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
+
     transaction:
         build:
             dockerfile: docker-files/lab/Dockerfile.transaction
@@ -25,3 +40,10 @@ services:
             dockerfile: docker-files/lab/Dockerfile.audit
         environment:
             - ENV=LAB
+    load:
+        container_name: "load-balancer"
+        build:
+            context: .
+            dockerfile: ./loadbalancer/Dockerfile
+        ports:
+            - "44410:80"
