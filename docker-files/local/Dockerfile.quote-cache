@@ -1,0 +1,15 @@
+FROM golang:latest
+
+WORKDIR ./server
+COPY ./src/quote-cache ./quote-cache
+COPY ./src/lib ./lib
+COPY ./src/go.mod .
+COPY ./src/go.sum .
+
+RUN go mod download
+
+RUN cd ./quote-cache && go build
+
+EXPOSE 5004
+
+CMD ["./quote-cache/quote-cache"]

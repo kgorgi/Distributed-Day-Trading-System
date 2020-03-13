@@ -87,3 +87,6 @@ var DatabaseDBAddress = resolveMongoAddress("data-mongodb", "27017", "27017")
 
 // AuditDBAddress returns the mongo DB address for the audit server
 var AuditDBAddress = resolveMongoAddress("audit-mongodb", "27017", "5003")
+
+// QuoteCacheServerAddress return the quote cache server address
+var QuoteCacheServerAddress = resolveServerAddress("quote-cache-server", "5004")
