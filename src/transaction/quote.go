@@ -19,9 +19,9 @@ func GetQuote(
 	auditClient *auditclient.AuditClient) uint64 {
 
 	conn, err := net.Dial("tcp", resolveurl.QuoteCacheServerAddress)
-	defer conn.Close()
 	if err != nil {
 		log.Fatalln("Could not connect to quote server")
+		conn.Close()
 		return 0
 	}
 
@@ -35,12 +35,14 @@ func GetQuote(
 
 	status, body, err := lib.ClientSendRequest(conn, payload)
 	if err != nil {
-		log.Println("Connection Error: " + err.Error())
+		log.Fatalln("Connection Error: " + err.Error())
+		conn.Close()
 		return 0
 	}
 
 	if status != lib.StatusOk {
-		log.Println("Response Error: Status " + strconv.Itoa(status) + " " + body)
+		log.Fatalln("Response Error: Status " + strconv.Itoa(status) + " " + body)
+		conn.Close()
 		return 0
 	}
 
@@ -48,7 +50,10 @@ func GetQuote(
 	quote, err := strconv.ParseUint(body, 10, 64)
 	if err != nil {
 		log.Fatalln("Received invalid data from quote cache server")
+		conn.Close()
 		return 0
 	}
+
+	conn.Close()
 	return quote
 }
