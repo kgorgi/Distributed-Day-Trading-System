@@ -7,7 +7,7 @@ import (
 
 	"extremeWorkload.com/daytrader/lib"
 	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
-	userClient "extremeWorkload.com/daytrader/lib/user"
+	user "extremeWorkload.com/daytrader/lib/user"
 )
 
 const userid = "quoteMock"
@@ -19,7 +19,7 @@ const sellAmount = uint64(1000)
 const buyTriggerPrice = uint64(500)
 const sellTriggerPrice = uint64(10)
 
-func getUserSummary(userid string, t *testing.T) modelsdata.UserDisplayInfo {
+func getUserSummary(userClient *user.UserClient, userid string, t *testing.T) modelsdata.UserDisplayInfo {
 	status, body, err := userClient.DisplaySummaryRequest(userid)
 	handleErrors("Display summary failed", status, body, err, t)
 	var summary modelsdata.UserDisplayInfo

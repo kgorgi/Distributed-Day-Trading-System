@@ -5,13 +5,12 @@ import (
 	"time"
 
 	"extremeWorkload.com/daytrader/lib"
-	userClient "extremeWorkload.com/daytrader/lib/user"
 )
 
 func setupSellTriggerTest(t *testing.T) {
 	status, body, err := userClient.CancelSetSellRequest(userid, stockSymbol)
 	checkSystemError("Cancel Sell failed", status, body, err, t)
-	summary := getUserSummary(userid, t)
+	summary := getUserSummary(userClient, userid, t)
 	if getTestStockTrigger(summary, true) != nil {
 		t.Error("Trigger was not cleared initially")
 	}
@@ -25,7 +24,7 @@ func setupSellTriggerTest(t *testing.T) {
 	status, body, err = userClient.CommitBuyRequest(userid)
 	handleErrors("Commit buy failed", status, body, err, t)
 
-	summaryAfter := getUserSummary(userid, t)
+	summaryAfter := getUserSummary(userClient, userid, t)
 	if getTestStockCount(summaryAfter) != getTestStockCount(summary)+(sellAmount/sellTriggerPrice) {
 		t.Error("Stocks required for test were not added")
 	}
@@ -35,7 +34,7 @@ func TestTriggerSell(t *testing.T) {
 
 	setupSellTriggerTest(t)
 
-	summaryBefore := getUserSummary(userid, t)
+	summaryBefore := getUserSummary(userClient, userid, t)
 
 	status, body, err := userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount))
 	handleErrors("Set Sell AmountFailed", status, body, err, t)
@@ -43,7 +42,7 @@ func TestTriggerSell(t *testing.T) {
 	status, body, err = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice))
 	handleErrors("Set Sell Trigger Failed", status, body, err, t)
 
-	summaryAfter := getUserSummary(userid, t)
+	summaryAfter := getUserSummary(userClient, userid, t)
 
 	if getTestStockTrigger(summaryAfter, true) == nil {
 		t.Error("Trigger was not saved")
@@ -51,7 +50,7 @@ func TestTriggerSell(t *testing.T) {
 
 	time.Sleep(65 * time.Second)
 
-	summaryAfter = getUserSummary(userid, t)
+	summaryAfter = getUserSummary(userClient, userid, t)
 
 	if getTestStockTrigger(summaryAfter, true) != nil {
 		t.Error("Trigger was not cleared")
@@ -77,7 +76,7 @@ func TestTriggerSellEditValues(t *testing.T) {
 	status, body, err = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice))
 	handleErrors("Set Sell Trigger failed", status, body, err, t)
 
-	summaryBefore := getUserSummary(userid, t)
+	summaryBefore := getUserSummary(userClient, userid, t)
 	stocksBefore := getTestStockCount(summaryBefore)
 
 	status, body, err = userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice-1))
@@ -89,7 +88,7 @@ func TestTriggerSellEditValues(t *testing.T) {
 	status, body, err = userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount*2))
 	handleErrors("Set Sell Amount failed", status, body, err, t)
 
-	summaryAfter := getUserSummary(userid, t)
+	summaryAfter := getUserSummary(userClient, userid, t)
 	stocksAfter := getTestStockCount(summaryAfter)
 
 	isEqual(stocksBefore-(sellAmount/sellTriggerPrice), stocksAfter, "Stocks were not properly subtracted from account", t)
@@ -97,7 +96,7 @@ func TestTriggerSellEditValues(t *testing.T) {
 	status, body, _ = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice*2))
 	handleErrors("Set Sell Trigger failed", status, body, err, t)
 
-	summaryAfter = getUserSummary(userid, t)
+	summaryAfter = getUserSummary(userClient, userid, t)
 	stocksAfter = getTestStockCount(summaryAfter)
 
 	isEqual(stocksBefore, stocksAfter, "Stocks were not properly added to account", t)

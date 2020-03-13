@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"extremeWorkload.com/daytrader/lib"
-	userClient "extremeWorkload.com/daytrader/lib/user"
 )
 
 func setupSellTest(t *testing.T) {
@@ -22,14 +21,14 @@ func setupSellTest(t *testing.T) {
 func TestSellDoesNotModifyAccount(t *testing.T) {
 	setupSellTest(t)
 
-	summaryBefore := getUserSummary(userid, t)
+	summaryBefore := getUserSummary(userClient, userid, t)
 	existingStock := getTestStockCount(summaryBefore)
 	existingBalance := summaryBefore.Cents
 
 	status, body, err := userClient.SellRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount))
 	handleErrors("Sell Failed", status, body, err, t)
 
-	summaryAfterSell := getUserSummary(userid, t)
+	summaryAfterSell := getUserSummary(userClient, userid, t)
 	newStock := getTestStockCount(summaryAfterSell)
 	isEqual(summaryAfterSell.Cents, existingBalance, "User's account balance was modified", t)
 	isEqual(newStock, existingStock, "User's portfolio was modified", t)
@@ -41,7 +40,7 @@ func TestSellDoesNotModifyAccount(t *testing.T) {
 func TestSellWithCommit(t *testing.T) {
 	setupSellTest(t)
 
-	summaryBefore := getUserSummary(userid, t)
+	summaryBefore := getUserSummary(userClient, userid, t)
 	existingStocks := getTestStockCount(summaryBefore)
 	existingBalance := summaryBefore.Cents
 
@@ -51,7 +50,7 @@ func TestSellWithCommit(t *testing.T) {
 	status, body, err = userClient.CommitSellRequest(userid)
 	handleErrors("Commit Sell Failed", status, body, err, t)
 
-	summaryAfterCommit := getUserSummary(userid, t)
+	summaryAfterCommit := getUserSummary(userClient, userid, t)
 
 	stocksSold := sellAmount / quoteValue
 	amountStocksLeft := existingStocks - stocksSold
@@ -66,7 +65,7 @@ func TestSellWithCommit(t *testing.T) {
 func TestSellWithCancel(t *testing.T) {
 	setupSellTest(t)
 
-	summaryBefore := getUserSummary(userid, t)
+	summaryBefore := getUserSummary(userClient, userid, t)
 	existingStock := getTestStockCount(summaryBefore)
 	existingBalance := summaryBefore.Cents
 
@@ -76,7 +75,7 @@ func TestSellWithCancel(t *testing.T) {
 	status, body, err = userClient.CancelSellRequest(userid)
 	handleErrors("Cancel Sell Failed", status, body, err, t)
 
-	summaryAfterCancel := getUserSummary(userid, t)
+	summaryAfterCancel := getUserSummary(userClient, userid, t)
 	newStock := getTestStockCount(summaryAfterCancel)
 
 	isEqual(summaryAfterCancel.Cents, existingBalance, "User's account balance was modified", t)
@@ -86,7 +85,7 @@ func TestSellWithCancel(t *testing.T) {
 func TestSellTimeout(t *testing.T) {
 	setupSellTest(t)
 
-	summaryBefore := getUserSummary(userid, t)
+	summaryBefore := getUserSummary(userClient, userid, t)
 	existingStock := getTestStockCount(summaryBefore)
 	existingBalance := summaryBefore.Cents
 
@@ -95,7 +94,7 @@ func TestSellTimeout(t *testing.T) {
 
 	time.Sleep(61 * time.Second)
 
-	summaryAfterTimeout := getUserSummary(userid, t)
+	summaryAfterTimeout := getUserSummary(userClient, userid, t)
 	newStock := getTestStockCount(summaryAfterTimeout)
 
 	isEqual(summaryAfterTimeout.Cents, existingBalance, "User's account balance was modified", t)

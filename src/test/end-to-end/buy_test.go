@@ -3,10 +3,25 @@ package e2e
 import (
 	"testing"
 	"time"
-
+	"os"
+	"fmt"
 	"extremeWorkload.com/daytrader/lib"
-	userClient "extremeWorkload.com/daytrader/lib/user"
+	user "extremeWorkload.com/daytrader/lib/user"
 )
+
+var userClient *user.UserClient
+const webserverAddress = "https://localhost:8080/"
+
+func TestMain(m *testing.M) {
+	var err error
+	userClient, err = user.CreateClient(webserverAddress, os.Getenv("CLIENT_SSL_CERT_LOCATION"))
+	if err != nil {
+		fmt.Println("Failed while creating a user client")
+		os.Exit(1)
+		return
+	}
+	os.Exit(m.Run())
+}
 
 func setupBuyTest(t *testing.T) {
 	status, body, err := userClient.AddRequest(userid, lib.CentsToDollars(addAmount))
@@ -15,14 +30,14 @@ func setupBuyTest(t *testing.T) {
 
 func TestBuyDoesNotModifyAccount(t *testing.T) {
 	setupBuyTest(t)
-	summaryBefore := getUserSummary(userid, t)
+	summaryBefore := getUserSummary(userClient, userid, t)
 	existingStock := getTestStockCount(summaryBefore)
 	existingBalance := summaryBefore.Cents
 
 	status, body, err := userClient.BuyRequest(userid, stockSymbol, lib.CentsToDollars(buyAmount))
 	handleErrors("Buy Failed", status, body, err, t)
 
-	summaryAfterBuy := getUserSummary(userid, t)
+	summaryAfterBuy := getUserSummary(userClient, userid, t)
 	newStock := getTestStockCount(summaryAfterBuy)
 	isEqual(summaryAfterBuy.Cents, existingBalance, "User's account balance was modified", t)
 	isEqual(newStock, existingStock, "User's portfolio was modified", t)
@@ -34,7 +49,7 @@ func TestBuyDoesNotModifyAccount(t *testing.T) {
 func TestBuyWithCommit(t *testing.T) {
 	setupBuyTest(t)
 
-	summaryBefore := getUserSummary(userid, t)
+	summaryBefore := getUserSummary(userClient, userid, t)
 	existingStock := getTestStockCount(summaryBefore)
 	existingBalance := summaryBefore.Cents
 
@@ -44,7 +59,7 @@ func TestBuyWithCommit(t *testing.T) {
 	status, body, err = userClient.CommitBuyRequest(userid)
 	handleErrors("Commit Buy Failed", status, body, err, t)
 
-	summaryAfterCommit := getUserSummary(userid, t)
+	summaryAfterCommit := getUserSummary(userClient, userid, t)
 
 	stocksBoughtCheck := buyAmount / quoteValue
 	amountLeftCheck := existingBalance - (stocksBoughtCheck * quoteValue)
@@ -57,7 +72,7 @@ func TestBuyWithCommit(t *testing.T) {
 func TestBuyWithCancel(t *testing.T) {
 	setupBuyTest(t)
 
-	summaryBefore := getUserSummary(userid, t)
+	summaryBefore := getUserSummary(userClient, userid, t)
 	existingStock := getTestStockCount(summaryBefore)
 	existingBalance := summaryBefore.Cents
 
@@ -67,7 +82,7 @@ func TestBuyWithCancel(t *testing.T) {
 	status, body, err = userClient.CancelBuyRequest(userid)
 	handleErrors("Cancel Buy Failed", status, body, err, t)
 
-	summaryAfterCancel := getUserSummary(userid, t)
+	summaryAfterCancel := getUserSummary(userClient, userid, t)
 	newStock := getTestStockCount(summaryAfterCancel)
 
 	isEqual(summaryAfterCancel.Cents, existingBalance, "User's account balance was modified", t)
@@ -77,7 +92,7 @@ func TestBuyWithCancel(t *testing.T) {
 func TestBuyTimeout(t *testing.T) {
 	setupBuyTest(t)
 
-	summaryBefore := getUserSummary(userid, t)
+	summaryBefore := getUserSummary(userClient, userid, t)
 	existingStock := getTestStockCount(summaryBefore)
 	existingBalance := summaryBefore.Cents
 
@@ -86,7 +101,7 @@ func TestBuyTimeout(t *testing.T) {
 
 	time.Sleep(61 * time.Second)
 
-	summaryAfterTimeout := getUserSummary(userid, t)
+	summaryAfterTimeout := getUserSummary(userClient, userid, t)
 	newStock := getTestStockCount(summaryAfterTimeout)
 
 	isEqual(summaryAfterTimeout.Cents, existingBalance, "User's account balance was modified", t)
