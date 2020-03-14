@@ -44,7 +44,7 @@ format:
 
 .phony test-e2e:
 test-e2e:
-	cd $(SRC)/test/end-to-end && go test -v
+	cd $(SRC)/test/end-to-end && CLIENT_SSL_CERT_LOCATION=../../../ssl/cert.pem go test -v
 
 # Docker Local Deployment Commands
 .phony docker-deploy-dev:
