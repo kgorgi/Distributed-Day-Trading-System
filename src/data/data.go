@@ -14,6 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const dbPoolCount = 500
+
 var auditClient = auditclient.AuditClient{
 	Server: "database",
 }
@@ -68,6 +70,9 @@ func main() {
 
 	//hookup to mongo
 	clientOptions := options.Client().ApplyURI(serverurls.Env.DataDBServer)
+	clientOptions.SetMaxPoolSize(dbPoolCount)
+	clientOptions.SetMinPoolSize(dbPoolCount)
+
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		log.Fatal(err)
