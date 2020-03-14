@@ -15,6 +15,15 @@ services:
 
     transaction:
         depends_on:
+            - data
+            - audit
+            - quote-cache
+
+    web:
+        ports:
+            - "8080:8080"
+        depends_on:
+            - transaction
             - audit
 
     quote-cache:
