@@ -14,7 +14,8 @@ import (
 	user "extremeWorkload.com/daytrader/lib/user"
 )
 
-const webserverAddress = "https://localhost:8080/"
+var webserverAddress = "https://" + serverurls.Env.WebServer + "/"
+
 var sslCertLocation string
 var transactionCount uint64 = 0
 

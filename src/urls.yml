@@ -1,0 +1,63 @@
+# Note the filepath to read this file can be set
+# using the URLS_FILE environment variable
+
+# Running servers manually without docker
+local:
+    web: "localhost:8080"
+    audit: "localhost:5002"
+    data: "localhost:5001"
+    transaction: "localhost:5000"
+    quoteCache: "localhost:5004"
+    auditDB: "mongodb://localhost:5003"
+    dataDB: "mongodb://localhost:27017"
+    legacyQuoteServer: "localhost:4443"
+
+# Only the web server is bound to a local port
+# All other servers use Docker network
+docker:
+    web: "localhost:8080"
+    audit: "audit-server:5002"
+    data: "data-server:5001"
+    transaction: "transaction-server:5000"
+    quoteCache: "quote-cache-server:5004"
+    auditDB: "mongodb://audit-mongodb:27017"
+    dataDB: "mongodb://data-mongodb:27017"
+    legacyQuoteServer: "quote-mock-server:4443"
+
+# Everything is bound to local ports
+# host.docker.internal is the IP address of the host machine
+dev:
+    web: "localhost:8080"
+    audit: "host.docker.internal:5002"
+    data: "host.docker.internal:5001"
+    transaction: "host.docker.internal:5000"
+    auditDB: "mongodb://host.docker.internal:5003"
+    quoteCache: "host.docker.internal:5004"
+    dataDB: "mongodb://host.docker.internal:27017"
+    legacyQuoteServer: "host.docker.internal:4443"
+
+# Servers are distrbuted among multiple computers
+# using both bound local ports and the Docker Network
+# Note: Data server, quote cache server, and mongodbs
+# uses internal docker network
+lab:
+    web: "localhost:44410"
+    audit: "192.168.1.167:44412"
+    data: "data-server:5001"
+    transaction: "192.168.1.246:44411"
+    quoteCache: "quote-cache-server:5004"
+    auditDB: "mongodb://audit-mongodb:27017"
+    dataDB: "mongodb://data-mongodb:27017"
+    legacyQuoteServer: "192.168.1.100:4443"
+
+# Servers are distrbuted among multiple computers
+# Everything is bound to local ports except mongo databases
+dev-lab:
+    web: "localhost:44410"
+    audit: "192.168.1.167:44412"
+    data: "localhost:44413"
+    transaction: "192.168.1.246:44411"
+    quoteCache: "quote-cache-server:5004"
+    auditDB: "mongodb://audit-mongodb:27017"
+    dataDB: "mongodb://data-mongodb:27017"
+    legacyQuoteServer: "192.168.1.100:4443"

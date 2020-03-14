@@ -2,6 +2,7 @@ FROM golang:latest
 
 WORKDIR ./server
 COPY ./build/web.exe .
+COPY ./src/urls.yml ./urls.yml
 
 COPY ./ssl/cert.pem ./ssl/cert.pem
 COPY ./ssl/key.pem ./ssl/key.pem

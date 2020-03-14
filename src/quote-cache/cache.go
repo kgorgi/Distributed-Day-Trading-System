@@ -11,7 +11,7 @@ import (
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
-	"extremeWorkload.com/daytrader/lib/resolveurl"
+	"extremeWorkload.com/daytrader/lib/serverurls"
 )
 
 type quote struct {
@@ -31,7 +31,7 @@ var cache = quoteCache{
 	quotes: make(map[string]*quote),
 }
 
-const quoteServerAddress = "192.168.1.100:4443"
+var quoteServerAddress = serverurls.Env.LegacyQuoteServer
 
 var sixtySecondsInMs = uint64(60 * time.Second / time.Millisecond)
 
@@ -111,13 +111,8 @@ func (q *quote) updateQuote(
 	userID string,
 	auditClient *auditclient.AuditClient) uint64 {
 
-	var address = resolveurl.MockQuoteServerAddress
-	if lib.IsLab {
-		address = quoteServerAddress
-	}
-
 	// Establish Connection to Quote Server
-	conn, err := net.Dial("tcp", address)
+	conn, err := net.Dial("tcp", quoteServerAddress)
 	if err != nil {
 		log.Fatalln("Could not connect to quote server")
 		return 0

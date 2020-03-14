@@ -3,6 +3,7 @@ FROM golang:latest
 WORKDIR ./server
 COPY ./src/web ./web
 COPY ./src/lib ./lib
+COPY ./src/urls.yml ./urls.yml
 COPY ./src/go.mod .
 COPY ./src/go.sum .
 

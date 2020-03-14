@@ -8,7 +8,7 @@ import (
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
-	"extremeWorkload.com/daytrader/lib/resolveurl"
+	"extremeWorkload.com/daytrader/lib/serverurls"
 )
 
 // GetQuote returns a quote from the quote cache server
@@ -18,7 +18,7 @@ func GetQuote(
 	noCache bool,
 	auditClient *auditclient.AuditClient) uint64 {
 
-	conn, err := net.Dial("tcp", resolveurl.QuoteCacheServerAddress)
+	conn, err := net.Dial("tcp", serverurls.Env.QuoteCacheServer)
 	if err != nil {
 		log.Fatalln("Could not connect to quote server")
 		conn.Close()
