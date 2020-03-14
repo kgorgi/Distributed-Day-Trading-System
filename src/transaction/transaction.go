@@ -19,34 +19,40 @@ type CommandJSON struct {
 	StockSymbol    string
 }
 
-func handleWebConnection(conn net.Conn) {
-	lib.Debugln("Connection Established")
+const threadCount = 1000
 
-	payload, err := lib.ServerReceiveRequest(conn)
-	if err != nil {
+func handleWebConnection(queue chan net.Conn) {
+	for {
+		conn := <-queue
+		lib.Debugln("Handling Request")
+
+		payload, err := lib.ServerReceiveRequest(conn)
+		if err != nil {
+			conn.Close()
+			return
+		}
+
+		var commandJSON CommandJSON
+		err = json.Unmarshal([]byte(payload), &commandJSON)
+		if err != nil {
+			conn.Close()
+			return
+		}
+
+		transactionNum, _ := strconv.ParseUint(commandJSON.TransactionNum, 10, 64)
+
+		var auditClient = auditclient.AuditClient{
+			Server:         "transaction",
+			Command:        commandJSON.Command,
+			TransactionNum: transactionNum,
+		}
+
+		processCommand(conn, commandJSON, auditClient)
+
 		conn.Close()
-		return
+		lib.Debugln("Connection Closed")
 	}
 
-	var commandJSON CommandJSON
-	err = json.Unmarshal([]byte(payload), &commandJSON)
-	if err != nil {
-		conn.Close()
-		return
-	}
-
-	transactionNum, _ := strconv.ParseUint(commandJSON.TransactionNum, 10, 64)
-
-	var auditClient = auditclient.AuditClient{
-		Server:         "transaction",
-		Command:        commandJSON.Command,
-		TransactionNum: transactionNum,
-	}
-
-	processCommand(conn, commandJSON, auditClient)
-
-	conn.Close()
-	lib.Debugln("Connection Closed")
 }
 
 func main() {
@@ -63,8 +69,16 @@ func main() {
 	ln, _ := net.Listen("tcp", ":5000")
 	fmt.Println("Started transaction server on port: 5000")
 
+	queue := make(chan net.Conn, threadCount*10)
+
+	for i := 0; i < threadCount; i++ {
+		go handleWebConnection(queue)
+	}
+
 	for {
-		conn, _ := ln.Accept()
-		go handleWebConnection(conn)
+		conn, err := ln.Accept()
+		if err == nil {
+			queue <- conn
+		}
 	}
 }
