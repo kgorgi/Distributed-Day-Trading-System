@@ -18,18 +18,24 @@ var auditClient = auditclient.AuditClient{
 	Server: "database",
 }
 
-func handleConnection(conn net.Conn, client *mongo.Client) {
-	lib.Debugln("Connection Established")
-	payload, err := lib.ServerReceiveRequest(conn)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
-		return
+const threadCount = 1000
+
+func handleConnection(queue chan net.Conn, client *mongo.Client) {
+	for {
+		conn := <-queue
+		lib.Debugln("Handling Request")
+		payload, err := lib.ServerReceiveRequest(conn)
+		if err != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+			return
+		}
+
+		processCommand(conn, client, payload)
+		conn.Close()
+
+		lib.Debugln("Connection Closed")
 	}
 
-	processCommand(conn, client, payload)
-	conn.Close()
-
-	lib.Debugln("Connection Closed")
 }
 
 func setupIndexes(client *mongo.Client) {
@@ -90,15 +96,16 @@ func main() {
 	}
 	fmt.Println("Started data server on port: 5001")
 
-	//connection handling
+	queue := make(chan net.Conn, threadCount*10)
+
+	for i := 0; i < threadCount; i++ {
+		go handleConnection(queue, client)
+	}
+
 	for {
 		conn, err := ln.Accept()
-		if err != nil {
-			fmt.Println(err)
-			conn.Close()
-			continue
+		if err == nil {
+			queue <- conn
 		}
-
-		go handleConnection(conn, client)
 	}
 }
