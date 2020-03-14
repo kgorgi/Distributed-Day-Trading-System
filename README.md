@@ -63,6 +63,3 @@
 -   Database MongoDB: N/A (Docker Address)
 -   Web Server: N/A (Docker Address)
 -   Web Server 2: N/A (Docker Address)
-
-
-URLS_FILE=./src/urls.yml CLIENT_SSL_CERT_LOCATION=./ssl/cert.pem ENV=LAB ./build/generator.exe -f ./build/1000User_testWorkLoad.txt
