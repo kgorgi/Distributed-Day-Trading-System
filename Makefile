@@ -47,13 +47,14 @@ test-e2e:
 	cd $(SRC)/test/end-to-end && go test -v
 
 # Docker Local Deployment Commands
+DEV_DEPLOY = docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build
 .phony docker-deploy-dev:
 docker-deploy-dev:
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --build
+	$(DEV_DEPLOY)
 
-.phony docker-deploy-dev-d:
+.phony docker-deploy-dev-load-testing:
 docker-deploy-dev-d:
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --build -d
+	$(DEV_DEPLOY) --compatibility -d
 
 .phony docker-deploy-local:
 docker-deploy-local:
@@ -134,6 +135,14 @@ docker-remove:
 	docker rm $(c)
 
 # Utility Commands
+.phony exec-generator-local:
+exec-generator-local: build-generator
+	URLS_FILE=./src/urls.yml CLIENT_SSL_CERT_LOCATION=./ssl/cert.pem ./build/generator.exe -f $(f)
+
+.phony exec-generator-lab:
+exec-generator-lab: build-generator
+	URLS_FILE=./src/urls.yml CLIENT_SSL_CERT_LOCATION=./ssl/cert.pem ENV=LAB ./build/generator.exe -f $(f)
+
 .phony cert-generate:
 cert-generate:
 	cd ./ssl && sudo openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out cert.pem -subj '/CN=localhost'

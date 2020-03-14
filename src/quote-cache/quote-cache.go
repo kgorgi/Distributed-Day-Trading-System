@@ -20,24 +20,25 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
-	// <transaction number>,<stock symbol>,<userid>,<c,n|cache or no-cache>
+	// <transaction number>,<command>,<stock symbol>,<userid>,<c,n|cache or no-cache>
 	data := strings.Split(payload, ",")
 
 	transactionNum, err := strconv.ParseUint(data[0], 10, 64)
 	var auditClient = auditclient.AuditClient{
 		Server:         "quote-cache",
 		TransactionNum: transactionNum,
+		Command: 		data[1],
 	}
 
 	var noCache bool
 
-	if data[3] == "n" {
+	if data[4] == "n" {
 		noCache = true
 	} else {
 		noCache = false
 	}
 
-	quoteVal := GetQuote(data[1], data[2], noCache, &auditClient)
+	quoteVal := GetQuote(data[2], data[3], noCache, &auditClient)
 	lib.ServerSendResponse(conn, lib.StatusOk, strconv.FormatUint(quoteVal, 10))
 
 	conn.Close()

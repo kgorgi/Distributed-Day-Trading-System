@@ -31,7 +31,7 @@ func GetQuote(
 	} else {
 		cacheSwitch = "y"
 	}
-	payload := fmt.Sprintf("%d,%s,%s,%s", auditClient.TransactionNum, stockSymbol, userID, cacheSwitch)
+	payload := fmt.Sprintf("%d,%s,%s,%s,%s", auditClient.TransactionNum, auditClient.Command, stockSymbol, userID, cacheSwitch)
 
 	status, body, err := lib.ClientSendRequest(conn, payload)
 	if err != nil {

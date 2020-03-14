@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"extremeWorkload.com/daytrader/lib/serverurls"
 	user "extremeWorkload.com/daytrader/lib/user"
 )
 
@@ -18,6 +19,8 @@ var webserverAddress = "https://" + serverurls.Env.WebServer + "/"
 
 var sslCertLocation string
 var transactionCount uint64 = 0
+
+var start = time.Now()
 
 func handleCommand(userClient *user.UserClient, command []string) error {
 	var status int
@@ -86,6 +89,8 @@ func handleUser(userid string, commands [][]string, wg *sync.WaitGroup) {
 		err := handleCommand(client, command)
 		if err != nil {
 			fmt.Println("Failed on user " + userid + " on line " + command[0] + ": " + err.Error())
+			currentTime := time.Now().Sub(start)
+			fmt.Printf("Elapsed Time %f\n", currentTime.Seconds())
 			os.Exit(1)
 			return
 		}
@@ -138,11 +143,11 @@ func parseLine(line string) []string {
 	return append([]string{lineNumber}, commaSplit...)
 }
 
-func createWorkloadFile(numberCommands int, numberUsers int, filename string) error{
+func createWorkloadFile(numberCommands int, numberUsers int, filename string) error {
 
-	perUserCommands := numberCommands/numberUsers
+	perUserCommands := numberCommands / numberUsers
 
-	fmt.Printf("Creating heartbeat workload file with %d users and %d commmands\n",numberUsers,numberUsers * perUserCommands)
+	fmt.Printf("Creating heartbeat workload file with %d users and %d commmands\n", numberUsers, numberUsers*perUserCommands)
 
 	f, err := os.Create(filename)
 	defer f.Close()
@@ -157,7 +162,7 @@ func createWorkloadFile(numberCommands int, numberUsers int, filename string) er
 			commandNum++
 		}
 	}
-	fmt.Fprintf(f,"[%d] DUMPLOG,./testLOG\n",commandNum)
+	fmt.Fprintf(f, "[%d] DUMPLOG,./testLOG\n", commandNum)
 	return nil
 }
 
@@ -174,9 +179,9 @@ func main() {
 	if *makeWorkload {
 		filePath = "heartworkload.txt"
 		err := createWorkloadFile(*N, *U, filePath)
-		if err != nil{
+		if err != nil {
 			fmt.Println(err.Error())
-			return 
+			return
 		}
 	}
 
@@ -191,7 +196,7 @@ func main() {
 	numOfUsers := len(commandsByUser)
 
 	fmt.Println("Starting " + strconv.Itoa(numOfUsers) + " goroutines")
-	start := time.Now()
+	start = time.Now()
 
 	var wg sync.WaitGroup
 	wg.Add(numOfUsers)
@@ -202,7 +207,7 @@ func main() {
 	var currentCount = atomic.LoadUint64(&transactionCount)
 	for currentCount < dumpLogLineNum {
 		fmt.Println("Transaction Count: " + strconv.FormatUint(currentCount, 10))
-		time.Sleep(10 * time.Second)
+		time.Sleep(1 * time.Second)
 		currentCount = atomic.LoadUint64(&transactionCount)
 	}
 

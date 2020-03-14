@@ -442,7 +442,8 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 
 	userUpdateErr := dataclient.UpdateUser(jsonCommand.Userid, jsonCommand.StockSymbol, int(reservedStocks)-int(numOfStocks), 0)
 	if userUpdateErr != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
+		errorMessage := "Failed to update user"
+		lib.ServerSendResponse(conn, lib.StatusSystemError, errorMessage)
 		return
 	}
 
