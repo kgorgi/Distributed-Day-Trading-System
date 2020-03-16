@@ -14,6 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const dbPoolCount = 500
+
 var client *mongo.Client
 
 const threadCount = 1000
@@ -99,6 +101,9 @@ func setupIndexes(client *mongo.Client) {
 
 func connectToMongo() (*mongo.Client, error) {
 	clientOptions := options.Client().ApplyURI(serverurls.Env.AuditDBServer)
+	clientOptions.SetMaxPoolSize(dbPoolCount)
+	clientOptions.SetMinPoolSize(dbPoolCount)
+
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		return nil, err
