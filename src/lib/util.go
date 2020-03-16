@@ -9,10 +9,10 @@ import (
 )
 
 var env = os.Getenv("ENV")
-var debuggingEnabled = env == "" || env == "DEV"
+var debuggingEnabled = env == "" || env == "DEV" || env == "DEV-LAB"
 
 // IsLab returns true if in the lab environment
-var IsLab = env == "LAB"
+var IsLab = env == "LAB" || env == "DEV-LAB"
 
 // DollarsToCents converts a dollar string to uint cents
 func DollarsToCents(dollars string) uint64 {

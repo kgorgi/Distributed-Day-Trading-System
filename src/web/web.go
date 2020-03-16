@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -12,6 +13,8 @@ import (
 )
 
 const webServerAddress = ":8080"
+
+var serverName = os.Getenv("NAME")
 
 func parseCommandRequest(r *http.Request) map[string]string {
 
@@ -31,20 +34,9 @@ func parseCommandRequest(r *http.Request) map[string]string {
 func commandRoute(w http.ResponseWriter, r *http.Request) {
 	command := parseCommandRequest(r)
 
-	var message string
-	var err error
-	var status int
-
-	isValid, status, message := validateParameters(command)
-	if !isValid {
-		w.WriteHeader(status)
-		w.Write([]byte(message))
-		return
-	}
-
 	var auditClient = auditclient.AuditClient{
 		Command:        command["command"],
-		Server:         "web",
+		Server:         serverName,
 		TransactionNum: 0,
 	}
 
@@ -61,6 +53,17 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 
 	transactionNum := auditClient.LogUserCommandRequest(auditInfo)
 	command["transactionNum"] = strconv.FormatUint(transactionNum, 10)
+
+	var message string
+	var err error
+	var status int
+
+	isValid, status, message := validateParameters(command)
+	if !isValid {
+		w.WriteHeader(status)
+		w.Write([]byte(message))
+		return
+	}
 
 	if command["command"] == "DUMPLOG" {
 		message, err = auditClient.DumpLogAll()
@@ -104,8 +107,19 @@ func getRouter() http.Handler {
 func main() {
 	initParameterMaps()
 
+	if serverName == "" {
+		serverName = "web"
+	}
+
 	fmt.Println("Starting web server...")
-	err := http.ListenAndServeTLS(webServerAddress, "./ssl/cert.pem", "./ssl/key.pem", getRouter())
+	server := &http.Server{
+		Addr: webServerAddress,
+		Handler:  getRouter(),
+		ReadTimeout: 0,
+		WriteTimeout: 0,
+	}
+
+	err := server.ListenAndServeTLS("./ssl/cert.pem", "./ssl/key.pem")
 	if err != nil {
 		fmt.Println(err.Error())
 	}

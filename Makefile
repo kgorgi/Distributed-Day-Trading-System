@@ -8,7 +8,7 @@ all: build
 
 # Build Commands
 .phony build:
-build: build-web build-transaction build-data build-audit build-generator build-quote-mock
+build: build-web build-transaction build-data build-audit build-generator build-quote-mock build-quote-cache
 
 .phony build-web:
 build-web: 
@@ -34,6 +34,10 @@ build-generator:
 build-quote-mock: 
 	cd $(SRC)/quote-mock && go build -o $(OUTPUT)/quote-mock.exe
 
+.phony build-quote-cache:
+build-quote-cache: 
+	cd $(SRC)/quote-cache && go build -o $(OUTPUT)/quote-cache.exe
+
 .phony format:
 format:
 	gofmt -w ./src
@@ -45,10 +49,10 @@ test-e2e:
 # Docker Local Deployment Commands
 .phony docker-deploy-dev:
 docker-deploy-dev:
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --build
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build
 
-.phony docker-deploy-dev-d:
-docker-deploy-dev-d:
+.phony docker-deploy-dev-load-testing:
+docker-deploy-dev-load-testing:
 	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --build -d
 
 .phony docker-deploy-local:
@@ -60,13 +64,42 @@ docker-redeploy:
 	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --build --force-recreate --no-deps -d $(c)
 
 # Docker Lab Deployment Commands 
-.phony docker-deploy-lab:
-docker-deploy-lab: build
-	docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build -d
+LAB_DEPLOY = docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build -d
 
-.phony docker-deploy-audit-lab:
-docker-deploy-audit-lab: build
-	docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build -d audit auditDB
+.phony docker-deploy-lab-all:
+docker-deploy-lab: build
+	$(LAB_DEPLOY)
+
+.phony docker-deploy-lab-web:
+docker-deploy-lab-web: build
+	$(LAB_DEPLOY) load web web2  
+
+.phony docker-deploy-lab-transaction:
+docker-deploy-lab-transaction: build
+	$(LAB_DEPLOY) transaction data dataDB quote-cache
+
+.phony docker-deploy-lab-audit:
+docker-deploy-lab-audit: build
+	$(LAB_DEPLOY) audit auditDB 
+
+# Docker Lab Dev Deployment Commands 
+LAB_DEV_DEPLOY = docker-compose -f docker-compose.yml -f docker-compose.lab.yml -f docker-compose.dev-lab.yml up --build
+
+.phony docker-deploy-dev-lab-all:
+docker-deploy-dev-lab-all: build
+	$(LAB_DEV_DEPLOY)
+
+.phony docker-deploy-dev-lab-web:
+docker-deploy-dev-lab-web: build
+	$(LAB_DEV_DEPLOY) load web web2 
+
+.phony docker-deploy-dev-lab-transaction:
+docker-deploy-dev-lab-transaction: build
+	$(LAB_DEV_DEPLOY) transaction data dataDB quote-cache
+
+.phony docker-deploy-dev-lab-audit:
+docker-deploy-dev-lab-audit: build
+	$(LAB_DEV_DEPLOY) audit auditDB 
 
 # Docker Cleanup
 .phony docker-teardown:
@@ -101,6 +134,14 @@ docker-remove:
 	docker rm $(c)
 
 # Utility Commands
+.phony exec-generator-local:
+exec-generator-local: build-generator
+	URLS_FILE=./src/urls.yml CLIENT_SSL_CERT_LOCATION=./ssl/cert.pem ./build/generator.exe -f $(f)
+
+.phony exec-generator-lab:
+exec-generator-lab: build-generator
+	URLS_FILE=./src/urls.yml CLIENT_SSL_CERT_LOCATION=./ssl/cert.pem ENV=LAB ./build/generator.exe -f $(f)
+
 .phony cert-generate:
 cert-generate:
 	cd ./ssl && sudo openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 365 -out cert.pem -subj '/CN=localhost'

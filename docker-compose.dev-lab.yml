@@ -1,0 +1,25 @@
+version: "3"
+services:
+    web:
+        environment:
+            - ENV=DEV-LAB
+
+    web2:
+        environment:
+            - ENV=DEV-LAB
+
+    transaction:
+        environment:
+            - ENV=DEV-LAB
+
+    data:
+        environment:
+            - ENV=DEV-LAB
+
+    audit:
+        environment:
+            - ENV=DEV-LAB
+
+    quote-cache:
+        environment:
+            - ENV=DEV-LAB

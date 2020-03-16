@@ -5,25 +5,29 @@ services:
             dockerfile: docker-files/lab/Dockerfile.web
         environment:
             - ENV=LAB
+            - NAME=web
 
     web2:
         container_name: "web-server2"
-        depends_on:
-            - transaction
-            - audit
         build:
             context: .
             dockerfile: docker-files/lab/Dockerfile.web
         environment:
             - ENV=LAB
+            - NAME=web2
         ulimits:
             nofile:
                 soft: 65536
                 hard: 65536
 
     transaction:
+        depends_on:
+            - data
+            - quote-cache
         build:
             dockerfile: docker-files/lab/Dockerfile.transaction
+        ports:
+            - "44411:5000"
         environment:
             - ENV=LAB
 
@@ -36,20 +40,30 @@ services:
     data:
         build:
             dockerfile: docker-files/lab/Dockerfile.data
+        ports:
+            - "44413:5001"
         environment:
             - ENV=LAB
 
     audit:
         ports:
-            - "5002:5002"
+            - "44412:5002"
         build:
             dockerfile: docker-files/lab/Dockerfile.audit
         environment:
             - ENV=LAB
+
     load:
         container_name: "load-balancer"
+        depends_on:
+            - web
+            - web2
         build:
             context: .
             dockerfile: ./loadbalancer/Dockerfile
         ports:
             - "44410:80"
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
