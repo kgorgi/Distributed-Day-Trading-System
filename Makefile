@@ -47,14 +47,13 @@ test-e2e:
 	cd $(SRC)/test/end-to-end && go test -v
 
 # Docker Local Deployment Commands
-DEV_DEPLOY = docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build
 .phony docker-deploy-dev:
 docker-deploy-dev:
-	$(DEV_DEPLOY)
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml up --build
 
 .phony docker-deploy-dev-load-testing:
-docker-deploy-dev-d:
-	$(DEV_DEPLOY) --compatibility -d
+docker-deploy-dev-load-testing:
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --build -d
 
 .phony docker-deploy-local:
 docker-deploy-local:
