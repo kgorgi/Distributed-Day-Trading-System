@@ -8,13 +8,17 @@ import (
 	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
-	"extremeWorkload.com/daytrader/lib/resolveurl"
+	"extremeWorkload.com/daytrader/lib/serverurls"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+const dbPoolCount = 500
+
 var client *mongo.Client
+
+const threadCount = 1000
 
 func main() {
 	fmt.Println("Starting audit server...")
@@ -35,42 +39,48 @@ func main() {
 
 	setupIndexes(client)
 
+	queue := make(chan net.Conn, threadCount*10)
+
+	for i := 0; i < threadCount; i++ {
+		go handleConnection(queue)
+	}
+
 	for {
 		conn, err := ln.Accept()
-		if err != nil {
-			fmt.Println(err)
-			continue
+		if err == nil {
+			queue <- conn
 		}
-
-		go handleConnection(conn)
 	}
 }
 
-func handleConnection(conn net.Conn) {
-	lib.Debugln("Connection Established")
+func handleConnection(queue chan net.Conn) {
+	for {
+		conn := <-queue
+		lib.Debugln("Handling Request")
 
-	payload, err := lib.ServerReceiveRequest(conn)
-	if err != nil {
-		lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+		payload, err := lib.ServerReceiveRequest(conn)
+		if err != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+			conn.Close()
+			return
+		}
+
+		data := strings.Split(payload, "|")
+
+		switch data[0] {
+		case "USERCOMMAND":
+			handleUserCommand(&conn, data[1])
+		case "LOG":
+			handleLog(&conn, data[1])
+		case "DUMPLOG":
+			handleDumpLog(&conn, data[1])
+		default:
+			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
+		}
+
 		conn.Close()
-		return
+		lib.Debugln("Connection Closed")
 	}
-
-	data := strings.Split(payload, "|")
-
-	switch data[0] {
-	case "USERCOMMAND":
-		handleUserCommand(&conn, data[1])
-	case "LOG":
-		handleLog(&conn, data[1])
-	case "DUMPLOG":
-		handleDumpLog(&conn, data[1])
-	default:
-		lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
-	}
-
-	conn.Close()
-	lib.Debugln("Connection Closed")
 }
 
 func setupIndexes(client *mongo.Client) {
@@ -90,7 +100,10 @@ func setupIndexes(client *mongo.Client) {
 }
 
 func connectToMongo() (*mongo.Client, error) {
-	clientOptions := options.Client().ApplyURI(resolveurl.AuditDBAddress)
+	clientOptions := options.Client().ApplyURI(serverurls.Env.AuditDBServer)
+	clientOptions.SetMaxPoolSize(dbPoolCount)
+	clientOptions.SetMinPoolSize(dbPoolCount)
+
 	client, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
 		return nil, err

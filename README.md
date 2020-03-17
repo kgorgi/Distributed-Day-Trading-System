@@ -17,20 +17,49 @@
 -   Uses the mocked quote server
 -   Docker containers communicate using docker addresses
 -   Only the web server is accessible locally from port 8080
+-   Logging is disabled from docker-compose
 
 ## Deploy Lab Environment
 
--   Deploy with `make docker-deploy-lab`
+-   This deployment occures across 3 machines
+-   To deploy the web servers and load balancer `make docker-deploy-lab-web`
+-   To deploy the transaction and data server `make docker-deploy-lab-transaction`
+-   To deploy the audit server `make docker-deploy-lab-audit`
+-   Deploy all servers on one machine `make docker-deploy-lab-all` (must modify urls.yml)
 -   Uses the actual legacy quote server
--   Docker containers communicate using docker addresses
--   Only the web server is accessible locally from port 8080
+-   Docker containers communicate using IP addresses (except mongoDB containers and data server)
+-   Must be deployed on the SENG 468 lab's linux virtual machines
+-   Logging is disabled from docker-compose
+
+## Deploy Dev Lab Environment
+
+-   This deployment occures across 3 machines
+-   To deploy the web servers and load balancer `make docker-deploy-dev-lab-web`
+-   To deploy the transaction and data server `make docker-deploy-dev-lab-transaction`
+-   To deploy the audit server `make docker-deploy-dev-lab-audit`
+-   Deploy all servers on one machine `make docker-deploy-dev-lab-all` (must modify urls.yml)
+-   Uses the actual legacy quote server
+-   Docker containers communicate using IP addresses (except mongoDB containers)
 -   Must be deployed on the SENG 468 lab's linux virtual machines
 
-## Container Ports for Reference
+## Local Deployment Ports
 
 -   Web Server: 8080
 -   Transaction Server: 5000
 -   Database Server: 5001
 -   Audit Server: 5002
 -   Audit MongoDB: 5003
+-   Quote Cache Server: 5004
 -   Database MongoDB: 27017
+
+## Lab Deployment Ports
+
+-   Web Load Balancer: 44410
+-   Transaction Server: 44411
+-   Audit Server: 44412
+-   Database Server: 44413
+-   Quote Cache Server: (Docker Address)
+-   Audit MongoDB: N/A (Docker Address)
+-   Database MongoDB: N/A (Docker Address)
+-   Web Server: N/A (Docker Address)
+-   Web Server 2: N/A (Docker Address)

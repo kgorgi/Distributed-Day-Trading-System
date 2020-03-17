@@ -7,22 +7,24 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
-	"net"
 )
 
-type UserClient struct{
+type UserClient struct {
 	WebServerAddress string
-	Client	*http.Client
+	Client           *http.Client
 }
 
 
-func CreateClient(webServerAddress string, envCaCertLocation string)  (*UserClient, error) {
-	caCert, err := ioutil.ReadFile(envCaCertLocation)
-	if err != nil {
-		return nil, err
+var caCert []byte
+func CreateClient(webServerAddress string, envCaCertLocation string) (*UserClient, error) {
+	if len(caCert) == 0 {
+		var err error
+		caCert, err = ioutil.ReadFile(envCaCertLocation)
+		if err != nil {
+			return nil, err
+		}
 	}
-
+	
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 	client := &http.Client{
@@ -30,17 +32,7 @@ func CreateClient(webServerAddress string, envCaCertLocation string)  (*UserClie
 			TLSClientConfig: &tls.Config{
 				RootCAs: caCertPool,
 			},
-			DialContext: (
-				&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-				DualStack: true,
-			}).DialContext,
 			ForceAttemptHTTP2:     true,
-			MaxIdleConns:          1000,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
 		},
 	}
 
@@ -75,16 +67,17 @@ func (client *UserClient) makeRequest(httpMethod string, command string, params 
 	if err != nil {
 		return 0, "", err
 	}
-	req.Close = true
+
 	resp, err := client.Client.Do(req)
 	if err != nil {
 		return 0, "", err
 	}
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return 0, "", err
 	}
+
+	resp.Body.Close()
 
 	return resp.StatusCode, string(body), nil
 }
@@ -94,20 +87,23 @@ func (client *UserClient) HeartRequest() (int, string, error) {
 	if err != nil {
 		return 0, "", err
 	}
+
+	resp.Body.Close()
 	return resp.StatusCode, "", nil
 }
 
 func SaveDumplog(body string, filename string) error {
-
 	dumpFile, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
-	defer dumpFile.Close()
+	
 	_, err = dumpFile.WriteString(body)
 	if err != nil {
 		return err
 	}
+
+	dumpFile.Close()
 
 	return nil
 }

@@ -7,9 +7,10 @@ import (
 	"net"
 	"strconv"
 
+	"extremeWorkload.com/daytrader/lib/serverurls"
+
 	"extremeWorkload.com/daytrader/lib"
 	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
-	"extremeWorkload.com/daytrader/lib/resolveurl"
 )
 
 var (
@@ -312,7 +313,7 @@ func PopUserSell(userID string) (modelsdata.Reserve, error) {
 
 func sendRequest(payload string) (int, string, error) {
 	//connect to data server
-	conn, err := net.Dial("tcp", resolveurl.DataServerAddress)
+	conn, err := net.Dial("tcp", serverurls.Env.DataServer)
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
 		return -1, "", err

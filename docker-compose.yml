@@ -2,8 +2,6 @@ version: "3"
 services:
     web:
         container_name: "web-server"
-        depends_on:
-            - transaction
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.web
@@ -16,8 +14,6 @@ services:
 
     transaction:
         container_name: "transaction-server"
-        depends_on:
-            - data
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.transaction
@@ -29,7 +25,7 @@ services:
                 hard: 65536
 
     quote-cache:
-        container_name: "quote-cache"
+        container_name: "quote-cache-server"
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.quote-cache
@@ -77,6 +73,7 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+
     auditDB:
         image: mongo:latest
         container_name: "audit-mongodb"
