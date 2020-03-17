@@ -89,7 +89,8 @@ func validateUser(conn net.Conn, commandJSON CommandJSON) bool {
 		Cents:       0,
 		Investments: []modelsdata.Investment{},
 		Buys:        []modelsdata.Reserve{},
-		Sells:       []modelsdata.Reserve{}}
+		Sells:       []modelsdata.Reserve{},
+	}
 	createErr := dataclient.CreateUser(newUser)
 	if createErr != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, createErr.Error())
@@ -292,7 +293,8 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 			Price_Cents:        0,
 			Amount_Cents:       amountInCents,
 			Is_Sell:            false,
-			Transaction_Number: auditClient.TransactionNum}
+			Transaction_Number: auditClient.TransactionNum,
+		}
 
 		createErr := dataclient.CreateTrigger(newTrigger)
 		if createErr != nil {
@@ -387,7 +389,8 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 			Price_Cents:        0,
 			Amount_Cents:       amountInCents,
 			Is_Sell:            true,
-			Transaction_Number: auditClient.TransactionNum}
+			Transaction_Number: auditClient.TransactionNum,
+		}
 		err := dataclient.CreateTrigger(newTrigger)
 		if err != nil {
 			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
@@ -545,7 +548,8 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 				Stock:        trigger.Stock,
 				Price_Cents:  trigger.Price_Cents,
 				Amount_Cents: trigger.Amount_Cents,
-				Is_Sell:      trigger.Is_Sell},
+				Is_Sell:      trigger.Is_Sell,
+			},
 		)
 	}
 	userDisplay.Triggers = triggerDisplays
