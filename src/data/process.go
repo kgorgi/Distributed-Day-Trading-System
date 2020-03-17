@@ -263,7 +263,7 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 			break
 		}
 
-		pushErr := pushUserBuy(client, userCommandID, stock, centsInt, numStockInt)
+		pushErr := pushUserReserve(client, userCommandID, stock, centsInt, numStockInt, false)
 		if pushErr == errNotFound {
 			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist")
 			break
@@ -279,7 +279,7 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 	case "POP_USER_BUY":
 		userCommandID := data[1]
 
-		buy, popErr := popUserBuy(client, userCommandID)
+		buy, popErr := popUserReserve(client, userCommandID, false)
 		if popErr == errNotFound {
 			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist")
 			break

@@ -239,12 +239,16 @@ func updateTriggerAmount(client *mongo.Client, commandID string, stock string, i
 	return nil
 }
 
-func pushUserBuy(client *mongo.Client, commandID string, stock string, cents uint64, numStocks uint64) error {
+func pushUserReserve(client *mongo.Client, commandID string, stock string, cents uint64, numStocks uint64, isSell bool) error {
 	collection := client.Database("extremeworkload").Collection("users")
+	reserve := "buys"
+	if isSell {
+		reserve = "sells"
+	}
 
-	newBuy := modelsdata.Reserve{Stock: stock, Cents: cents, Num_Stocks: numStocks, Timestamp: lib.GetUnixTimestamp()}
+	newReserve := modelsdata.Reserve{Stock: stock, Cents: cents, Num_Stocks: numStocks, Timestamp: lib.GetUnixTimestamp()}
 	filter := bson.M{"command_id": commandID}
-	update := bson.M{"$push": bson.M{"buys": bson.M{"$each": bson.A{newBuy}, "$position": 0}}}
+	update := bson.M{"$push": bson.M{reserve: bson.M{"$each": bson.A{newReserve}, "$position": 0}}}
 	result, err := collection.UpdateOne(context.TODO(), filter, update)
 
 	if err != nil {
@@ -258,12 +262,16 @@ func pushUserBuy(client *mongo.Client, commandID string, stock string, cents uin
 	return nil
 }
 
-func popUserBuy(client *mongo.Client, commandID string) (modelsdata.Reserve, error) {
+func popUserReserve(client *mongo.Client, commandID string, isSell bool) (modelsdata.Reserve, error) {
 	collection := client.Database("extremeworkload").Collection("users")
+	reserve := "buys"
+	if isSell {
+		reserve = "sells"
+	}
 
 	// delete all buys that are older than 60s
 	filter := bson.M{"command_id": commandID}
-	update := bson.M{"$pull": bson.M{"buys": bson.M{"timestamp": bson.M{"$lte": lib.GetUnixTimestamp() - (60 * 1000)}}}}
+	update := bson.M{"$pull": bson.M{reserve: bson.M{"timestamp": bson.M{"$lte": lib.GetUnixTimestamp() - (60 * 1000)}}}}
 	result, err := collection.UpdateOne(context.TODO(), filter, update)
 
 	if err != nil {
@@ -276,7 +284,7 @@ func popUserBuy(client *mongo.Client, commandID string) (modelsdata.Reserve, err
 
 	// remove the front element from the array
 	filter = bson.M{"command_id": commandID}
-	update = bson.M{"$pop": bson.M{"buys": -1}}
+	update = bson.M{"$pop": bson.M{reserve: -1}}
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.Before)
 
 	// get a copy of the user before it was updated
@@ -291,9 +299,16 @@ func popUserBuy(client *mongo.Client, commandID string) (modelsdata.Reserve, err
 		return modelsdata.Reserve{}, err
 	}
 
-	if len(user.Buys) == 0 {
+	var reserves []modelsdata.Reserve
+	if isSell {
+		reserves = user.Sells
+	} else {
+		reserves = user.Buys
+	}
+
+	if len(reserves) == 0 {
 		return modelsdata.Reserve{}, errEmptyStack
 	}
 
-	return user.Buys[0], nil
+	return reserves[0], nil
 }
