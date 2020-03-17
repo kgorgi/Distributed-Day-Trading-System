@@ -8,6 +8,7 @@ import (
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
+	"extremeWorkload.com/daytrader/lib/security"
 )
 
 const threadCount = 1000
@@ -53,6 +54,7 @@ func handleConnection(queue chan net.Conn) {
 func main() {
 	ln, _ := net.Listen("tcp", ":5004")
 	fmt.Println("Started quote cache server on port: 5004")
+	security.InitCryptoKey()
 
 	queue := make(chan net.Conn, threadCount*10)
 

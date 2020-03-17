@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
+	"extremeWorkload.com/daytrader/lib/security"
 	"extremeWorkload.com/daytrader/lib/serverurls"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,6 +23,7 @@ const threadCount = 1000
 
 func main() {
 	fmt.Println("Starting audit server...")
+	security.InitCryptoKey()
 
 	ln, err := net.Listen("tcp", ":5002")
 	if err != nil {
