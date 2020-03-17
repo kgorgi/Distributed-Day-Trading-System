@@ -87,7 +87,9 @@ func validateUser(conn net.Conn, commandJSON CommandJSON) bool {
 	newUser := modelsdata.User{
 		Command_ID:  commandJSON.Userid,
 		Cents:       0,
-		Investments: []modelsdata.Investment{}}
+		Investments: []modelsdata.Investment{},
+		Buys:        []modelsdata.Reserve{},
+		Sells:       []modelsdata.Reserve{}}
 	createErr := dataclient.CreateUser(newUser)
 	if createErr != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, createErr.Error())
@@ -126,25 +128,33 @@ func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.
 	numOfStocks := amountInCents / quoteInCents
 	moneyToRemove := quoteInCents * numOfStocks
 
-	buyStackMap.push(jsonCommand.Userid, jsonCommand.StockSymbol, numOfStocks, moneyToRemove)
+	pushErr := dataclient.PushUserBuy(jsonCommand.Userid, jsonCommand.StockSymbol, moneyToRemove, numOfStocks)
+	if pushErr != nil {
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusSystemError, pushErr.Error())
+	}
 
 	lib.ServerSendOKResponse(conn)
 }
 
 func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	nextBuy := buyStackMap.pop(jsonCommand.Userid)
-	if nextBuy == nil {
-		errorMessage := "No Buy to Commit"
+	nextBuy, popErr := dataclient.PopUserBuy(jsonCommand.Userid)
+	if popErr == dataclient.ErrNotFound {
+		errorMessage := "The specified user either does not exist or does not any valid buys"
 		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
-	buyErr := dataclient.UpdateUser(jsonCommand.Userid, nextBuy.stockSymbol, int(nextBuy.numOfStocks), int(nextBuy.cents)*-1)
+	if popErr != nil {
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusSystemError, popErr.Error())
+		return
+	}
+
+	buyErr := dataclient.UpdateUser(jsonCommand.Userid, nextBuy.Stock, int(nextBuy.Num_Stocks), int(nextBuy.Cents)*-1)
 	if buyErr != nil {
 		auditClient.LogErrorEvent(buyErr.Error())
 
 		if buyErr == dataclient.ErrNotFound {
-			errorMessage := "The specified user either does not exist or does not have sufficient funds to remove " + strconv.FormatUint(nextBuy.cents, 10) + " cents"
+			errorMessage := "The specified user either does not exist or does not have sufficient funds to remove " + strconv.FormatUint(nextBuy.Cents, 10) + " cents"
 			auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 			return
 		}
@@ -153,16 +163,21 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 		return
 	}
 
-	auditClient.LogAccountTransaction("remove", jsonCommand.Userid, nextBuy.cents)
+	auditClient.LogAccountTransaction("remove", jsonCommand.Userid, nextBuy.Cents)
 
 	lib.ServerSendOKResponse(conn)
 }
 
 func handleCancelBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	nextBuy := buyStackMap.pop(jsonCommand.Userid)
-	if nextBuy == nil {
-		errorMessage := "No Buy to Cancel"
+	_, popErr := dataclient.PopUserBuy(jsonCommand.Userid)
+	if popErr == dataclient.ErrNotFound {
+		errorMessage := "The specified user either does not exist or does not any buys to cancel"
 		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
+		return
+	}
+
+	if popErr != nil {
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusSystemError, popErr.Error())
 		return
 	}
 

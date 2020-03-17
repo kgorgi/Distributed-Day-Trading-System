@@ -249,6 +249,59 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		lib.ServerSendOKResponse(conn)
+
+	case "PUSH_USER_BUY":
+		userCommandID := data[1]
+		stock := data[2]
+		cents := data[3]
+		numStock := data[4]
+
+		numStockInt, conversionErr1 := strconv.ParseUint(numStock, 10, 64)
+		centsInt, conversionErr2 := strconv.ParseUint(cents, 10, 64)
+		if conversionErr1 != nil || conversionErr2 != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, "cents and number of stocks must be unsigned integers")
+			break
+		}
+
+		pushErr := pushUserBuy(client, userCommandID, stock, centsInt, numStockInt)
+		if pushErr == errNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist")
+			break
+		}
+
+		if pushErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, pushErr.Error())
+			break
+		}
+
+		lib.ServerSendOKResponse(conn)
+
+	case "POP_USER_BUY":
+		userCommandID := data[1]
+
+		buy, popErr := popUserBuy(client, userCommandID)
+		if popErr == errNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist")
+			break
+		}
+
+		if popErr == errEmptyStack {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "the buy stack is empty")
+			break
+		}
+
+		if popErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, popErr.Error())
+			break
+		}
+
+		buyBytes, jsonErr := json.Marshal(buy)
+		if jsonErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
+			break
+		}
+
+		lib.ServerSendResponse(conn, lib.StatusOk, string(buyBytes))
 	default:
 		lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Data Server Command")
 	}

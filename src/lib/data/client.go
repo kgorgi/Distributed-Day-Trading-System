@@ -172,6 +172,31 @@ func UpdateTriggerAmount(userID string, stock string, isSell bool, amount uint64
 	return err
 }
 
+// PushUserBuy adds a buy to a users stack
+func PushUserBuy(userID string, stock string, cents uint64, numStock uint64) error {
+	payload := "PUSH_USER_BUY|" + userID + "|" + stock + "|" + strconv.FormatUint(cents, 10) + "|" + strconv.FormatUint(numStock, 10)
+	_, _, err := sendRequest(payload)
+	return err
+}
+
+// PopUserBuy pops a buy from the users stack, it will return the not found error
+// if either the user is not found, or they have no valid buys in their stack
+func PopUserBuy(userID string) (modelsdata.Reserve, error) {
+	payload := "POP_USER_BUY|" + userID
+	_, message, err := sendRequest(payload)
+	if err != nil {
+		return modelsdata.Reserve{}, err
+	}
+
+	var buyReserve modelsdata.Reserve
+	jsonErr := json.Unmarshal([]byte(message), &buyReserve)
+	if jsonErr != nil {
+		return modelsdata.Reserve{}, jsonErr
+	}
+
+	return buyReserve, nil
+}
+
 func sendRequest(payload string) (int, string, error) {
 	//connect to data server
 	conn, err := net.Dial("tcp", resolveurl.DataServerAddress)

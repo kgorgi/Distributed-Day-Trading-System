@@ -5,15 +5,19 @@ import (
 	"errors"
 	"fmt"
 
+	"extremeWorkload.com/daytrader/lib"
+
 	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // TODO: Better, more detailed error handling.
 
 var (
-	errNotFound = errors.New("The specified document does not exist")
+	errNotFound   = errors.New("The specified document does not exist")
+	errEmptyStack = errors.New("The specified stack is empty")
 )
 
 func queryTriggers(client *mongo.Client, query bson.M) ([]modelsdata.Trigger, error) {
@@ -233,4 +237,63 @@ func updateTriggerAmount(client *mongo.Client, commandID string, stock string, i
 	}
 
 	return nil
+}
+
+func pushUserBuy(client *mongo.Client, commandID string, stock string, cents uint64, numStocks uint64) error {
+	collection := client.Database("extremeworkload").Collection("users")
+
+	newBuy := modelsdata.Reserve{Stock: stock, Cents: cents, Num_Stocks: numStocks, Timestamp: lib.GetUnixTimestamp()}
+	filter := bson.M{"command_id": commandID}
+	update := bson.M{"$push": bson.M{"buys": bson.M{"$each": bson.A{newBuy}, "$position": 0}}}
+	result, err := collection.UpdateOne(context.TODO(), filter, update)
+
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 || result.ModifiedCount == 0 {
+		return errNotFound
+	}
+
+	return nil
+}
+
+func popUserBuy(client *mongo.Client, commandID string) (modelsdata.Reserve, error) {
+	collection := client.Database("extremeworkload").Collection("users")
+
+	// delete all buys that are older than 60s
+	filter := bson.M{"command_id": commandID}
+	update := bson.M{"$pull": bson.M{"buys": bson.M{"timestamp": bson.M{"$lte": lib.GetUnixTimestamp() - (60 * 1000)}}}}
+	result, err := collection.UpdateOne(context.TODO(), filter, update)
+
+	if err != nil {
+		return modelsdata.Reserve{}, err
+	}
+
+	if result.MatchedCount == 0 {
+		return modelsdata.Reserve{}, errNotFound
+	}
+
+	// remove the front element from the array
+	filter = bson.M{"command_id": commandID}
+	update = bson.M{"$pop": bson.M{"buys": -1}}
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.Before)
+
+	// get a copy of the user before it was updated
+	var user modelsdata.User
+	err = collection.FindOneAndUpdate(context.TODO(), filter, update, opts).Decode(&user)
+
+	if err == mongo.ErrNoDocuments {
+		return modelsdata.Reserve{}, errNotFound
+	}
+
+	if err != nil {
+		return modelsdata.Reserve{}, err
+	}
+
+	if len(user.Buys) == 0 {
+		return modelsdata.Reserve{}, errEmptyStack
+	}
+
+	return user.Buys[0], nil
 }
