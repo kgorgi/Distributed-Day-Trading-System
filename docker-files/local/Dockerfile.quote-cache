@@ -4,6 +4,8 @@ WORKDIR ./server
 COPY ./src/quote-cache ./quote-cache
 COPY ./src/lib ./lib
 COPY ./src/urls.yml ./urls.yml
+COPY ./src/dev_key.key ./dev_key.key
+
 COPY ./src/go.mod .
 COPY ./src/go.sum .
 
