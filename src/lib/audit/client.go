@@ -3,6 +3,7 @@ package auditclient
 import (
 	"encoding/json"
 	"log"
+	"math/rand"
 	"net"
 	"strconv"
 
@@ -19,17 +20,19 @@ type AuditClient struct {
 }
 
 // DumpLogAll get all logs from audit server
-func (client *AuditClient) DumpLogAll() (string, error) {
+func (client *AuditClient) DumpLogAll() (int, string, error) {
 	return client.DumpLog("")
 }
 
 // DumpLog get all logs from audit server
-func (client *AuditClient) DumpLog(userID string) (string, error) {
-	_, message, err := client.sendRequest("DUMPLOG|" + userID)
-	return message, err
+func (client *AuditClient) DumpLog(userID string) (int, string, error) {
+	return client.sendRequest("DUMPLOG|" + userID)
 }
 
 // LogUserCommandRequest sends a log of UserCommandType to the audit server
+// and returns the global transaction number given by the audit server.
+// If the client cannot contact the audit server then a puesdorandom transaction
+// number will be generated
 func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) uint64 {
 	var internalInfo = client.generateInternalInfo("userCommand", true)
 	payload := struct {
@@ -40,18 +43,25 @@ func (client *AuditClient) LogUserCommandRequest(info UserCommandInfo) uint64 {
 		&info,
 	}
 
-	status, message, err := client.sendLogs(payload, true)
+	// Convert JSON to Payload
+	jsonText, err := json.Marshal(payload)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println("JSON stringify error: " + err.Error())
+		return client.setRandomTransactionNum()
 	}
 
-	if status != lib.StatusOk {
-		log.Fatalln("Status was not okay: " + strconv.FormatInt(int64(status), 10))
+	payloadStr := "USERLOG" + "|" + string(jsonText)
+	status, message, err := client.sendRequest(payloadStr)
+	handleRequestFailure(status, message, err, payloadStr)
+
+	if status != lib.StatusOk || err != nil {
+		return client.setRandomTransactionNum()
 	}
 
 	result, err := strconv.ParseUint(message, 10, 64)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println("Audit Client: Failed to Parse Result: " + message)
+		return client.setRandomTransactionNum()
 	}
 
 	client.TransactionNum = result
@@ -83,7 +93,8 @@ func (client *AuditClient) LogQuoteServerResponse(
 		&internalInfo,
 		&transactionInfo,
 	}
-	client.sendLogs(payload, false)
+
+	client.sendLogs(payload)
 }
 
 // LogAccountTransaction sends a log of AccountTransactionType to the audit server
@@ -106,13 +117,14 @@ func (client *AuditClient) LogAccountTransaction(
 		&internalInfo,
 		&transactionInfo,
 	}
-	client.sendLogs(payload, false)
+
+	client.sendLogs(payload)
 }
 
 // LogSystemEvent sends a log of SystemEventType to the audit server
 func (client *AuditClient) LogSystemEvent() {
 	var internalInfo = client.generateInternalInfo("systemEvent", true)
-	client.sendLogs(internalInfo, false)
+	client.sendLogs(internalInfo)
 }
 
 // LogErrorEvent sends a log of ErrorEventType to the audit server
@@ -129,7 +141,8 @@ func (client *AuditClient) LogErrorEvent(errorMessage string) {
 		&internalInfo,
 		&errorInfo,
 	}
-	client.sendLogs(payload, false)
+
+	client.sendLogs(payload)
 }
 
 // SendServerResponseWithErrorEvent sends a log of ErrorEventType to the audit server
@@ -153,24 +166,22 @@ func (client *AuditClient) LogDebugEvent(debugMessage string) {
 		&internalInfo,
 		&debugInfo,
 	}
-	client.sendLogs(payload, false)
+
+	client.sendLogs(payload)
 }
 
-func (client *AuditClient) sendLogs(data interface{}, isUser bool) (int, string, error) {
+func (client *AuditClient) sendLogs(data interface{}) {
 	// Convert JSON to Payload
 	jsonText, err := json.Marshal(data)
 	if err != nil {
 		log.Println("JSON stringify error: " + err.Error())
-		return -1, "", nil
+		return
 	}
 
-	var requestType = "LOG"
-	if isUser {
-		requestType = "USERCOMMAND"
-	}
-	payload := requestType + "|" + string(jsonText)
+	payload := "LOG" + "|" + string(jsonText)
 
-	return client.sendRequest(payload)
+	status, message, err := client.sendRequest(payload)
+	handleRequestFailure(status, message, err, payload)
 }
 
 func (client *AuditClient) generateInternalInfo(logType string, withCommand bool) InternalLogInfo {
@@ -192,7 +203,6 @@ func (client *AuditClient) sendRequest(payload string) (int, string, error) {
 	// Establish Connection to Audit Server
 	conn, err := net.Dial("tcp", serverurls.Env.AuditServer)
 	if err != nil {
-		log.Println("Connection Error: " + err.Error())
 		return -1, "", err
 	}
 
@@ -201,15 +211,23 @@ func (client *AuditClient) sendRequest(payload string) (int, string, error) {
 
 	conn.Close()
 
+	return status, message, nil
+}
+
+func (client *AuditClient) setRandomTransactionNum() uint64 {
+	num := rand.Uint64()
+	client.TransactionNum = num
+	return num
+}
+
+func handleRequestFailure(status int, message string, err error, payload string) {
 	if err != nil {
-		log.Println("Connection Error: " + err.Error())
-		return -1, "", err
+		log.Println("Audit Client Connection Error: " + err.Error() + " Payload: " + payload)
 	}
 
 	if status != lib.StatusOk {
-		log.Println("Response Error: Status " + strconv.Itoa(status) + " " + message)
-		return status, message, nil
+		log.Println("Audit Client Response Error: Status " + strconv.Itoa(status) + " " +
+			message +
+			" Payload: " + payload)
 	}
-
-	return status, message, nil
 }

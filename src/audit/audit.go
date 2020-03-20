@@ -68,7 +68,7 @@ func handleConnection(queue chan net.Conn) {
 		data := strings.Split(payload, "|")
 
 		switch data[0] {
-		case "USERCOMMAND":
+		case "USERLOG":
 			handleUserCommand(&conn, data[1])
 		case "LOG":
 			handleLog(&conn, data[1])
