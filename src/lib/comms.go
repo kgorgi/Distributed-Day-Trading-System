@@ -6,9 +6,15 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	security "extremeWorkload.com/daytrader/lib/security"
 )
+
+const retries = 3
+
+// In milliseconds
+const backoff = 500
 
 const seperatorChar = "|"
 
@@ -27,27 +33,22 @@ const StatusNotFound = 404
 // ClientSendRequest sends a request to a server and then returns
 // the response from the server (status, message/error, exception)
 func ClientSendRequest(conn net.Conn, payload string) (int, string, error) {
-	err := sendMessage(conn, payload)
-	if err != nil {
-		return StatusSystemError, "", err
+	var status int
+	var message string
+	var err error
+
+	for i := 0; i < retries; i++ {
+		time.Sleep(time.Duration(i*backoff) * time.Millisecond)
+		status, message, err = clientSendRequestNoRetry(conn, payload)
+
+		// Success condition
+		if status != StatusSystemError && err == nil {
+			break
+		}
+		Debugln("ClientSendRequest retry #" + strconv.Itoa(i+1))
 	}
 
-	respPayload, err := readMessage(conn)
-	if err != nil {
-		return StatusSystemError, "", err
-	}
-	data := strings.Split(respPayload, seperatorChar)
-
-	statusCode, err := strconv.Atoi(data[0])
-	if err != nil {
-		return StatusSystemError, "", err
-	}
-
-	if len(data) == 2 {
-		return statusCode, data[1], nil
-	}
-
-	return statusCode, "", nil
+	return status, message, err
 }
 
 // ServerReceiveRequest processes a request from a client
@@ -79,6 +80,30 @@ func sendMessage(conn net.Conn, message string) error {
 	combined := append(b, encryptedMessage...)
 	_, err = conn.Write(combined)
 	return err
+}
+
+func clientSendRequestNoRetry(conn net.Conn, payload string) (int, string, error) {
+	err := sendMessage(conn, payload)
+	if err != nil {
+		return StatusSystemError, "", err
+	}
+
+	respPayload, err := readMessage(conn)
+	if err != nil {
+		return StatusSystemError, "", err
+	}
+	data := strings.Split(respPayload, seperatorChar)
+
+	statusCode, err := strconv.Atoi(data[0])
+	if err != nil {
+		return StatusSystemError, "", err
+	}
+
+	if len(data) == 2 {
+		return statusCode, data[1], nil
+	}
+
+	return statusCode, "", nil
 }
 
 func readMessage(conn net.Conn) (string, error) {
