@@ -66,7 +66,10 @@ func ServerSendResponse(conn net.Conn, status int, message string) error {
 }
 
 func sendMessage(conn net.Conn, message string) error {
-	encryptedMessage := security.Encrypt(message)
+	encryptedMessage, err := security.Encrypt(message)
+	if err != nil {
+		return err
+	}
 
 	// Create message length header
 	b := make([]byte, 8)
@@ -74,7 +77,7 @@ func sendMessage(conn net.Conn, message string) error {
 
 	// Send header + message
 	combined := append(b, encryptedMessage...)
-	_, err := conn.Write(combined)
+	_, err = conn.Write(combined)
 	return err
 }
 
@@ -92,6 +95,6 @@ func readMessage(conn net.Conn) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	payload := security.Decrypt(rawPayload)
-	return payload, nil
+	payload, err := security.Decrypt(rawPayload)
+	return payload, err
 }

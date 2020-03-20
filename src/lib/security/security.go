@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"errors"
 	"io"
 	"io/ioutil"
 	"log"
@@ -35,57 +36,57 @@ func InitCryptoKey() error {
 }
 
 // Encrypt performs GCM encryption
-func Encrypt(text string) []byte {
+func Encrypt(text string) ([]byte, error) {
 	if key == nil {
-		panic("AES key was not initialized")
+		return nil, errors.New("AES key was not initialized")
 	}
 	plaintext := []byte(text)
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
 	// Never use more than 2^32 random nonces with a given key because of the risk of a repeat.
 	nonce := make([]byte, 12)
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
 	aesgcm, err := cipher.NewGCM(block)
 	if err != nil {
-		panic(err.Error())
+		return nil, err
 	}
 
 	ciphertext := aesgcm.Seal(nonce, nonce, plaintext, nil)
-	return ciphertext
+	return ciphertext, nil
 }
 
 // Decrypt performs GCM decryption
-func Decrypt(ciphertext []byte) string {
+func Decrypt(ciphertext []byte) (string, error) {
 	if key == nil {
-		panic("AES key was not initialized")
+		return "", errors.New("AES key was not initialized")
 	}
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		panic(err.Error())
+		return "", err
 	}
 
 	aesgcm, err := cipher.NewGCM(block)
 	if err != nil {
-		panic(err.Error())
+		return "", err
 	}
 
 	nonceSize := aesgcm.NonceSize()
 
 	if len(ciphertext) < nonceSize {
-		panic("Malformed ciphertext")
+		return "", errors.New("Malformed ciphertext")
 	}
 
 	plaintext, err := aesgcm.Open(nil, ciphertext[:nonceSize], ciphertext[nonceSize:], nil)
 	if err != nil {
-		panic(err.Error())
+		return "", err
 	}
 
-	return string(plaintext)
+	return string(plaintext), nil
 }

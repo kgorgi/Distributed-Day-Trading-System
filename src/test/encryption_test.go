@@ -10,8 +10,8 @@ import (
 func doTest(t *testing.B, message string) {
 	t.ResetTimer()
 	for i := 0; i < t.N; i++ {
-		encrypted := security.Encrypt(message)
-		_ = security.Decrypt(encrypted)
+		encrypted, _ := security.Encrypt(message)
+		_, _ = security.Decrypt(encrypted)
 	}
 }
 func BenchmarkEncryptionSmall(t *testing.B) {
