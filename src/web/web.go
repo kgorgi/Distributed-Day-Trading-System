@@ -10,6 +10,7 @@ import (
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
+	"extremeWorkload.com/daytrader/lib/security"
 )
 
 const webServerAddress = ":8080"
@@ -106,6 +107,7 @@ func getRouter() http.Handler {
 
 func main() {
 	initParameterMaps()
+	security.InitCryptoKey()
 
 	if serverName == "" {
 		serverName = "web"
@@ -113,9 +115,9 @@ func main() {
 
 	fmt.Println("Starting web server...")
 	server := &http.Server{
-		Addr: webServerAddress,
-		Handler:  getRouter(),
-		ReadTimeout: 0,
+		Addr:         webServerAddress,
+		Handler:      getRouter(),
+		ReadTimeout:  0,
 		WriteTimeout: 0,
 	}
 
