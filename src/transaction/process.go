@@ -99,9 +99,10 @@ func validateUser(conn net.Conn, commandJSON CommandJSON) bool {
 
 func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
 	amount := lib.DollarsToCents(jsonCommand.Amount)
-	addErr := dataclient.UpdateUser(jsonCommand.Userid, "", 0, int(amount))
+	addErr := dataclient.UpdateUser(jsonCommand.Userid, "", 0, int(amount), auditClient)
 	if addErr != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, addErr.Error())
+		return
 	}
 
 	lib.ServerSendOKResponse(conn)
@@ -139,7 +140,7 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 		return
 	}
 
-	buyErr := dataclient.UpdateUser(jsonCommand.Userid, nextBuy.stockSymbol, int(nextBuy.numOfStocks), int(nextBuy.cents)*-1)
+	buyErr := dataclient.UpdateUser(jsonCommand.Userid, nextBuy.stockSymbol, int(nextBuy.numOfStocks), int(nextBuy.cents)*-1, auditClient)
 	if buyErr != nil {
 		auditClient.LogErrorEvent(buyErr.Error())
 
@@ -152,8 +153,6 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 		lib.ServerSendResponse(conn, lib.StatusSystemError, buyErr.Error())
 		return
 	}
-
-	auditClient.LogAccountTransaction("remove", jsonCommand.Userid, nextBuy.cents)
 
 	lib.ServerSendOKResponse(conn)
 }
@@ -194,7 +193,7 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 		return
 	}
 
-	sellErr := dataclient.UpdateUser(jsonCommand.Userid, nextSell.stockSymbol, int(nextSell.numOfStocks)*-1, int(nextSell.cents))
+	sellErr := dataclient.UpdateUser(jsonCommand.Userid, nextSell.stockSymbol, int(nextSell.numOfStocks)*-1, int(nextSell.cents), auditClient)
 	if sellErr != nil {
 		auditClient.LogErrorEvent(sellErr.Error())
 
@@ -207,8 +206,6 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 		lib.ServerSendResponse(conn, lib.StatusSystemError, sellErr.Error())
 		return
 	}
-
-	auditClient.LogAccountTransaction("add", jsonCommand.Userid, nextSell.cents)
 
 	lib.ServerSendOKResponse(conn)
 }
@@ -281,7 +278,7 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 		}
 	}
 
-	updateErr := dataclient.UpdateUser(jsonCommand.Userid, "", 0, int(existingAmount)-int(amountInCents))
+	updateErr := dataclient.UpdateUser(jsonCommand.Userid, "", 0, int(existingAmount)-int(amountInCents), auditClient)
 	if updateErr != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
 		return
@@ -323,7 +320,7 @@ func handleCancelSetBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 	}
 
 	// If the trigger was successfully deleted, then give the triggers resererved money back to the user
-	updateErr := dataclient.UpdateUser(jsonCommand.Userid, "", 0, int(deletedTrigger.Amount_Cents))
+	updateErr := dataclient.UpdateUser(jsonCommand.Userid, "", 0, int(deletedTrigger.Amount_Cents), auditClient)
 	if updateErr != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
 		return
@@ -386,7 +383,7 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 	reservedStock := existingTrigger.Amount_Cents / existingTrigger.Price_Cents
 	newStock := amountInCents / existingTrigger.Price_Cents
 
-	updateUserErr := dataclient.UpdateUser(jsonCommand.Userid, jsonCommand.StockSymbol, int(reservedStock)-int(newStock), 0)
+	updateUserErr := dataclient.UpdateUser(jsonCommand.Userid, jsonCommand.StockSymbol, int(reservedStock)-int(newStock), 0, auditClient)
 	if updateUserErr != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, updateUserErr.Error())
 		return
@@ -440,7 +437,7 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 		reservedStocks += trigger.Amount_Cents / trigger.Price_Cents
 	}
 
-	userUpdateErr := dataclient.UpdateUser(jsonCommand.Userid, jsonCommand.StockSymbol, int(reservedStocks)-int(numOfStocks), 0)
+	userUpdateErr := dataclient.UpdateUser(jsonCommand.Userid, jsonCommand.StockSymbol, int(reservedStocks)-int(numOfStocks), 0, auditClient)
 	if userUpdateErr != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, userUpdateErr.Error())
 		return
@@ -472,7 +469,7 @@ func handleCancelSetSell(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 
 	// If the trigger was successfully deleted, then we add back the corresponding stock
 	numOfStocks := deletedTrigger.Amount_Cents / deletedTrigger.Price_Cents
-	updateErr := dataclient.UpdateUser(jsonCommand.Userid, jsonCommand.StockSymbol, int(numOfStocks), 0)
+	updateErr := dataclient.UpdateUser(jsonCommand.Userid, jsonCommand.StockSymbol, int(numOfStocks), 0, auditClient)
 	if updateErr != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, updateErr.Error())
 		return
