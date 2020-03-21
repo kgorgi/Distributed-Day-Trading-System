@@ -16,6 +16,8 @@ const retries = 3
 // In milliseconds
 const backoff = 500
 
+const socketTimeout = time.Duration(1) * time.Second
+
 const seperatorChar = "|"
 
 // StatusOk (HTTP 200)
@@ -106,6 +108,7 @@ func clientSendRequestNoRetry(conn net.Conn, payload string) (int, string, error
 }
 
 func sendMessage(conn net.Conn, message string) error {
+	conn.SetWriteDeadline(time.Now().Add(socketTimeout))
 	encryptedMessage, err := security.Encrypt(message)
 	if err != nil {
 		return err
@@ -118,10 +121,12 @@ func sendMessage(conn net.Conn, message string) error {
 	// Send header + message
 	combined := append(b, encryptedMessage...)
 	_, err = conn.Write(combined)
+	conn.SetWriteDeadline(time.Time{})
 	return err
 }
 
 func readMessage(conn net.Conn) (string, error) {
+	conn.SetReadDeadline(time.Now().Add(socketTimeout))
 	r := bufio.NewReader(conn)
 
 	// Get message length
@@ -138,6 +143,7 @@ func readMessage(conn net.Conn) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	conn.SetReadDeadline(time.Time{})
 	payload, err := security.Decrypt(rawPayload)
 	return payload, err
 }
