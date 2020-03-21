@@ -12,34 +12,33 @@ import (
 func TestSendRequestRetry(t *testing.T) {
 	security.InitCryptoKey()
 	payload := "test payload"
+	address := ":6000"
 
-	server, client := net.Pipe()
 	var wg sync.WaitGroup
+
+	listener, err := net.Listen("tcp", address)
+	defer listener.Close()
+	if err != nil {
+		t.Error(err.Error())
+	}
 
 	wg.Add(1)
 	go func() {
-		message, _ := lib.ServerReceiveRequest(server)
-		if message != payload {
-			t.Errorf("message did not match payload:%s!=%s\n", message, payload)
-		}
-		lib.ServerSendResponse(server, lib.StatusSystemError, payload)
+		serverConn, _ := listener.Accept()
+		serverConn.Close()
 
-		message, _ = lib.ServerReceiveRequest(server)
-		if message != payload {
-			t.Errorf("message did not match payload:%s!=%s\n", message, payload)
-		}
-		lib.ServerSendResponse(server, lib.StatusSystemError, payload)
+		serverConn, _ = listener.Accept()
+		serverConn.Close()
 
-		message, _ = lib.ServerReceiveRequest(server)
-		if message != payload {
-			t.Errorf("message did not match payload:%s!=%s\n", message, payload)
-		}
-		lib.ServerSendResponse(server, lib.StatusOk, payload)
+		serverConn, _ = listener.Accept()
+		lib.ServerReceiveRequest(serverConn)
+		lib.ServerSendOKResponse(serverConn)
+		serverConn.Close()
+
 		wg.Done()
 	}()
-
-	status, message, _ := lib.ClientSendRequest(client, payload)
-	if status != lib.StatusOk || message != payload {
+	status, _, _ := lib.ClientSendRequest(address, payload)
+	if status != lib.StatusOk {
 		t.Error("Something went awry in the response")
 	}
 	wg.Wait()
