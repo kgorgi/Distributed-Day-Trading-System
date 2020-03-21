@@ -223,9 +223,7 @@ func (client *AuditClient) setRandomTransactionNum() uint64 {
 func handleRequestFailure(status int, message string, err error, payload string) {
 	if err != nil {
 		log.Println("Audit Client Connection Error: " + err.Error() + " Payload: " + payload)
-	}
-
-	if status != lib.StatusOk {
+	} else if status != lib.StatusOk {
 		log.Println("Audit Client Response Error: Status " + strconv.Itoa(status) + " " +
 			message +
 			" Payload: " + payload)
