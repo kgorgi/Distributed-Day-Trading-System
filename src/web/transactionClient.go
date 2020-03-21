@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"net"
 
 	"extremeWorkload.com/daytrader/lib"
 	"extremeWorkload.com/daytrader/lib/serverurls"
@@ -19,14 +18,7 @@ func (transactionClient *TransactionClient) SendCommand(command map[string]strin
 		return lib.StatusSystemError, "", err
 	}
 
-	conn, err := net.Dial("tcp", serverurls.Env.TransactionServer)
-	if err != nil {
-		return lib.StatusSystemError, "", err
-	}
-
-	status, message, err := lib.ClientSendRequest(conn, string(commandJSON))
-
-	conn.Close()
+	status, message, err := lib.ClientSendRequest(serverurls.Env.TransactionServer, string(commandJSON))
 
 	return status, message, err
 }

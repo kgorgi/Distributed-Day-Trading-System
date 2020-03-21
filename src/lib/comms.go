@@ -32,20 +32,35 @@ const StatusNotFound = 404
 
 // ClientSendRequest sends a request to a server and then returns
 // the response from the server (status, message/error, exception)
-func ClientSendRequest(conn net.Conn, payload string) (int, string, error) {
+func ClientSendRequest(address string, payload string) (int, string, error) {
 	var status int
 	var message string
 	var err error
+	var conn net.Conn
 
-	for i := 0; i < retries; i++ {
-		time.Sleep(time.Duration(i*backoff) * time.Millisecond)
-		status, message, err = clientSendRequestNoRetry(conn, payload)
+	currentAttempt := 0
+	for currentAttempt < retries {
+		Debugln("ClientSendRequest attempt #" + strconv.Itoa(currentAttempt+1))
+		time.Sleep(time.Duration(currentAttempt*backoff) * time.Millisecond)
 
-		// Success condition
-		if status != StatusSystemError && err == nil {
-			break
+		conn, err = net.Dial("tcp", address)
+		if err != nil {
+			status = StatusSystemError
+			message = ""
+			currentAttempt++
+			continue
 		}
-		Debugln("ClientSendRequest retry #" + strconv.Itoa(i+1))
+
+		status, message, err = clientSendRequestNoRetry(conn, payload)
+		conn.Close()
+
+		if err != nil {
+			currentAttempt++
+			continue
+		}
+
+		// Successful request if it reaches here
+		break
 	}
 
 	return status, message, err
@@ -64,22 +79,6 @@ func ServerSendOKResponse(conn net.Conn) error {
 // ServerSendResponse sends a response to a client
 func ServerSendResponse(conn net.Conn, status int, message string) error {
 	return sendMessage(conn, strconv.Itoa(status)+seperatorChar+message)
-}
-
-func sendMessage(conn net.Conn, message string) error {
-	encryptedMessage, err := security.Encrypt(message)
-	if err != nil {
-		return err
-	}
-
-	// Create message length header
-	b := make([]byte, 8)
-	binary.LittleEndian.PutUint64(b, uint64(len(encryptedMessage)))
-
-	// Send header + message
-	combined := append(b, encryptedMessage...)
-	_, err = conn.Write(combined)
-	return err
 }
 
 func clientSendRequestNoRetry(conn net.Conn, payload string) (int, string, error) {
@@ -104,6 +103,22 @@ func clientSendRequestNoRetry(conn net.Conn, payload string) (int, string, error
 	}
 
 	return statusCode, "", nil
+}
+
+func sendMessage(conn net.Conn, message string) error {
+	encryptedMessage, err := security.Encrypt(message)
+	if err != nil {
+		return err
+	}
+
+	// Create message length header
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, uint64(len(encryptedMessage)))
+
+	// Send header + message
+	combined := append(b, encryptedMessage...)
+	_, err = conn.Write(combined)
+	return err
 }
 
 func readMessage(conn net.Conn) (string, error) {

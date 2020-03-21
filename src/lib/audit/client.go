@@ -206,17 +206,12 @@ func (client *AuditClient) generateInternalInfo(logType string, withCommand bool
 }
 
 func (client *AuditClient) sendRequest(payload string) (int, string, error) {
-	// Establish Connection to Audit Server
-	conn, err := net.Dial("tcp", serverurls.Env.AuditServer)
+	// Send Payload
+	status, message, err := lib.ClientSendRequest(serverurls.Env.AuditServer, payload)
 	if err != nil {
+		log.Println("Connection Error: " + err.Error())
 		return -1, "", err
 	}
-
-	// Send Payload
-	status, message, err := lib.ClientSendRequest(conn, payload)
-
-	conn.Close()
-
 	return status, message, nil
 }
 
