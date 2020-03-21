@@ -73,7 +73,7 @@ func UpdateUser(userID string, stock string, amount int, cents int, auditClient 
 	payload := "UPDATE_USER|" + userID + "|" + stock + "|" + strconv.Itoa(amount) + "|" + strconv.Itoa(cents)
 	_, _, err := sendRequest(payload)
 
-	if err != nil && cents != 0 {
+	if err == nil && cents != 0 {
 		auditClient.LogAccountTransaction(userID, int64(cents))
 	}
 
