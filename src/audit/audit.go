@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
+	"extremeWorkload.com/daytrader/lib/security"
 	"extremeWorkload.com/daytrader/lib/serverurls"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,6 +23,7 @@ const threadCount = 1000
 
 func main() {
 	fmt.Println("Starting audit server...")
+	security.InitCryptoKey()
 
 	ln, err := net.Listen("tcp", ":5002")
 	if err != nil {
@@ -68,7 +70,7 @@ func handleConnection(queue chan net.Conn) {
 		data := strings.Split(payload, "|")
 
 		switch data[0] {
-		case "USERCOMMAND":
+		case "USERLOG":
 			handleUserCommand(&conn, data[1])
 		case "LOG":
 			handleLog(&conn, data[1])

@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
+	"extremeWorkload.com/daytrader/lib/security"
 
 	"extremeWorkload.com/daytrader/lib"
 )
@@ -57,6 +58,7 @@ func handleWebConnection(queue chan net.Conn) {
 
 func main() {
 	fmt.Println("Starting transaction server...")
+	security.InitCryptoKey()
 
 	var auditclient = auditclient.AuditClient{
 		Server:         "transaction",

@@ -2,12 +2,14 @@ package lib
 
 import (
 	"bufio"
+	"encoding/binary"
 	"net"
 	"strconv"
 	"strings"
+
+	security "extremeWorkload.com/daytrader/lib/security"
 )
 
-const eotChar = '`'
 const seperatorChar = "|"
 
 // StatusOk (HTTP 200)
@@ -25,18 +27,15 @@ const StatusNotFound = 404
 // ClientSendRequest sends a request to a server and then returns
 // the response from the server (status, message/error, exception)
 func ClientSendRequest(conn net.Conn, payload string) (int, string, error) {
-	_, err := conn.Write([]byte(payload + string(eotChar)))
+	err := sendMessage(conn, payload)
 	if err != nil {
 		return StatusSystemError, "", err
 	}
 
-	rawRespPayload, err := bufio.NewReader(conn).ReadString(eotChar)
+	respPayload, err := readMessage(conn)
 	if err != nil {
 		return StatusSystemError, "", err
 	}
-
-	respPayload := strings.TrimRight(rawRespPayload, string(eotChar))
-
 	data := strings.Split(respPayload, seperatorChar)
 
 	statusCode, err := strconv.Atoi(data[0])
@@ -53,25 +52,46 @@ func ClientSendRequest(conn net.Conn, payload string) (int, string, error) {
 
 // ServerReceiveRequest processes a request from a client
 func ServerReceiveRequest(conn net.Conn) (string, error) {
-	rawPayload, err := bufio.NewReader(conn).ReadString(eotChar)
-	if err != nil {
-		return "", err
-	}
-
-	payload := strings.TrimRight(rawPayload, string(eotChar))
-	return payload, nil
+	return readMessage(conn)
 }
 
 // ServerSendOKResponse sends an OK response
 func ServerSendOKResponse(conn net.Conn) error {
-	payload := strconv.Itoa(StatusOk) + seperatorChar + string(eotChar)
-	_, err := conn.Write([]byte(payload))
-	return err
+	return sendMessage(conn, strconv.Itoa(StatusOk)+seperatorChar)
 }
 
 // ServerSendResponse sends a response to a client
 func ServerSendResponse(conn net.Conn, status int, message string) error {
-	payload := strconv.Itoa(status) + seperatorChar + message + string(eotChar)
-	_, err := conn.Write([]byte(payload))
+	return sendMessage(conn, strconv.Itoa(status)+seperatorChar+message)
+}
+
+func sendMessage(conn net.Conn, message string) error {
+	encryptedMessage := security.Encrypt(message)
+
+	// Create message length header
+	b := make([]byte, 8)
+	binary.LittleEndian.PutUint64(b, uint64(len(encryptedMessage)))
+
+	// Send header + message
+	combined := append(b, encryptedMessage...)
+	_, err := conn.Write(combined)
 	return err
+}
+
+func readMessage(conn net.Conn) (string, error) {
+	r := bufio.NewReader(conn)
+
+	// Get message length
+	b := make([]byte, 8)
+	r.Read(b)
+	messageLength := int64(binary.LittleEndian.Uint64(b))
+
+	// Get message
+	rawPayload := make([]byte, messageLength)
+	_, err := r.Read(rawPayload)
+	if err != nil {
+		return "", err
+	}
+	payload := security.Decrypt(rawPayload)
+	return payload, nil
 }

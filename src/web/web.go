@@ -10,6 +10,7 @@ import (
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
+	"extremeWorkload.com/daytrader/lib/security"
 )
 
 const webServerAddress = ":8080"
@@ -66,8 +67,7 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if command["command"] == "DUMPLOG" {
-		message, err = auditClient.DumpLogAll()
-		status = 200
+		status, message, err = auditClient.DumpLogAll()
 	} else {
 		var transactionClient TransactionClient
 		status, message, err = transactionClient.SendCommand(command)
@@ -106,6 +106,7 @@ func getRouter() http.Handler {
 
 func main() {
 	initParameterMaps()
+	security.InitCryptoKey()
 
 	if serverName == "" {
 		serverName = "web"
@@ -113,9 +114,9 @@ func main() {
 
 	fmt.Println("Starting web server...")
 	server := &http.Server{
-		Addr: webServerAddress,
-		Handler:  getRouter(),
-		ReadTimeout: 0,
+		Addr:         webServerAddress,
+		Handler:      getRouter(),
+		ReadTimeout:  0,
 		WriteTimeout: 0,
 	}
 

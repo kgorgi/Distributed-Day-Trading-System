@@ -7,6 +7,8 @@ import (
 	"net"
 	"strconv"
 
+	auditclient "extremeWorkload.com/daytrader/lib/audit"
+
 	"extremeWorkload.com/daytrader/lib/serverurls"
 
 	"extremeWorkload.com/daytrader/lib"
@@ -67,7 +69,7 @@ func ReadUser(userID string) (modelsdata.User, error) {
 }
 
 // UpdateUser increments/decrements a users stocks and money
-func UpdateUser(userID string, stock string, amount int, cents int) error {
+func UpdateUser(userID string, stock string, amount int, cents int, auditClient *auditclient.AuditClient) error {
 	commandBytes, jsonErr := json.Marshal(
 		modelsdata.UpdateUserCommand{
 			UserID:      userID,
@@ -83,6 +85,11 @@ func UpdateUser(userID string, stock string, amount int, cents int) error {
 
 	payload := "UPDATE_USER|" + string(commandBytes)
 	_, _, err := sendRequest(payload)
+
+	if err == nil && cents != 0 {
+		auditClient.LogAccountTransaction(userID, int64(cents))
+	}
+
 	return err
 }
 

@@ -14,12 +14,10 @@ func buyTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *audi
 	numOfStocks := trigger.Amount_Cents / stockPrice
 	moneyToAdd := trigger.Amount_Cents - (stockPrice * numOfStocks)
 
-	updateErr := dataclient.UpdateUser(trigger.User_Command_ID, trigger.Stock, int(numOfStocks), int(moneyToAdd))
+	updateErr := dataclient.UpdateUser(trigger.User_Command_ID, trigger.Stock, int(numOfStocks), int(moneyToAdd), auditClient)
 	if updateErr != nil {
 		return updateErr
 	}
-
-	auditClient.LogAccountTransaction("add", trigger.User_Command_ID, moneyToAdd)
 
 	_, deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
 	if deleteErr != nil {
@@ -33,12 +31,10 @@ func sellTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *aud
 	stocksInReserve := trigger.Amount_Cents / trigger.Price_Cents
 	moneyToAdd := stockPrice * stocksInReserve
 
-	updateErr := dataclient.UpdateUser(trigger.User_Command_ID, "", 0, int(moneyToAdd))
+	updateErr := dataclient.UpdateUser(trigger.User_Command_ID, "", 0, int(moneyToAdd), auditClient)
 	if updateErr != nil {
 		return updateErr
 	}
-
-	auditClient.LogAccountTransaction("add", trigger.User_Command_ID, moneyToAdd)
 
 	_, deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
 	if deleteErr != nil {

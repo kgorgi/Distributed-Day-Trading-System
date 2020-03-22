@@ -4,12 +4,14 @@ WORKDIR ./server
 COPY ./src/data ./data
 COPY ./src/lib ./lib
 COPY ./src/urls.yml ./urls.yml
+COPY ./src/dev_key.key ./dev_key.key
 COPY ./src/go.mod .
 COPY ./src/go.sum .
 
 RUN go mod download
 
 RUN cd ./data && go build
+
 
 EXPOSE 5001
 
