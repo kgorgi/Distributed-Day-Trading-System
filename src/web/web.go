@@ -67,8 +67,7 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if command["command"] == "DUMPLOG" {
-		message, err = auditClient.DumpLogAll()
-		status = 200
+		status, message, err = auditClient.DumpLogAll()
 	} else {
 		var transactionClient TransactionClient
 		status, message, err = transactionClient.SendCommand(command)
