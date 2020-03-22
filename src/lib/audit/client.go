@@ -88,15 +88,21 @@ func (client *AuditClient) LogQuoteServerResponse(
 
 // LogAccountTransaction sends a log of AccountTransactionType to the audit server
 func (client *AuditClient) LogAccountTransaction(
-	action string,
 	userID string,
-	fundsInCents uint64,
+	fundsInCents int64,
 ) {
+	var action = "add"
+	amount := fundsInCents
+	if fundsInCents < 0 {
+		action = "remove"
+		amount = -fundsInCents
+	}
+
 	var internalInfo = client.generateInternalInfo("accountTransaction", false)
 	var transactionInfo = AccountTransactionInfo{
 		Action:       action,
 		UserID:       userID,
-		FundsInCents: fundsInCents,
+		FundsInCents: uint64(amount),
 	}
 
 	payload := struct {
