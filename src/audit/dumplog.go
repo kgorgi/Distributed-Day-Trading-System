@@ -70,6 +70,10 @@ func createLog(cursor *mongo.Cursor) string {
 			var debugEvent auditclient.DebugEventInfo
 			cursor.Decode(&debugEvent)
 			writeDebugEventTags(&str, debugEvent)
+		case "perfMetric":
+			var perfLog auditclient.PerformanceMetricInfo
+			cursor.Decode(&perfLog)
+			writePerfMetricTags(&str, perfLog)
 		}
 
 		str.WriteString("\t")
