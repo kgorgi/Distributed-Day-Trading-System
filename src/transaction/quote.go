@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
 	"strconv"
 
 	"extremeWorkload.com/daytrader/lib"
@@ -18,13 +17,6 @@ func GetQuote(
 	noCache bool,
 	auditClient *auditclient.AuditClient) uint64 {
 
-	conn, err := net.Dial("tcp", serverurls.Env.QuoteCacheServer)
-	if err != nil {
-		log.Fatalln("Could not connect to quote server")
-		conn.Close()
-		return 0
-	}
-
 	var cacheSwitch string
 	if noCache {
 		cacheSwitch = "n"
@@ -33,16 +25,14 @@ func GetQuote(
 	}
 	payload := fmt.Sprintf("%d,%s,%s,%s,%s", auditClient.TransactionNum, auditClient.Command, stockSymbol, userID, cacheSwitch)
 
-	status, body, err := lib.ClientSendRequest(conn, payload)
+	status, body, err := lib.ClientSendRequest(serverurls.Env.QuoteCacheServer, payload)
 	if err != nil {
 		log.Fatalln("Connection Error: " + err.Error())
-		conn.Close()
 		return 0
 	}
 
 	if status != lib.StatusOk {
 		log.Fatalln("Response Error: Status " + strconv.Itoa(status) + " " + body)
-		conn.Close()
 		return 0
 	}
 
@@ -50,10 +40,8 @@ func GetQuote(
 	quote, err := strconv.ParseUint(body, 10, 64)
 	if err != nil {
 		log.Fatalln("Received invalid data from quote cache server")
-		conn.Close()
 		return 0
 	}
 
-	conn.Close()
 	return quote
 }
