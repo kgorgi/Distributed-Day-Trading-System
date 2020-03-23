@@ -77,7 +77,7 @@ func main() {
 	security.InitCryptoKey()
 
 	//hookup to mongo
-	clientOptions := options.Client().ApplyURI(serverurls.Env.DataDBServer)
+	clientOptions := options.Client().ApplyURI(serverurls.Env.DataDBServer).SetAuth(options.Credential{AuthSource: "extremeworkload", Username: "test", Password: "test"})
 	clientOptions.SetMaxPoolSize(dbPoolCount)
 	clientOptions.SetMinPoolSize(dbPoolCount)
 
