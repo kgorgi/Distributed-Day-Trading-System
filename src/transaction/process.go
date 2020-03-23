@@ -87,7 +87,10 @@ func validateUser(conn net.Conn, commandJSON CommandJSON) bool {
 	newUser := modelsdata.User{
 		Command_ID:  commandJSON.Userid,
 		Cents:       0,
-		Investments: []modelsdata.Investment{}}
+		Investments: []modelsdata.Investment{},
+		Buys:        []modelsdata.Reserve{},
+		Sells:       []modelsdata.Reserve{},
+	}
 	createErr := dataclient.CreateUser(newUser)
 	if createErr != nil {
 		lib.ServerSendResponse(conn, lib.StatusSystemError, createErr.Error())
@@ -127,25 +130,38 @@ func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.
 	numOfStocks := amountInCents / quoteInCents
 	moneyToRemove := quoteInCents * numOfStocks
 
-	buyStackMap.push(jsonCommand.Userid, jsonCommand.StockSymbol, numOfStocks, moneyToRemove)
+	pushErr := dataclient.PushUserBuy(jsonCommand.Userid, jsonCommand.StockSymbol, moneyToRemove, numOfStocks)
+	if pushErr == dataclient.ErrNotFound {
+		errorMessage := "The specified user does not exist"
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
+	}
+
+	if pushErr != nil {
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusSystemError, pushErr.Error())
+	}
 
 	lib.ServerSendOKResponse(conn)
 }
 
 func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	nextBuy := buyStackMap.pop(jsonCommand.Userid)
-	if nextBuy == nil {
-		errorMessage := "No Buy to Commit"
+	nextBuy, popErr := dataclient.PopUserBuy(jsonCommand.Userid)
+	if popErr == dataclient.ErrNotFound {
+		errorMessage := "The specified user either does not exist or does not any valid buys"
 		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
-	buyErr := dataclient.UpdateUser(jsonCommand.Userid, nextBuy.stockSymbol, int(nextBuy.numOfStocks), int(nextBuy.cents)*-1, auditClient)
+	if popErr != nil {
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusSystemError, popErr.Error())
+		return
+	}
+
+	buyErr := dataclient.UpdateUser(jsonCommand.Userid, nextBuy.Stock, int(nextBuy.Num_Stocks), int(nextBuy.Cents)*-1, auditClient)
 	if buyErr != nil {
 		auditClient.LogErrorEvent(buyErr.Error())
 
 		if buyErr == dataclient.ErrNotFound {
-			errorMessage := "The specified user either does not exist or does not have sufficient funds to remove " + strconv.FormatUint(nextBuy.cents, 10) + " cents"
+			errorMessage := "The specified user either does not exist or does not have sufficient funds to remove " + strconv.FormatUint(nextBuy.Cents, 10) + " cents"
 			auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 			return
 		}
@@ -158,10 +174,15 @@ func handleCommitBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditc
 }
 
 func handleCancelBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	nextBuy := buyStackMap.pop(jsonCommand.Userid)
-	if nextBuy == nil {
-		errorMessage := "No Buy to Cancel"
+	_, popErr := dataclient.PopUserBuy(jsonCommand.Userid)
+	if popErr == dataclient.ErrNotFound {
+		errorMessage := "The specified user either does not exist or does not any buys to cancel"
 		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
+		return
+	}
+
+	if popErr != nil {
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusSystemError, popErr.Error())
 		return
 	}
 
@@ -180,20 +201,34 @@ func handleSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient
 	numOfStocks := amountInCents / quoteInCents
 	moneyToAdd := quoteInCents * numOfStocks
 
-	sellStackMap.push(jsonCommand.Userid, jsonCommand.StockSymbol, numOfStocks, moneyToAdd)
+	pushErr := dataclient.PushUserSell(jsonCommand.Userid, jsonCommand.StockSymbol, moneyToAdd, numOfStocks)
+	if pushErr == dataclient.ErrNotFound {
+		errorMessage := "The specified user does not exist"
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
+	}
+
+	if pushErr != nil {
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, pushErr.Error())
+		return
+	}
 
 	lib.ServerSendOKResponse(conn)
 }
 
 func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	nextSell := sellStackMap.pop(jsonCommand.Userid)
-	if nextSell == nil {
-		errorMessage := "No Sell to Commit"
+	nextSell, popErr := dataclient.PopUserSell(jsonCommand.Userid)
+	if popErr == dataclient.ErrNotFound {
+		errorMessage := "The specified user either does not exist or does not any valid sells"
 		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
 		return
 	}
 
-	sellErr := dataclient.UpdateUser(jsonCommand.Userid, nextSell.stockSymbol, int(nextSell.numOfStocks)*-1, int(nextSell.cents), auditClient)
+	if popErr != nil {
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusSystemError, popErr.Error())
+		return
+	}
+
+	sellErr := dataclient.UpdateUser(jsonCommand.Userid, nextSell.Stock, int(nextSell.Num_Stocks)*-1, int(nextSell.Cents), auditClient)
 	if sellErr != nil {
 		auditClient.LogErrorEvent(sellErr.Error())
 
@@ -211,10 +246,15 @@ func handleCommitSell(conn net.Conn, jsonCommand CommandJSON, auditClient *audit
 }
 
 func handleCancelSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	nextSell := sellStackMap.pop(jsonCommand.Userid)
-	if nextSell == nil {
-		errorMessage := "No Sell to Cancel"
+	_, popErr := dataclient.PopUserSell(jsonCommand.Userid)
+	if popErr == dataclient.ErrNotFound {
+		errorMessage := "The specified user either does not exist or does not any sells to cancel"
 		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
+		return
+	}
+
+	if popErr != nil {
+		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusSystemError, popErr.Error())
 		return
 	}
 
@@ -250,7 +290,8 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 			Price_Cents:        0,
 			Amount_Cents:       amountInCents,
 			Is_Sell:            false,
-			Transaction_Number: auditClient.TransactionNum}
+			Transaction_Number: auditClient.TransactionNum,
+		}
 
 		createErr := dataclient.CreateTrigger(newTrigger)
 		if createErr != nil {
@@ -345,7 +386,8 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 			Price_Cents:        0,
 			Amount_Cents:       amountInCents,
 			Is_Sell:            true,
-			Transaction_Number: auditClient.TransactionNum}
+			Transaction_Number: auditClient.TransactionNum,
+		}
 		err := dataclient.CreateTrigger(newTrigger)
 		if err != nil {
 			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
@@ -503,7 +545,8 @@ func handleDisplaySummary(conn net.Conn, jsonCommand CommandJSON, auditClient au
 				Stock:        trigger.Stock,
 				Price_Cents:  trigger.Price_Cents,
 				Amount_Cents: trigger.Amount_Cents,
-				Is_Sell:      trigger.Is_Sell},
+				Is_Sell:      trigger.Is_Sell,
+			},
 		)
 	}
 	userDisplay.Triggers = triggerDisplays

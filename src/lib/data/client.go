@@ -70,7 +70,20 @@ func ReadUser(userID string) (modelsdata.User, error) {
 
 // UpdateUser increments/decrements a users stocks and money
 func UpdateUser(userID string, stock string, amount int, cents int, auditClient *auditclient.AuditClient) error {
-	payload := "UPDATE_USER|" + userID + "|" + stock + "|" + strconv.Itoa(amount) + "|" + strconv.Itoa(cents)
+	commandBytes, jsonErr := json.Marshal(
+		modelsdata.UpdateUserCommand{
+			UserID:      userID,
+			Stock:       stock,
+			StockAmount: amount,
+			Cents:       cents,
+		},
+	)
+
+	if jsonErr != nil {
+		return jsonErr
+	}
+
+	payload := "UPDATE_USER|" + string(commandBytes)
 	_, _, err := sendRequest(payload)
 
 	if err == nil && cents != 0 {
@@ -131,14 +144,26 @@ func ReadTriggersByUser(userID string) ([]modelsdata.Trigger, error) {
 
 // ReadTrigger takes the primary key attributes for a trigger and reads a trigger from the database
 func ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigger, error) {
-	payload := "READ_TRIGGER|" + userID + "|" + stockName + "|" + strconv.FormatBool(isSell)
+	commandBytes, jsonErr := json.Marshal(
+		modelsdata.ChooseTriggerCommand{
+			UserID: userID,
+			Stock:  stockName,
+			IsSell: isSell,
+		},
+	)
+
+	if jsonErr != nil {
+		return modelsdata.Trigger{}, jsonErr
+	}
+
+	payload := "READ_TRIGGER|" + string(commandBytes)
 	_, message, err := sendRequest(payload)
 	if err != nil {
 		return modelsdata.Trigger{}, err
 	}
 
 	var trigger modelsdata.Trigger
-	jsonErr := json.Unmarshal([]byte(message), &trigger)
+	jsonErr = json.Unmarshal([]byte(message), &trigger)
 	if jsonErr != nil {
 		return modelsdata.Trigger{}, jsonErr
 	}
@@ -149,8 +174,19 @@ func ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigg
 // DeleteTrigger takes the primary key attributes of a trigger and deletes the corresponding trigger in the database
 // it returns the successfully deleted trigger
 func DeleteTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigger, error) {
+	commandBytes, jsonErr := json.Marshal(
+		modelsdata.ChooseTriggerCommand{
+			UserID: userID,
+			Stock:  stockName,
+			IsSell: isSell,
+		},
+	)
 
-	payload := "DELETE_TRIGGER|" + userID + "|" + stockName + "|" + strconv.FormatBool(isSell)
+	if jsonErr != nil {
+		return modelsdata.Trigger{}, jsonErr
+	}
+
+	payload := "DELETE_TRIGGER|" + string(commandBytes)
 	_, message, err := sendRequest(payload)
 
 	if err != nil {
@@ -158,7 +194,7 @@ func DeleteTrigger(userID string, stockName string, isSell bool) (modelsdata.Tri
 	}
 
 	var deletedTrigger modelsdata.Trigger
-	jsonErr := json.Unmarshal([]byte(message), &deletedTrigger)
+	jsonErr = json.Unmarshal([]byte(message), &deletedTrigger)
 	if jsonErr != nil {
 		return modelsdata.Trigger{}, jsonErr
 	}
@@ -168,16 +204,118 @@ func DeleteTrigger(userID string, stockName string, isSell bool) (modelsdata.Tri
 
 // UpdateTriggerPrice updates the price at which a trigger will fire for its stock
 func UpdateTriggerPrice(userID string, stock string, isSell bool, price uint64) error {
-	payload := "UPDATE_TRIGGER_PRICE|" + userID + "|" + stock + "|" + strconv.FormatBool(isSell) + "|" + strconv.FormatUint(price, 10)
+	commandBytes, jsonErr := json.Marshal(
+		modelsdata.UpdateTriggerPriceCommand{
+			UserID: userID,
+			Stock:  stock,
+			IsSell: isSell,
+			Price:  price,
+		},
+	)
+
+	if jsonErr != nil {
+		return jsonErr
+	}
+
+	payload := "UPDATE_TRIGGER_PRICE|" + string(commandBytes)
 	_, _, err := sendRequest(payload)
 	return err
 }
 
 // UpdateTriggerAmount updates the amount of cents worth of a stock a trigger will buy or sell if it's price condition is met
 func UpdateTriggerAmount(userID string, stock string, isSell bool, amount uint64) error {
-	payload := "UPDATE_TRIGGER_AMOUNT|" + userID + "|" + stock + "|" + strconv.FormatBool(isSell) + "|" + strconv.FormatUint(amount, 10)
+	commandBytes, jsonErr := json.Marshal(
+		modelsdata.UpdateTriggerAmountCommand{
+			UserID: userID,
+			Stock:  stock,
+			IsSell: isSell,
+			Amount: amount,
+		},
+	)
+
+	if jsonErr != nil {
+		return jsonErr
+	}
+
+	payload := "UPDATE_TRIGGER_AMOUNT|" + string(commandBytes)
 	_, _, err := sendRequest(payload)
 	return err
+}
+
+// PushUserBuy adds a buy to a users stack
+func PushUserBuy(userID string, stock string, cents uint64, numStock uint64) error {
+	commandBytes, jsonErr := json.Marshal(
+		modelsdata.PushUserReserveCommand{
+			UserID:   userID,
+			Stock:    stock,
+			Cents:    cents,
+			NumStock: numStock,
+		},
+	)
+
+	if jsonErr != nil {
+		return jsonErr
+	}
+
+	payload := "PUSH_USER_BUY|" + string(commandBytes)
+	_, _, err := sendRequest(payload)
+	return err
+}
+
+// PopUserBuy pops a buy from the users stack, it will return the not found error
+// if either the user is not found, or they have no valid buys in their stack
+func PopUserBuy(userID string) (modelsdata.Reserve, error) {
+	payload := "POP_USER_BUY|" + userID
+	_, message, err := sendRequest(payload)
+	if err != nil {
+		return modelsdata.Reserve{}, err
+	}
+
+	var buyReserve modelsdata.Reserve
+	jsonErr := json.Unmarshal([]byte(message), &buyReserve)
+	if jsonErr != nil {
+		return modelsdata.Reserve{}, jsonErr
+	}
+
+	return buyReserve, nil
+}
+
+// PushUserSell adds a sell to a users stack
+func PushUserSell(userID string, stock string, cents uint64, numStock uint64) error {
+	commandBytes, jsonErr := json.Marshal(
+		modelsdata.PushUserReserveCommand{
+			UserID:   userID,
+			Stock:    stock,
+			Cents:    cents,
+			NumStock: numStock,
+		},
+	)
+
+	if jsonErr != nil {
+		return jsonErr
+	}
+
+	payload := "PUSH_USER_SELL|" + string(commandBytes)
+	_, _, err := sendRequest(payload)
+	return err
+}
+
+// PopUserSell pops a sell from the users stack, it will return the not found error
+// if either the user is not found, or they have no valid sells in their stack
+func PopUserSell(userID string) (modelsdata.Reserve, error) {
+	payload := "POP_USER_SELL|" + userID
+	_, message, err := sendRequest(payload)
+	if err != nil {
+		return modelsdata.Reserve{}, err
+	}
+
+	var sellReserve modelsdata.Reserve
+	jsonErr := json.Unmarshal([]byte(message), &sellReserve)
+	if jsonErr != nil {
+		return modelsdata.Reserve{}, jsonErr
+	}
+
+	return sellReserve, nil
 }
 
 func sendRequest(payload string) (int, string, error) {

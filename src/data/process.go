@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"net"
-	"strconv"
 	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
@@ -12,7 +11,6 @@ import (
 )
 
 // TODO: Instead of having a massive switch statement write functions for handling each request
-// Create some command structs, how I verify command inputs is pretty bad
 // Better more detailed error handling
 // Figure out a nice way to combine UPDATE_TRIGGER_AMOUNT and UPDATE_TRIGGER_PRICE into one command
 
@@ -74,20 +72,18 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 
 		lib.ServerSendResponse(conn, lib.StatusOk, string(usersBytes))
 	case "UPDATE_USER":
-		userCommandID := data[1]
-		stock := data[2]
-		amount := data[3]
-		cents := data[4]
+		commandBytes := []byte(data[1])
 
-		//If no stock should be added or removed
-		if stock == "" || amount == "" || amount == "0" {
-			centsInt, conversionErr := strconv.Atoi(cents)
-			if conversionErr != nil {
-				lib.ServerSendResponse(conn, lib.StatusUserError, "Cents and Amount must be integers")
-				break
-			}
+		var updateCommand modelsdata.UpdateUserCommand
+		jsonErr := json.Unmarshal(commandBytes, &updateCommand)
+		if jsonErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
+			break
+		}
 
-			updateErr := updateCents(client, userCommandID, centsInt)
+		// If no stock should be added or removed
+		if updateCommand.Stock == "" || updateCommand.StockAmount == 0 {
+			updateErr := updateCents(client, updateCommand.UserID, updateCommand.Cents)
 			if updateErr != nil {
 				lib.ServerSendResponse(conn, lib.StatusUserError, "The specified user does not exist, or they do not have the specified amount of money")
 			}
@@ -95,15 +91,7 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 			lib.ServerSendOKResponse(conn)
 		}
 
-		//Otherwise we need to modify the users stock and money
-		centsInt, conversionErr1 := strconv.Atoi(cents) //TODO: command structs
-		amountInt, conversionErr2 := strconv.Atoi(amount)
-		if conversionErr1 != nil || conversionErr2 != nil {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Cents and Amount must be integers")
-			return
-		}
-
-		updateErr := updateStockAndCents(client, userCommandID, stock, amountInt, centsInt)
+		updateErr := updateStockAndCents(client, updateCommand.UserID, updateCommand.Stock, updateCommand.StockAmount, updateCommand.Cents)
 		if updateErr == errNotFound {
 			lib.ServerSendResponse(conn, lib.StatusUserError, "Either the user does not exist, or they do not have sufficient stock or funds to remove")
 			return
@@ -133,11 +121,16 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 
 		lib.ServerSendOKResponse(conn)
 	case "READ_TRIGGER":
-		userCommandID := data[1]
-		stock := data[2]
-		isSellString := data[3]
+		commandBytes := []byte(data[1])
 
-		trigger, readErr := readTrigger(client, userCommandID, stock, generateIsSellBool(isSellString))
+		var readCommand modelsdata.ChooseTriggerCommand
+		jsonErr := json.Unmarshal(commandBytes, &readCommand)
+		if jsonErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error())
+			break
+		}
+
+		trigger, readErr := readTrigger(client, readCommand.UserID, readCommand.Stock, readCommand.IsSell)
 		if readErr != nil {
 			status := lib.StatusSystemError
 			if readErr == mongo.ErrNoDocuments {
@@ -179,14 +172,19 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		lib.ServerSendResponse(conn, lib.StatusOk, string(triggersBytes))
 
 	case "DELETE_TRIGGER":
-		userCommandID := data[1]
-		stock := data[2]
-		isSellString := data[3]
+		commandBytes := []byte(data[1])
 
-		deletedTrigger, deleteErr := deleteTrigger(client, userCommandID, stock, generateIsSellBool(isSellString))
+		var deleteCommand modelsdata.ChooseTriggerCommand
+		jsonErr := json.Unmarshal(commandBytes, &deleteCommand)
+		if jsonErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error())
+			break
+		}
+
+		deletedTrigger, deleteErr := deleteTrigger(client, deleteCommand.UserID, deleteCommand.Stock, deleteCommand.IsSell)
 		if deleteErr == errNotFound {
 			lib.ServerSendResponse(conn, lib.StatusNotFound, deleteErr.Error())
-			return
+			break
 		}
 
 		if deleteErr != nil {
@@ -203,17 +201,16 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		lib.ServerSendResponse(conn, lib.StatusOk, string(triggerBytes))
 
 	case "UPDATE_TRIGGER_PRICE":
-		userCommandID := data[1]
-		stock := data[2]
-		isSellString := data[3]
-		price := data[4]
+		commandBytes := []byte(data[1])
 
-		priceInt, conversionErr := strconv.ParseUint(price, 10, 64)
-		if conversionErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Price must be an unsigned integer")
+		var updateCommand modelsdata.UpdateTriggerPriceCommand
+		jsonErr := json.Unmarshal(commandBytes, &updateCommand)
+		if jsonErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error())
+			break
 		}
 
-		updateErr := updateTriggerPrice(client, userCommandID, stock, generateIsSellBool(isSellString), priceInt)
+		updateErr := updateTriggerPrice(client, updateCommand.UserID, updateCommand.Stock, updateCommand.IsSell, updateCommand.Price)
 		if updateErr == errNotFound {
 			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified Trigger does not exist, or its amount is less than the specified price")
 			break
@@ -227,17 +224,16 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		lib.ServerSendOKResponse(conn)
 
 	case "UPDATE_TRIGGER_AMOUNT":
-		userCommandID := data[1]
-		stock := data[2]
-		isSellString := data[3]
-		amount := data[4]
+		commandBytes := []byte(data[1])
 
-		amountInt, conversionErr := strconv.ParseUint(amount, 10, 64)
-		if conversionErr != nil {
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Amount must be an unsigned integer")
+		var updateCommand modelsdata.UpdateTriggerAmountCommand
+		jsonErr := json.Unmarshal(commandBytes, &updateCommand)
+		if jsonErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error())
+			break
 		}
 
-		updateErr := updateTriggerAmount(client, userCommandID, stock, generateIsSellBool(isSellString), amountInt)
+		updateErr := updateTriggerAmount(client, updateCommand.UserID, updateCommand.Stock, updateCommand.IsSell, updateCommand.Amount)
 		if updateErr == errNotFound {
 			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified Trigger does not exist")
 			break
@@ -249,6 +245,107 @@ func processCommand(conn net.Conn, client *mongo.Client, payload string) {
 		}
 
 		lib.ServerSendOKResponse(conn)
+
+	case "PUSH_USER_BUY":
+		commandBytes := []byte(data[1])
+
+		var pushCommand modelsdata.PushUserReserveCommand
+		jsonErr := json.Unmarshal(commandBytes, &pushCommand)
+		if jsonErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error())
+			break
+		}
+
+		pushErr := pushUserReserve(client, pushCommand.UserID, pushCommand.Stock, pushCommand.Cents, pushCommand.NumStock, false)
+		if pushErr == errNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist")
+			break
+		}
+
+		if pushErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, pushErr.Error())
+			break
+		}
+
+		lib.ServerSendOKResponse(conn)
+
+	case "POP_USER_BUY":
+		userCommandID := data[1]
+
+		buy, popErr := popUserReserve(client, userCommandID, false)
+		if popErr == errNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist")
+			break
+		}
+
+		if popErr == errEmptyStack {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "the buy stack is empty")
+			break
+		}
+
+		if popErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, popErr.Error())
+			break
+		}
+
+		buyBytes, jsonErr := json.Marshal(buy)
+		if jsonErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
+			break
+		}
+
+		lib.ServerSendResponse(conn, lib.StatusOk, string(buyBytes))
+
+	case "PUSH_USER_SELL":
+		commandBytes := []byte(data[1])
+
+		var pushCommand modelsdata.PushUserReserveCommand
+		jsonErr := json.Unmarshal(commandBytes, &pushCommand)
+		if jsonErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusUserError, jsonErr.Error())
+			break
+		}
+
+		pushErr := pushUserReserve(client, pushCommand.UserID, pushCommand.Stock, pushCommand.Cents, pushCommand.NumStock, true)
+		if pushErr == errNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist")
+			break
+		}
+
+		if pushErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, pushErr.Error())
+			break
+		}
+
+		lib.ServerSendOKResponse(conn)
+
+	case "POP_USER_SELL":
+		userCommandID := data[1]
+
+		sell, popErr := popUserReserve(client, userCommandID, true)
+		if popErr == errNotFound {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "The specified user does not exist")
+			break
+		}
+
+		if popErr == errEmptyStack {
+			lib.ServerSendResponse(conn, lib.StatusNotFound, "the sell stack is empty")
+			break
+		}
+
+		if popErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, popErr.Error())
+			break
+		}
+
+		sellBytes, jsonErr := json.Marshal(sell)
+		if jsonErr != nil {
+			lib.ServerSendResponse(conn, lib.StatusSystemError, jsonErr.Error())
+			break
+		}
+
+		lib.ServerSendResponse(conn, lib.StatusOk, string(sellBytes))
+
 	default:
 		lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Data Server Command")
 	}
