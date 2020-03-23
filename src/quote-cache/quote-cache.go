@@ -54,12 +54,11 @@ func handleConnection(queue chan *perftools.PerfConn) {
 }
 
 func main() {
-	listener, err := net.Listen("tcp", ":5004")
+	ln, err := net.Listen("tcp", ":5004")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	ln := perftools.TransformListener(listener)
 	fmt.Println("Started quote cache server on port: 5004")
 	security.InitCryptoKey()
 
@@ -72,7 +71,7 @@ func main() {
 	for {
 		conn, err := ln.Accept()
 		if err == nil {
-			queue <- conn
+			queue <- perftools.NewPerfConn(conn)
 		}
 	}
 }
