@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"net"
-	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
 	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
@@ -18,8 +17,7 @@ func generateIsSellBool(isSellString string) bool {
 	return isSellString == "true"
 }
 
-func processCommand(conn net.Conn, client *mongo.Client, payload string) {
-	data := strings.Split(payload, "|")
+func processCommand(conn net.Conn, client *mongo.Client, data []string) {
 	command := data[0]
 	switch command {
 	case "CREATE_USER":

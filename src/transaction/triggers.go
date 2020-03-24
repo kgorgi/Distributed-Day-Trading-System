@@ -19,7 +19,7 @@ func buyTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *audi
 		return updateErr
 	}
 
-	_, deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
+	_, deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell, auditClient)
 	if deleteErr != nil {
 		return deleteErr
 	}
@@ -36,7 +36,7 @@ func sellTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *aud
 		return updateErr
 	}
 
-	_, deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
+	_, deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell, auditClient)
 	if deleteErr != nil {
 		return deleteErr
 	}
@@ -44,15 +44,15 @@ func sellTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *aud
 	return nil
 }
 
-func checkTriggers(auditClient auditclient.AuditClient) {
+func checkTriggers(auditClient *auditclient.AuditClient) {
 	for {
 		lib.Debugln("Checking Triggers")
 
-		triggers, err := dataclient.ReadTriggers()
+		triggers, err := dataclient.ReadTriggers(auditClient)
 		for err != nil {
 			fmt.Println("Something went wrong, trying again in 10 seconds")
 			time.Sleep(10 * time.Second)
-			triggers, err = dataclient.ReadTriggers()
+			triggers, err = dataclient.ReadTriggers(auditClient)
 		}
 
 		lib.Debugln(string(len(triggers)) + " Triggers have been fetched, analysing")
@@ -65,15 +65,15 @@ func checkTriggers(auditClient auditclient.AuditClient) {
 				auditClient.Command = "SET_BUY_TRIGGER"
 			}
 
-			stockPrice := GetQuote(trigger.Stock, trigger.User_Command_ID, false, &auditClient)
+			stockPrice := GetQuote(trigger.Stock, trigger.User_Command_ID, false, auditClient)
 			if trigger.Price_Cents != 0 {
 				if trigger.Is_Sell && stockPrice >= trigger.Price_Cents {
-					if err := sellTrigger(trigger, stockPrice, &auditClient); err != nil {
+					if err := sellTrigger(trigger, stockPrice, auditClient); err != nil {
 						fmt.Println(err)
 						continue
 					}
 				} else if !trigger.Is_Sell && stockPrice <= trigger.Price_Cents {
-					if err := buyTrigger(trigger, stockPrice, &auditClient); err != nil {
+					if err := buyTrigger(trigger, stockPrice, auditClient); err != nil {
 						fmt.Println(err)
 						continue
 					}

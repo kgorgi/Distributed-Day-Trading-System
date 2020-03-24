@@ -6,6 +6,8 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
@@ -35,7 +37,18 @@ func handleConnection(queue chan *perftools.PerfConn, client *mongo.Client) {
 			return
 		}
 
-		processCommand(conn, client, payload)
+		splitPayload := strings.Split(payload, "|")
+
+		transactionNum, _ := strconv.ParseUint(splitPayload[0], 10, 64)
+
+		var auditClient = auditclient.AuditClient{
+			Server:         "data",
+			Command:        splitPayload[1],
+			TransactionNum: transactionNum,
+		}
+		conn.SetAuditClient(&auditClient)
+
+		processCommand(conn, client, splitPayload[1:])
 		conn.Close()
 
 		lib.Debugln("Connection Closed")
