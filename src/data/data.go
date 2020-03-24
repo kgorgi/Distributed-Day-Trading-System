@@ -9,6 +9,7 @@ import (
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
+	"extremeWorkload.com/daytrader/lib/perftools"
 	"extremeWorkload.com/daytrader/lib/security"
 	"extremeWorkload.com/daytrader/lib/serverurls"
 	"go.mongodb.org/mongo-driver/bson"
@@ -24,7 +25,7 @@ var auditClient = auditclient.AuditClient{
 
 const threadCount = 1000
 
-func handleConnection(queue chan net.Conn, client *mongo.Client) {
+func handleConnection(queue chan *perftools.PerfConn, client *mongo.Client) {
 	for {
 		conn := <-queue
 		lib.Debugln("Handling Request")
@@ -110,7 +111,7 @@ func main() {
 	}
 	fmt.Println("Started data server on port: 5001")
 
-	queue := make(chan net.Conn, threadCount*10)
+	queue := make(chan *perftools.PerfConn, threadCount*10)
 
 	for i := 0; i < threadCount; i++ {
 		go handleConnection(queue, client)
@@ -119,7 +120,7 @@ func main() {
 	for {
 		conn, err := ln.Accept()
 		if err == nil {
-			queue <- conn
+			queue <- perftools.NewPerfConn(conn)
 		}
 	}
 }
