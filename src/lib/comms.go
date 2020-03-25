@@ -42,7 +42,6 @@ func ClientSendRequest(address string, payload string) (int, string, error) {
 
 	currentAttempt := 0
 	for currentAttempt < retries {
-		Debugln("ClientSendRequest attempt #" + strconv.Itoa(currentAttempt+1))
 		time.Sleep(time.Duration(currentAttempt*backoff) * time.Millisecond)
 
 		conn, err = net.Dial("tcp", address)
