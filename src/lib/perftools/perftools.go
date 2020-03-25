@@ -32,18 +32,18 @@ func (pconn *PerfConn) SetAuditClient(auditClient *audit.AuditClient) {
 }
 
 func (pconn *PerfConn) Read(b []byte) (n int, err error) {
-	pconn.ReadTime = lib.GetUnixTimestamp()
+	pconn.ReadTime = lib.GetUnixTimestamp() - pconn.AcceptTime
 	return pconn.innerConn.Read(b)
 }
 
 func (pconn *PerfConn) Write(b []byte) (n int, err error) {
-	pconn.WriteTime = lib.GetUnixTimestamp()
+	pconn.WriteTime = lib.GetUnixTimestamp() - pconn.AcceptTime
 	return pconn.innerConn.Write(b)
 }
 
 // Close adds timing
 func (pconn *PerfConn) Close() error {
-	pconn.CloseTime = lib.GetUnixTimestamp()
+	pconn.CloseTime = lib.GetUnixTimestamp() - pconn.AcceptTime
 	if pconn.auditClient != nil && lib.DebuggingEnabled {
 		var performanceInfo = audit.PerformanceMetricInfo{
 			AcceptTimestamp: pconn.AcceptTime,
