@@ -26,7 +26,6 @@ const threadCount = 1000
 func handleWebConnection(queue chan *perftools.PerfConn) {
 	for {
 		conn := <-queue
-		lib.Debugln("Handling Request")
 
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
@@ -53,7 +52,6 @@ func handleWebConnection(queue chan *perftools.PerfConn) {
 		processCommand(conn, commandJSON, auditClient)
 
 		conn.Close()
-		lib.Debugln("Connection Closed")
 	}
 
 }

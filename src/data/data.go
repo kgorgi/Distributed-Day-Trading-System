@@ -30,7 +30,6 @@ const threadCount = 1000
 func handleConnection(queue chan *perftools.PerfConn, client *mongo.Client) {
 	for {
 		conn := <-queue
-		lib.Debugln("Handling Request")
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
 			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
@@ -50,8 +49,6 @@ func handleConnection(queue chan *perftools.PerfConn, client *mongo.Client) {
 
 		processCommand(conn, client, splitPayload[1:])
 		conn.Close()
-
-		lib.Debugln("Connection Closed")
 	}
 
 }

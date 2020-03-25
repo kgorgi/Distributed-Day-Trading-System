@@ -3,6 +3,7 @@ package lib
 import (
 	"bufio"
 	"encoding/binary"
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -14,9 +15,9 @@ import (
 const retries = 3
 
 // In milliseconds
-const backoff = 500
+const backoff = 1000
 
-const socketTimeout = time.Duration(1) * time.Second
+const socketTimeout = time.Duration(5) * time.Second
 
 const seperatorChar = "|"
 
@@ -42,6 +43,9 @@ func ClientSendRequest(address string, payload string) (int, string, error) {
 
 	currentAttempt := 0
 	for currentAttempt < retries {
+		if err != nil {
+			Debugln(fmt.Sprintf("Failed request (%d): %s %s\n Err: %s\n", currentAttempt, address, payload, err.Error()))
+		}
 		time.Sleep(time.Duration(currentAttempt*backoff) * time.Millisecond)
 
 		conn, err = net.Dial("tcp", address)
