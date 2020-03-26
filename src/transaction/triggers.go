@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"extremeWorkload.com/daytrader/lib"
@@ -55,7 +56,7 @@ func checkTriggers(auditClient *auditclient.AuditClient) {
 			triggers, err = dataclient.ReadTriggers(auditClient)
 		}
 
-		lib.Debugln(string(len(triggers)) + " Triggers have been fetched, analysing")
+		lib.Debugln(strconv.Itoa(len(triggers)) + " Triggers have been fetched, analysing")
 
 		for _, trigger := range triggers {
 			auditClient.TransactionNum = trigger.Transaction_Number
