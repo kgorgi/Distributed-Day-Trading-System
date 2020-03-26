@@ -102,7 +102,7 @@ func setupIndexes(client *mongo.Client) {
 }
 
 func connectToMongo() (*mongo.Client, error) {
-	clientOptions := options.Client().ApplyURI(serverurls.Env.AuditDBServer)
+	clientOptions := options.Client().ApplyURI(serverurls.Env.AuditDBServer).SetAuth(options.Credential{AuthSource: "audit", Username: "user", Password: "user"})
 	clientOptions.SetMaxPoolSize(dbPoolCount)
 	clientOptions.SetMinPoolSize(dbPoolCount)
 
