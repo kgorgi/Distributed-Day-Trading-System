@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
@@ -76,8 +77,14 @@ func main() {
 	fmt.Println("Starting data server...")
 	security.InitCryptoKey()
 
+	name, nameOk := os.LookupEnv("USER_NAME")
+	pass, passOk := os.LookupEnv("USER_PASS")
+	if !nameOk || !passOk {
+		log.Fatal("Environment Variables for mongo auth were not set properly")
+	}
+
 	//hookup to mongo
-	clientOptions := options.Client().ApplyURI(serverurls.Env.DataDBServer).SetAuth(options.Credential{AuthSource: "extremeworkload", Username: "user", Password: "user"})
+	clientOptions := options.Client().ApplyURI(serverurls.Env.DataDBServer).SetAuth(options.Credential{AuthSource: "extremeworkload", Username: name, Password: pass})
 	clientOptions.SetMaxPoolSize(dbPoolCount)
 	clientOptions.SetMinPoolSize(dbPoolCount)
 

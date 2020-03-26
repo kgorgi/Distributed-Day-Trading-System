@@ -45,6 +45,8 @@ services:
       dockerfile: docker-files/local/Dockerfile.data
     environment:
       - ENV=DOCKER
+      - USER_PASS=user
+      - USER_NAME=user
     ulimits:
       nofile:
         soft: 65536
@@ -74,6 +76,8 @@ services:
       dockerfile: docker-files/local/Dockerfile.audit
     environment:
       - ENV=DOCKER
+      - USER_PASS=user
+      - USER_NAME=user
     ulimits:
       nofile:
         soft: 65536
