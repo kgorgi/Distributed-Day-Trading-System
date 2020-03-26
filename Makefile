@@ -47,6 +47,7 @@ test-e2e:
 	cd $(SRC)/test/end-to-end && CLIENT_SSL_CERT_LOCATION=../../../ssl/cert.pem go test -v
 
 # Docker Local Deployment Commands
+# set shortcut: doskey dcdev=docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility $*
 
 .phony reset-mongo:
 reset-mongo:
