@@ -17,7 +17,6 @@ const threadCount = 1000
 func handleConnection(queue chan *perftools.PerfConn) {
 	for {
 		conn := <-queue
-		lib.Debugln("Handling Request")
 
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
@@ -49,7 +48,6 @@ func handleConnection(queue chan *perftools.PerfConn) {
 		lib.ServerSendResponse(conn, lib.StatusOk, strconv.FormatUint(quoteVal, 10))
 
 		conn.Close()
-		lib.Debugln("Connection Closed")
 	}
 }
 

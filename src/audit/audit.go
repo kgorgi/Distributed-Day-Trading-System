@@ -60,7 +60,6 @@ func main() {
 func handleConnection(queue chan net.Conn) {
 	for {
 		conn := <-queue
-		lib.Debugln("Handling Request")
 
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
@@ -83,7 +82,6 @@ func handleConnection(queue chan net.Conn) {
 		}
 
 		conn.Close()
-		lib.Debugln("Connection Closed")
 	}
 }
 

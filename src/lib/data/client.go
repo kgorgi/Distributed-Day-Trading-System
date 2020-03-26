@@ -3,6 +3,7 @@ package dataclient
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 
@@ -20,7 +21,7 @@ var (
 )
 
 // CreateUser takes a user struct and creates a user in the database
-func CreateUser(user modelsdata.User) error {
+func CreateUser(user modelsdata.User, auditClient *auditclient.AuditClient) error {
 	userBytes, jsonErr := json.Marshal(user)
 	if jsonErr != nil {
 		return jsonErr
@@ -28,16 +29,16 @@ func CreateUser(user modelsdata.User) error {
 	userJSON := string(userBytes)
 
 	payload := "CREATE_USER|" + userJSON
-	_, _, err := sendRequest(payload)
+	_, _, err := sendRequest(payload, auditClient)
 	return err
 }
 
 // ReadUsers reads all users from the database
-func ReadUsers() ([]modelsdata.User, error) {
+func ReadUsers(auditClient *auditclient.AuditClient) ([]modelsdata.User, error) {
 	users := make([]modelsdata.User, 0)
 
 	payload := "READ_USERS"
-	_, message, err := sendRequest(payload)
+	_, message, err := sendRequest(payload, auditClient)
 	if err != nil {
 		return users, err
 	}
@@ -51,9 +52,9 @@ func ReadUsers() ([]modelsdata.User, error) {
 }
 
 // ReadUser takes userID and reads a user from the database
-func ReadUser(userID string) (modelsdata.User, error) {
+func ReadUser(userID string, auditClient *auditclient.AuditClient) (modelsdata.User, error) {
 	payload := "READ_USER|" + userID
-	_, message, err := sendRequest(payload)
+	_, message, err := sendRequest(payload, auditClient)
 	if err != nil {
 		return modelsdata.User{}, err
 	}
@@ -83,7 +84,7 @@ func UpdateUser(userID string, stock string, amount int, cents int, auditClient 
 	}
 
 	payload := "UPDATE_USER|" + string(commandBytes)
-	_, _, err := sendRequest(payload)
+	_, _, err := sendRequest(payload, auditClient)
 
 	if err == nil && cents != 0 {
 		auditClient.LogAccountTransaction(userID, int64(cents))
@@ -93,7 +94,7 @@ func UpdateUser(userID string, stock string, amount int, cents int, auditClient 
 }
 
 // CreateTrigger takes a trigger struct and creates a trigger in the database
-func CreateTrigger(trigger modelsdata.Trigger) error {
+func CreateTrigger(trigger modelsdata.Trigger, auditClient *auditclient.AuditClient) error {
 	triggerBytes, jsonErr := json.Marshal(trigger)
 	if jsonErr != nil {
 		return jsonErr
@@ -101,16 +102,16 @@ func CreateTrigger(trigger modelsdata.Trigger) error {
 	triggerJSON := string(triggerBytes)
 
 	payload := "CREATE_TRIGGER|" + triggerJSON
-	_, _, err := sendRequest(payload)
+	_, _, err := sendRequest(payload, auditClient)
 	return err
 }
 
 // ReadTriggers reads all triggers from the database
-func ReadTriggers() ([]modelsdata.Trigger, error) {
+func ReadTriggers(auditClient *auditclient.AuditClient) ([]modelsdata.Trigger, error) {
 	triggers := make([]modelsdata.Trigger, 0)
 
 	payload := "READ_TRIGGERS"
-	_, message, err := sendRequest(payload)
+	_, message, err := sendRequest(payload, auditClient)
 	if err != nil {
 		return triggers, err
 	}
@@ -124,11 +125,11 @@ func ReadTriggers() ([]modelsdata.Trigger, error) {
 }
 
 // ReadTriggersByUser takes a userID and reads all assosiated triggers from the database
-func ReadTriggersByUser(userID string) ([]modelsdata.Trigger, error) {
+func ReadTriggersByUser(userID string, auditClient *auditclient.AuditClient) ([]modelsdata.Trigger, error) {
 	triggers := make([]modelsdata.Trigger, 0)
 
 	payload := "READ_TRIGGERS|" + userID
-	_, message, err := sendRequest(payload)
+	_, message, err := sendRequest(payload, auditClient)
 	if err != nil {
 		return triggers, err
 	}
@@ -142,7 +143,7 @@ func ReadTriggersByUser(userID string) ([]modelsdata.Trigger, error) {
 }
 
 // ReadTrigger takes the primary key attributes for a trigger and reads a trigger from the database
-func ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigger, error) {
+func ReadTrigger(userID string, stockName string, isSell bool, auditClient *auditclient.AuditClient) (modelsdata.Trigger, error) {
 	commandBytes, jsonErr := json.Marshal(
 		modelsdata.ChooseTriggerCommand{
 			UserID: userID,
@@ -156,7 +157,7 @@ func ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigg
 	}
 
 	payload := "READ_TRIGGER|" + string(commandBytes)
-	_, message, err := sendRequest(payload)
+	_, message, err := sendRequest(payload, auditClient)
 	if err != nil {
 		return modelsdata.Trigger{}, err
 	}
@@ -172,7 +173,7 @@ func ReadTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigg
 
 // DeleteTrigger takes the primary key attributes of a trigger and deletes the corresponding trigger in the database
 // it returns the successfully deleted trigger
-func DeleteTrigger(userID string, stockName string, isSell bool) (modelsdata.Trigger, error) {
+func DeleteTrigger(userID string, stockName string, isSell bool, auditClient *auditclient.AuditClient) (modelsdata.Trigger, error) {
 	commandBytes, jsonErr := json.Marshal(
 		modelsdata.ChooseTriggerCommand{
 			UserID: userID,
@@ -186,7 +187,7 @@ func DeleteTrigger(userID string, stockName string, isSell bool) (modelsdata.Tri
 	}
 
 	payload := "DELETE_TRIGGER|" + string(commandBytes)
-	_, message, err := sendRequest(payload)
+	_, message, err := sendRequest(payload, auditClient)
 
 	if err != nil {
 		return modelsdata.Trigger{}, err
@@ -202,7 +203,7 @@ func DeleteTrigger(userID string, stockName string, isSell bool) (modelsdata.Tri
 }
 
 // UpdateTriggerPrice updates the price at which a trigger will fire for its stock
-func UpdateTriggerPrice(userID string, stock string, isSell bool, price uint64) error {
+func UpdateTriggerPrice(userID string, stock string, isSell bool, price uint64, auditClient *auditclient.AuditClient) error {
 	commandBytes, jsonErr := json.Marshal(
 		modelsdata.UpdateTriggerPriceCommand{
 			UserID: userID,
@@ -217,12 +218,12 @@ func UpdateTriggerPrice(userID string, stock string, isSell bool, price uint64) 
 	}
 
 	payload := "UPDATE_TRIGGER_PRICE|" + string(commandBytes)
-	_, _, err := sendRequest(payload)
+	_, _, err := sendRequest(payload, auditClient)
 	return err
 }
 
 // UpdateTriggerAmount updates the amount of cents worth of a stock a trigger will buy or sell if it's price condition is met
-func UpdateTriggerAmount(userID string, stock string, isSell bool, amount uint64) error {
+func UpdateTriggerAmount(userID string, stock string, isSell bool, amount uint64, auditClient *auditclient.AuditClient) error {
 	commandBytes, jsonErr := json.Marshal(
 		modelsdata.UpdateTriggerAmountCommand{
 			UserID: userID,
@@ -237,12 +238,12 @@ func UpdateTriggerAmount(userID string, stock string, isSell bool, amount uint64
 	}
 
 	payload := "UPDATE_TRIGGER_AMOUNT|" + string(commandBytes)
-	_, _, err := sendRequest(payload)
+	_, _, err := sendRequest(payload, auditClient)
 	return err
 }
 
 // PushUserBuy adds a buy to a users stack
-func PushUserBuy(userID string, stock string, cents uint64, numStock uint64) error {
+func PushUserBuy(userID string, stock string, cents uint64, numStock uint64, auditClient *auditclient.AuditClient) error {
 	commandBytes, jsonErr := json.Marshal(
 		modelsdata.PushUserReserveCommand{
 			UserID:   userID,
@@ -257,15 +258,15 @@ func PushUserBuy(userID string, stock string, cents uint64, numStock uint64) err
 	}
 
 	payload := "PUSH_USER_BUY|" + string(commandBytes)
-	_, _, err := sendRequest(payload)
+	_, _, err := sendRequest(payload, auditClient)
 	return err
 }
 
 // PopUserBuy pops a buy from the users stack, it will return the not found error
 // if either the user is not found, or they have no valid buys in their stack
-func PopUserBuy(userID string) (modelsdata.Reserve, error) {
+func PopUserBuy(userID string, auditClient *auditclient.AuditClient) (modelsdata.Reserve, error) {
 	payload := "POP_USER_BUY|" + userID
-	_, message, err := sendRequest(payload)
+	_, message, err := sendRequest(payload, auditClient)
 	if err != nil {
 		return modelsdata.Reserve{}, err
 	}
@@ -280,7 +281,7 @@ func PopUserBuy(userID string) (modelsdata.Reserve, error) {
 }
 
 // PushUserSell adds a sell to a users stack
-func PushUserSell(userID string, stock string, cents uint64, numStock uint64) error {
+func PushUserSell(userID string, stock string, cents uint64, numStock uint64, auditClient *auditclient.AuditClient) error {
 	commandBytes, jsonErr := json.Marshal(
 		modelsdata.PushUserReserveCommand{
 			UserID:   userID,
@@ -295,15 +296,15 @@ func PushUserSell(userID string, stock string, cents uint64, numStock uint64) er
 	}
 
 	payload := "PUSH_USER_SELL|" + string(commandBytes)
-	_, _, err := sendRequest(payload)
+	_, _, err := sendRequest(payload, auditClient)
 	return err
 }
 
 // PopUserSell pops a sell from the users stack, it will return the not found error
 // if either the user is not found, or they have no valid sells in their stack
-func PopUserSell(userID string) (modelsdata.Reserve, error) {
+func PopUserSell(userID string, auditClient *auditclient.AuditClient) (modelsdata.Reserve, error) {
 	payload := "POP_USER_SELL|" + userID
-	_, message, err := sendRequest(payload)
+	_, message, err := sendRequest(payload, auditClient)
 	if err != nil {
 		return modelsdata.Reserve{}, err
 	}
@@ -317,7 +318,10 @@ func PopUserSell(userID string) (modelsdata.Reserve, error) {
 	return sellReserve, nil
 }
 
-func sendRequest(payload string) (int, string, error) {
+func sendRequest(payload string, auditClient *auditclient.AuditClient) (int, string, error) {
+
+	payload = fmt.Sprintf("%d|%s", auditClient.TransactionNum, payload)
+
 	// Send Payload
 	status, message, err := lib.ClientSendRequest(serverurls.Env.DataServer, payload)
 

@@ -73,14 +73,16 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(status)
 	if err != nil {
+		auditClient.LogDebugEvent(strconv.Itoa(status) + err.Error())
 		w.Write([]byte(err.Error()))
 	} else {
+		auditClient.LogDebugEvent(strconv.Itoa(status) + message)
 		w.Write([]byte(message))
 	}
 	if lib.DebuggingEnabled {
 		auditClient.LogPerformanceMetric(auditclient.PerformanceMetricInfo{
 			AcceptTimestamp: acceptTime,
-			CloseTimestamp:  lib.GetUnixTimestamp(),
+			CloseTimestamp:  lib.GetUnixTimestamp() - acceptTime,
 		})
 	}
 }
