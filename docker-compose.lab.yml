@@ -1,69 +1,94 @@
 version: "3"
 services:
-    web:
-        build:
-            dockerfile: docker-files/lab/Dockerfile.web
-        environment:
-            - ENV=LAB
-            - NAME=web
+  web:
+    build:
+      dockerfile: docker-files/lab/Dockerfile.web
+    environment:
+      - ENV=LAB
+      - NAME=web
 
-    web2:
-        container_name: "web-server2"
-        build:
-            context: .
-            dockerfile: docker-files/lab/Dockerfile.web
-        environment:
-            - ENV=LAB
-            - NAME=web2
-        ulimits:
-            nofile:
-                soft: 65536
-                hard: 65536
+  # web2:
+  #   container_name: "web-server2"
+  #   build:
+  #     context: .
+  #     dockerfile: docker-files/lab/Dockerfile.web
+  #   environment:
+  #     - ENV=LAB
+  #     - NAME=web2
+  #   ulimits:
+  #     nofile:
+  #       soft: 65536
+  #       hard: 65536
 
-    transaction:
-        depends_on:
-            - data
-            - quote-cache
-        build:
-            dockerfile: docker-files/lab/Dockerfile.transaction
-        ports:
-            - "44411:5000"
-        environment:
-            - ENV=LAB
+  transaction:
+    container_name: "transaction-server"
+    depends_on:
+      - data
+      - quote-cache
+    build:
+      dockerfile: docker-files/lab/Dockerfile.transaction
+    environment:
+      - ENV=LAB
+      - NAME=transaction
 
-    quote-cache:
-        build:
-            dockerfile: docker-files/lab/Dockerfile.quote-cache
-        environment:
-            - ENV=LAB
+  # transaction2:
+  #   container_name: "transaction-server2"
+  #   depends_on:
+  #     - data
+  #     - quote-cache
+  #   build:
+  #     context: .
+  #     dockerfile: docker-files/lab/Dockerfile.transaction
+  #   environment:
+  #     - ENV=LAB
+  #     - NAME=transaction2
 
-    data:
-        build:
-            dockerfile: docker-files/lab/Dockerfile.data
-        ports:
-            - "44413:5001"
-        environment:
-            - ENV=LAB
+  quote-cache:
+    build:
+      dockerfile: docker-files/lab/Dockerfile.quote-cache
+    environment:
+      - ENV=LAB
 
-    audit:
-        ports:
-            - "44412:5002"
-        build:
-            dockerfile: docker-files/lab/Dockerfile.audit
-        environment:
-            - ENV=LAB
+  data:
+    build:
+      dockerfile: docker-files/lab/Dockerfile.data
+    ports:
+      - "44413:5001"
+    environment:
+      - ENV=LAB
 
-    load:
-        container_name: "load-balancer"
-        depends_on:
-            - web
-            - web2
-        build:
-            context: .
-            dockerfile: ./loadbalancer/Dockerfile
-        ports:
-            - "44410:80"
-        ulimits:
-            nofile:
-                soft: 65536
-                hard: 65536
+  audit:
+    ports:
+      - "44412:5002"
+    build:
+      dockerfile: docker-files/lab/Dockerfile.audit
+    environment:
+      - ENV=LAB
+  # load:
+  #   container_name: "load-balancer"
+  #   depends_on:
+  #     - web
+  #     - web2
+  #   build:
+  #     context: .
+  #     dockerfile: ./loadbalancer/Dockerfile
+  #   ports:
+  #     - "44410:80"
+  #   ulimits:
+  #     nofile:
+  #       soft: 65536
+  #       hard: 65536
+  # load-transaction:
+  #   container_name: "load-balancer-transaction"
+  #   depends_on:
+  #     - transaction
+  #     - transaction2
+  #   build:
+  #     context: .
+  #     dockerfile: ./transaction-loadbalancer/Dockerfile
+  #   ports:
+  #     - "44411:8080"
+  #   ulimits:
+  #     nofile:
+  #       soft: 65536
+  #       hard: 65536

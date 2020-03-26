@@ -1,49 +1,79 @@
 version: "3"
 services:
-    web:
-        environment:
-            - ENV=DEV
-        ports:
-            - "8080:8080"
-        # These limits only apply when 'docker-compose --compatibility' flag is used
-        deploy:
-            resources:
-                limits:
-                    cpus: "0.5"
-                    memory: "100M"
+  load-web:
+    environment:
+      - ENV=DEV
+    ports:
+      - "8080:8080"
 
-    transaction:
-        ports:
-            - "5000:5000"
-        environment:
-            - ENV=DEV
+  load-transaction:
+    environment:
+      - ENV=DEV
+    ports:
+      - "5000:8080"
 
-    data:
-        ports:
-            - "5001:5001"
-        environment:
-            - ENV=DEV
+  web:
+    environment:
+      - ENV=DEV
+    ports:
+      - "5005:8080"
+    # These limits only apply when 'docker-compose --compatibility' flag is used
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "100M"
 
-    audit:
-        ports:
-            - "5002:5002"
-        environment:
-            - ENV=DEV
+  web2:
+    environment:
+      - ENV=DEV
+    ports:
+      - "5006:8080"
+    # These limits only apply when 'docker-compose --compatibility' flag is used
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "100M"
 
-    quote-cache:
-        ports:
-            - "5004:5004"
-        environment:
-            - ENV=DEV
+  transaction:
+    ports:
+      - "5007:5000"
+    environment:
+      - ENV=DEV
 
-    dataDB:
-        ports:
-            - "27017:27017"
+  transaction2:
+    ports:
+      - "5008:5000"
+    environment:
+      - ENV=DEV
 
-    auditDB:
-        ports:
-            - "5003:27017"
+  data:
+    ports:
+      - "5001:5001"
+    environment:
+      - ENV=DEV
 
-    quote-mock:
-        ports:
-            - "4443:4443"
+  audit:
+    ports:
+      - "5002:5002"
+    environment:
+      - ENV=DEV
+
+  quote-cache:
+    ports:
+      - "5004:5004"
+    environment:
+      - ENV=DEV
+
+  dataDB:
+    ports:
+      - "27017:27017"
+
+  auditDB:
+    ports:
+      - "5003:27017"
+
+  quote-mock:
+    ports:
+      - "4443:4443"
