@@ -16,7 +16,7 @@ services:
     container_name: "web-server2"
     build:
       context: .
-      dockerfile: docker-files/lab/Dockerfile.web
+      dockerfile: docker-files/local/Dockerfile.web
     environment:
       - ENV=DOCKER
       - NAME=web2
@@ -32,6 +32,7 @@ services:
       dockerfile: docker-files/local/Dockerfile.transaction
     environment:
       - ENV=DOCKER
+      - CHECK_TRIGGERS=YES
     ulimits:
       nofile:
         soft: 65536
@@ -44,7 +45,7 @@ services:
       - quote-cache
     build:
       context: .
-      dockerfile: docker-files/lab/Dockerfile.transaction
+      dockerfile: docker-files/local/Dockerfile.transaction
     environment:
       - ENV=DOCKER
       - NAME=transaction2

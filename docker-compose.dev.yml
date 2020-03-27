@@ -4,13 +4,13 @@ services:
     environment:
       - ENV=DEV
     ports:
-      - "8080:8080"
+      - "44410:80"
 
   load-transaction:
     environment:
       - ENV=DEV
     ports:
-      - "5000:8080"
+      - "44411:8080"
 
   web:
     environment:

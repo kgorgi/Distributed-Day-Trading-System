@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
@@ -66,7 +67,10 @@ func main() {
 		Command:        "",
 	}
 
-	go checkTriggers(auditclient)
+	_, check := os.LookupEnv("CHECK_TRIGGERS")
+	if check {
+		go checkTriggers(auditclient)
+	}
 
 	ln, _ := net.Listen("tcp", ":5000")
 	fmt.Println("Started transaction server on port: 5000")
