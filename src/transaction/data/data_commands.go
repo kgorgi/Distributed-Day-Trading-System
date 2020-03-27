@@ -1,4 +1,4 @@
-package modelsdata
+package data
 
 // UpdateUserCommand should be passed to the data server with the Command "UPDATE_USER"
 type UpdateUserCommand struct {

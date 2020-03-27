@@ -15,7 +15,7 @@ services:
 
     transaction:
         depends_on:
-            - data
+            - dataDB
             - audit
             - quote-cache
 
@@ -27,9 +27,5 @@ services:
             - audit
 
     quote-cache:
-        depends_on:
-            - audit
-
-    data:
         depends_on:
             - audit

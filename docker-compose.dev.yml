@@ -18,12 +18,6 @@ services:
         environment:
             - ENV=DEV
 
-    data:
-        ports:
-            - "5001:5001"
-        environment:
-            - ENV=DEV
-
     audit:
         ports:
             - "5002:5002"

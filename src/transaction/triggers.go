@@ -7,20 +7,19 @@ import (
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
-	dataclient "extremeWorkload.com/daytrader/lib/data"
-	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
+	"extremeWorkload.com/daytrader/transaction/data"
 )
 
-func buyTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *auditclient.AuditClient) error {
+func buyTrigger(trigger data.Trigger, stockPrice uint64, auditClient *auditclient.AuditClient) error {
 	numOfStocks := trigger.Amount_Cents / stockPrice
 	moneyToAdd := trigger.Amount_Cents - (stockPrice * numOfStocks)
 
-	updateErr := dataclient.UpdateUser(trigger.User_Command_ID, trigger.Stock, int(numOfStocks), int(moneyToAdd), auditClient)
+	updateErr := data.UpdateUser(trigger.User_Command_ID, trigger.Stock, int(numOfStocks), int(moneyToAdd), auditClient)
 	if updateErr != nil {
 		return updateErr
 	}
 
-	_, deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell, auditClient)
+	_, deleteErr := data.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
 	if deleteErr != nil {
 		return deleteErr
 	}
@@ -28,16 +27,16 @@ func buyTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *audi
 	return nil
 }
 
-func sellTrigger(trigger modelsdata.Trigger, stockPrice uint64, auditClient *auditclient.AuditClient) error {
+func sellTrigger(trigger data.Trigger, stockPrice uint64, auditClient *auditclient.AuditClient) error {
 	stocksInReserve := trigger.Amount_Cents / trigger.Price_Cents
 	moneyToAdd := stockPrice * stocksInReserve
 
-	updateErr := dataclient.UpdateUser(trigger.User_Command_ID, "", 0, int(moneyToAdd), auditClient)
+	updateErr := data.UpdateUser(trigger.User_Command_ID, "", 0, int(moneyToAdd), auditClient)
 	if updateErr != nil {
 		return updateErr
 	}
 
-	_, deleteErr := dataclient.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell, auditClient)
+	_, deleteErr := data.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
 	if deleteErr != nil {
 		return deleteErr
 	}
@@ -49,11 +48,11 @@ func checkTriggers(auditClient *auditclient.AuditClient) {
 	for {
 		lib.Debugln("Checking Triggers")
 
-		triggers, err := dataclient.ReadTriggers(auditClient)
+		triggers, err := data.ReadTriggers()
 		for err != nil {
 			fmt.Println("Something went wrong, trying again in 10 seconds")
 			time.Sleep(10 * time.Second)
-			triggers, err = dataclient.ReadTriggers(auditClient)
+			triggers, err = data.ReadTriggers()
 		}
 
 		lib.Debugln(strconv.Itoa(len(triggers)) + " Triggers have been fetched, analysing")

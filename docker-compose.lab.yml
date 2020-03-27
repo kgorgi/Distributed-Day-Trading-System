@@ -37,14 +37,6 @@ services:
         environment:
             - ENV=LAB
 
-    data:
-        build:
-            dockerfile: docker-files/lab/Dockerfile.data
-        ports:
-            - "44413:5001"
-        environment:
-            - ENV=LAB
-
     audit:
         ports:
             - "44412:5002"

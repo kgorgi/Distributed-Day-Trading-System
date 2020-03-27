@@ -9,6 +9,7 @@ import (
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 	"extremeWorkload.com/daytrader/lib/perftools"
 	"extremeWorkload.com/daytrader/lib/security"
+	"extremeWorkload.com/daytrader/transaction/data"
 
 	"extremeWorkload.com/daytrader/lib"
 )
@@ -59,6 +60,8 @@ func handleWebConnection(queue chan *perftools.PerfConn) {
 func main() {
 	fmt.Println("Starting transaction server...")
 	security.InitCryptoKey()
+
+	data.InitDatabaseConnection(true)
 
 	var auditclient = auditclient.AuditClient{
 		Server:         "transaction",
