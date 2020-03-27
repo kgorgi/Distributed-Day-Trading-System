@@ -17,7 +17,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-const dbPoolCount = 500
+const dbPoolCount = 100
 
 var client *mongo.Client
 

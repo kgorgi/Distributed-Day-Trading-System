@@ -12,10 +12,6 @@ services:
         environment:
             - ENV=DEV-LAB
 
-    data:
-        environment:
-            - ENV=DEV-LAB
-
     audit:
         environment:
             - ENV=DEV-LAB
