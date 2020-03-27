@@ -60,25 +60,34 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 	var err error
 	var status int
 
-	isValid, status, message := validateParameters(command)
-	if isValid {
+	err = validateParameters(command)
+
+	if err != nil {
+		auditClient.LogErrorEvent("Invalid parameters for user")
+		status = lib.StatusUserError
+	} else {
 		if command["command"] == "DUMPLOG" {
 			status, message, err = auditClient.DumpLogAll()
 		} else {
 			var transactionClient TransactionClient
 			status, message, err = transactionClient.SendCommand(command)
 		}
-
 	}
 
 	w.WriteHeader(status)
+	var bytes []byte
 	if err != nil {
-		auditClient.LogDebugEvent(strconv.Itoa(status) + err.Error())
-		w.Write([]byte(err.Error()))
+		auditClient.LogErrorEvent(strconv.Itoa(status) + err.Error())
+		bytes = []byte(err.Error())
 	} else {
-		auditClient.LogDebugEvent(strconv.Itoa(status) + message)
-		w.Write([]byte(message))
+		bytes = []byte(message)
 	}
+
+	_, err = w.Write(bytes)
+	if err != nil {
+		auditClient.LogErrorEvent(err.Error())
+	}
+
 	if lib.DebuggingEnabled {
 		auditClient.LogPerformanceMetric(auditclient.PerformanceMetricInfo{
 			AcceptTimestamp: acceptTime,

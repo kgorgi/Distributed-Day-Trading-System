@@ -1,10 +1,9 @@
 package main
 
 import (
+	"errors"
 	"regexp"
 	"strconv"
-
-	"extremeWorkload.com/daytrader/lib"
 )
 
 var noStockSymbolParameter = make(map[string]bool)
@@ -33,42 +32,42 @@ var isAlphanumeric = regexp.MustCompile(`^[A-Za-z0-9]+$`).MatchString
 var isStockSymbol = regexp.MustCompile(`^[A-Z][A-Z]?[A-Z]?$`).MatchString
 var isAmount = regexp.MustCompile(`^[0-9]+\.[0-9][0-9]$`).MatchString
 
-func validateParameters(commandMap map[string]string) (bool, int, string) {
-	if commandMap["command"] == "DUMPLOG" {
-		return true, lib.StatusOk, ""
+func validateParameters(commandMap map[string]string) error {
+	if commandMap["command"] == "DUMPLOG" && commandMap["userid"] == "" {
+		return nil
 	}
 
 	// Check userID has valid characters
 	if !isAlphanumeric(commandMap["userid"]) {
-		return false, lib.StatusUserError, "Invalid userid"
+		return errors.New("Invalid userid")
 	}
 
 	// Validate StockSymbol
 	if _, ok := noStockSymbolParameter[commandMap["command"]]; !ok {
 		if !isStockSymbol(commandMap["stockSymbol"]) {
-			return false, lib.StatusUserError, "Invalid stockSymbol"
+			return errors.New("Invalid stockSymbol")
 		}
 	}
 
 	// Validate Amount
 	if _, ok := noAmountParameter[commandMap["command"]]; !ok {
 		if !isAmount(commandMap["amount"]) {
-			return false, lib.StatusUserError, "Invalid amount"
+			return errors.New("Invalid amount")
 		}
 
 		amount, err := strconv.ParseFloat(commandMap["amount"], 64)
 		if err != nil {
-			return false, lib.StatusUserError, "Invalid amount"
+			return errors.New("Invalid amount")
 		}
 
 		if amount == 0 {
-			return false, lib.StatusUserError, "Amount cannot be zero"
+			return errors.New("Amount cannot be zero")
 		}
 
 		if amount <= 0 {
-			return false, lib.StatusUserError, "Amount cannot be less than zero"
+			return errors.New("Amount cannot be less than zero")
 		}
 	}
 
-	return true, lib.StatusOk, ""
+	return nil
 }
