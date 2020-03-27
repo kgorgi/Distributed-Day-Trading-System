@@ -69,7 +69,8 @@ func main() {
 
 	_, check := os.LookupEnv("CHECK_TRIGGERS")
 	if check {
-		go checkTriggers(auditclient)
+		go checkTriggers(&auditclient)
+	}
 
 	ln, err := net.Listen("tcp", ":5000")
 	if err != nil {
