@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
+	"extremeWorkload.com/daytrader/lib/perftools"
 	"extremeWorkload.com/daytrader/lib/security"
 
 	"extremeWorkload.com/daytrader/lib"
@@ -23,10 +24,9 @@ type CommandJSON struct {
 
 const threadCount = 1000
 
-func handleWebConnection(queue chan net.Conn) {
+func handleWebConnection(queue chan *perftools.PerfConn) {
 	for {
 		conn := <-queue
-		lib.Debugln("Handling Request")
 
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
@@ -48,11 +48,11 @@ func handleWebConnection(queue chan net.Conn) {
 			Command:        commandJSON.Command,
 			TransactionNum: transactionNum,
 		}
+		conn.SetAuditClient(&auditClient)
 
 		processCommand(conn, commandJSON, auditClient)
 
 		conn.Close()
-		lib.Debugln("Connection Closed")
 	}
 
 }
@@ -70,12 +70,15 @@ func main() {
 	_, check := os.LookupEnv("CHECK_TRIGGERS")
 	if check {
 		go checkTriggers(auditclient)
+
+	ln, err := net.Listen("tcp", ":5000")
+	if err != nil {
+		panic(err.Error())
 	}
 
-	ln, _ := net.Listen("tcp", ":5000")
 	fmt.Println("Started transaction server on port: 5000")
 
-	queue := make(chan net.Conn, threadCount*10)
+	queue := make(chan *perftools.PerfConn, threadCount*10)
 
 	for i := 0; i < threadCount; i++ {
 		go handleWebConnection(queue)
@@ -84,7 +87,7 @@ func main() {
 	for {
 		conn, err := ln.Accept()
 		if err == nil {
-			queue <- conn
+			queue <- perftools.NewPerfConn(conn)
 		}
 	}
 }

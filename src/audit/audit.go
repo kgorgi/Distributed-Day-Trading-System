@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
@@ -58,7 +60,6 @@ func main() {
 func handleConnection(queue chan net.Conn) {
 	for {
 		conn := <-queue
-		lib.Debugln("Handling Request")
 
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
@@ -81,7 +82,6 @@ func handleConnection(queue chan net.Conn) {
 		}
 
 		conn.Close()
-		lib.Debugln("Connection Closed")
 	}
 }
 
@@ -102,7 +102,13 @@ func setupIndexes(client *mongo.Client) {
 }
 
 func connectToMongo() (*mongo.Client, error) {
-	clientOptions := options.Client().ApplyURI(serverurls.Env.AuditDBServer)
+	name, nameOk := os.LookupEnv("USER_NAME")
+	pass, passOk := os.LookupEnv("USER_PASS")
+	if !nameOk || !passOk {
+		return nil, errors.New("Environment Variables for mongo auth were not set properly")
+	}
+
+	clientOptions := options.Client().ApplyURI(serverurls.Env.AuditDBServer).SetAuth(options.Credential{AuthSource: "audit", Username: name, Password: pass})
 	clientOptions.SetMaxPoolSize(dbPoolCount)
 	clientOptions.SetMinPoolSize(dbPoolCount)
 

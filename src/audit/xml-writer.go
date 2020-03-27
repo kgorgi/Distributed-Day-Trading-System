@@ -55,6 +55,13 @@ func writeDebugEventTags(str *strings.Builder, info auditclient.DebugEventInfo) 
 	writeStringTag(str, "debugMessage", info.DebugMessage)
 }
 
+func writePerfMetricTags(str *strings.Builder, info auditclient.PerformanceMetricInfo) {
+	writeStringTag(str, "acceptTimestamp", strconv.FormatUint(info.AcceptTimestamp, 10))
+	writeStringTag(str, "readTimestamp", strconv.FormatUint(info.ReadTimestamp, 10))
+	writeStringTag(str, "writeTimestamp", strconv.FormatUint(info.WriteTimestamp, 10))
+	writeStringTag(str, "closeTimestamp", strconv.FormatUint(info.CloseTimestamp, 10))
+}
+
 func writeOptionalDecimalTag(str *strings.Builder, tag string, amount *uint64) {
 	if amount != nil {
 		writeDecimalTag(str, tag, *amount)

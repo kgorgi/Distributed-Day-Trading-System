@@ -5,9 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
+	"strconv"
+	"strings"
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
+	"extremeWorkload.com/daytrader/lib/perftools"
 	"extremeWorkload.com/daytrader/lib/security"
 	"extremeWorkload.com/daytrader/lib/serverurls"
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,20 +27,28 @@ var auditClient = auditclient.AuditClient{
 
 const threadCount = 1000
 
-func handleConnection(queue chan net.Conn, client *mongo.Client) {
+func handleConnection(queue chan *perftools.PerfConn, client *mongo.Client) {
 	for {
 		conn := <-queue
-		lib.Debugln("Handling Request")
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
 			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
 			return
 		}
 
-		processCommand(conn, client, payload)
-		conn.Close()
+		splitPayload := strings.Split(payload, "|")
 
-		lib.Debugln("Connection Closed")
+		transactionNum, _ := strconv.ParseUint(splitPayload[0], 10, 64)
+
+		var auditClient = auditclient.AuditClient{
+			Server:         "data",
+			Command:        splitPayload[1],
+			TransactionNum: transactionNum,
+		}
+		conn.SetAuditClient(&auditClient)
+
+		processCommand(conn, client, splitPayload[1:])
+		conn.Close()
 	}
 
 }
@@ -76,8 +88,14 @@ func main() {
 	fmt.Println("Starting data server...")
 	security.InitCryptoKey()
 
+	name, nameOk := os.LookupEnv("USER_NAME")
+	pass, passOk := os.LookupEnv("USER_PASS")
+	if !nameOk || !passOk {
+		log.Fatal("Environment Variables for mongo auth were not set properly")
+	}
+
 	//hookup to mongo
-	clientOptions := options.Client().ApplyURI(serverurls.Env.DataDBServer)
+	clientOptions := options.Client().ApplyURI(serverurls.Env.DataDBServer).SetAuth(options.Credential{AuthSource: "extremeworkload", Username: name, Password: pass})
 	clientOptions.SetMaxPoolSize(dbPoolCount)
 	clientOptions.SetMinPoolSize(dbPoolCount)
 
@@ -103,7 +121,7 @@ func main() {
 	}
 	fmt.Println("Started data server on port: 5001")
 
-	queue := make(chan net.Conn, threadCount*10)
+	queue := make(chan *perftools.PerfConn, threadCount*10)
 
 	for i := 0; i < threadCount; i++ {
 		go handleConnection(queue, client)
@@ -112,7 +130,7 @@ func main() {
 	for {
 		conn, err := ln.Accept()
 		if err == nil {
-			queue <- conn
+			queue <- perftools.NewPerfConn(conn)
 		}
 	}
 }

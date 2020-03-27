@@ -33,6 +33,7 @@ func parseCommandRequest(r *http.Request) map[string]string {
 
 // Creates a route method. Whenever the route is called, it always uses the same socket
 func commandRoute(w http.ResponseWriter, r *http.Request) {
+	acceptTime := lib.GetUnixTimestamp()
 	command := parseCommandRequest(r)
 
 	var auditClient = auditclient.AuditClient{
@@ -60,24 +61,29 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 	var status int
 
 	isValid, status, message := validateParameters(command)
-	if !isValid {
-		w.WriteHeader(status)
-		w.Write([]byte(message))
-		return
-	}
+	if isValid {
+		if command["command"] == "DUMPLOG" {
+			status, message, err = auditClient.DumpLogAll()
+		} else {
+			var transactionClient TransactionClient
+			status, message, err = transactionClient.SendCommand(command)
+		}
 
-	if command["command"] == "DUMPLOG" {
-		status, message, err = auditClient.DumpLogAll()
-	} else {
-		var transactionClient TransactionClient
-		status, message, err = transactionClient.SendCommand(command)
 	}
 
 	w.WriteHeader(status)
 	if err != nil {
+		auditClient.LogDebugEvent(strconv.Itoa(status) + err.Error())
 		w.Write([]byte(err.Error()))
 	} else {
+		auditClient.LogDebugEvent(strconv.Itoa(status) + message)
 		w.Write([]byte(message))
+	}
+	if lib.DebuggingEnabled {
+		auditClient.LogPerformanceMetric(auditclient.PerformanceMetricInfo{
+			AcceptTimestamp: acceptTime,
+			CloseTimestamp:  lib.GetUnixTimestamp() - acceptTime,
+		})
 	}
 }
 

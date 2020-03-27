@@ -176,6 +176,20 @@ func (client *AuditClient) LogDebugEvent(debugMessage string) {
 	client.sendLogs(payload)
 }
 
+// LogPerformanceMetric sends perf metric to audit server
+func (client *AuditClient) LogPerformanceMetric(perfInfo PerformanceMetricInfo) {
+	var internalInfo = client.generateInternalInfo("perfMetric", true)
+	payload := struct {
+		*InternalLogInfo
+		*PerformanceMetricInfo
+	}{
+		&internalInfo,
+		&perfInfo,
+	}
+
+	client.sendLogs(payload)
+}
+
 func (client *AuditClient) sendLogs(data interface{}) {
 	// Convert JSON to Payload
 	jsonText, err := json.Marshal(data)
@@ -206,17 +220,12 @@ func (client *AuditClient) generateInternalInfo(logType string, withCommand bool
 }
 
 func (client *AuditClient) sendRequest(payload string) (int, string, error) {
-	// Establish Connection to Audit Server
-	conn, err := net.Dial("tcp", serverurls.Env.AuditServer)
+	// Send Payload
+	status, message, err := lib.ClientSendRequest(serverurls.Env.AuditServer, payload)
 	if err != nil {
+		log.Println("Connection Error: " + err.Error())
 		return -1, "", err
 	}
-
-	// Send Payload
-	status, message, err := lib.ClientSendRequest(conn, payload)
-
-	conn.Close()
-
 	return status, message, nil
 }
 

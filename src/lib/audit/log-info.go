@@ -43,3 +43,11 @@ type ErrorEventInfo struct {
 type DebugEventInfo struct {
 	DebugMessage string `json:"debugMessage" bson:"debugMessage"`
 }
+
+// PerformanceMetricInfo audit message for performance timing
+type PerformanceMetricInfo struct {
+	AcceptTimestamp uint64 `json:"acceptTimestamp" bson:"timestamp" xml:"timestamp"`
+	ReadTimestamp   uint64 `json:"readTimestamp" bson:"readTimestamp" xml:"readTimestamp"`
+	WriteTimestamp  uint64 `json:"writeTimestamp" bson:"writeTimestamp" xml:"writeTimestamp"`
+	CloseTimestamp  uint64 `json:"closeTimestamp" bson:"closeTimestamp" xml:"closeTimestamp"`
+}

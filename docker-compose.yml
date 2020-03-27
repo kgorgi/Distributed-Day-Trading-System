@@ -27,6 +27,9 @@ services:
 
   transaction:
     container_name: "transaction-server"
+    depends_on:
+      - data
+      - quote-cache
     build:
       context: .
       dockerfile: docker-files/local/Dockerfile.transaction
@@ -49,6 +52,10 @@ services:
     environment:
       - ENV=DOCKER
       - NAME=transaction2
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
 
   quote-cache:
     container_name: "quote-cache-server"
@@ -71,6 +78,8 @@ services:
       dockerfile: docker-files/local/Dockerfile.data
     environment:
       - ENV=DOCKER
+      - USER_PASS=user
+      - USER_NAME=user
     ulimits:
       nofile:
         soft: 65536
@@ -79,8 +88,13 @@ services:
   dataDB:
     image: mongo:latest
     container_name: "data-mongodb"
+    command: mongod --auth
     environment:
-      MONGO_INITDB_DATABASE: data
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
+      MONGO_INITDB_DATABASE: extremeworkload
+    volumes:
+      - ./data-mongo-init.js:/docker-entrypoint-initdb.d/data-mongo-init.js:ro
     ulimits:
       nofile:
         soft: 65536
@@ -95,6 +109,8 @@ services:
       dockerfile: docker-files/local/Dockerfile.audit
     environment:
       - ENV=DOCKER
+      - USER_PASS=user
+      - USER_NAME=user
     ulimits:
       nofile:
         soft: 65536
@@ -104,7 +120,11 @@ services:
     image: mongo:latest
     container_name: "audit-mongodb"
     environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin
       MONGO_INITDB_DATABASE: audit
+    volumes:
+      - ./audit-mongo-init.js:/docker-entrypoint-initdb.d/audit-mongo-init.js:ro
     ulimits:
       nofile:
         soft: 65536

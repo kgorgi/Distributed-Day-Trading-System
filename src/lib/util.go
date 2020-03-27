@@ -9,7 +9,9 @@ import (
 )
 
 var env = os.Getenv("ENV")
-var debuggingEnabled = env == "" || env == "DEV" || env == "DEV-LAB"
+
+// DebuggingEnabled returns true if debugging should be on
+var DebuggingEnabled = env == "" || env == "DEV" || env == "DEV-LAB"
 
 // IsLab returns true if in the lab environment
 var IsLab = env == "LAB" || env == "DEV-LAB"
@@ -32,7 +34,7 @@ func CentsToDollars(cents uint64) string {
 
 // Debugln only prints to console if environment variable is empty or DEV
 func Debugln(msg string) {
-	if debuggingEnabled {
+	if DebuggingEnabled {
 		fmt.Println(msg)
 	}
 }
