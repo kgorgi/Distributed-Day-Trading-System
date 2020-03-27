@@ -27,10 +27,10 @@ docker:
 # Everything is bound to local ports
 # host.docker.internal is the IP address of the host machine
 dev:
-  web: "host.docker.internal:44410"
+  web: "host.docker.internal:8080"
   audit: "host.docker.internal:5002"
   data: "host.docker.internal:5001"
-  transaction: "host.docker.internal:44411"
+  transaction: "host.docker.internal:5000"
   auditDB: "mongodb://host.docker.internal:5003"
   quoteCache: "host.docker.internal:5004"
   dataDB: "mongodb://host.docker.internal:27017"

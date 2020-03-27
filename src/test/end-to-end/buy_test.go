@@ -12,7 +12,7 @@ import (
 
 var userClient *user.UserClient
 
-const webserverAddress = "https://localhost:44410/"
+const webserverAddress = "https://localhost:8080/"
 
 func TestMain(m *testing.M) {
 	var err error
