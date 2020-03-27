@@ -125,6 +125,10 @@ docker-list:
 docker-shell:
 	docker exec -it $(c) bash
 
+.phony mongo-shell:
+mongo-shell:
+	docker exec -it $(c)-mongodb bash -c "mongo -u admin -p admin"
+
 .phony docker-stop:
 docker-stop:
 	docker stop $(c)
