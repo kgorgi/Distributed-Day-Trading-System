@@ -32,11 +32,26 @@ func CentsToDollars(cents uint64) string {
 	return fmt.Sprintf("%d.%02d", dollars, remainingCents)
 }
 
+// Error writes printf style to StdError
+func Error(format string, a ...interface{}) {
+	fmt.Fprintf(os.Stderr, format, a...)
+}
+
+// Errorln writes a message to StdError
+func Errorln(msg string) {
+	Error("%s\n", msg)
+}
+
+// Debug only prints to console if environment variable is empty or DEV
+func Debug(format string, a ...interface{}) {
+	if DebuggingEnabled {
+		fmt.Printf(format, a...)
+	}
+}
+
 // Debugln only prints to console if environment variable is empty or DEV
 func Debugln(msg string) {
-	if DebuggingEnabled {
-		fmt.Println(msg)
-	}
+	Debug("%s\n", msg)
 }
 
 // GetUnixTimestamp gets the unix time in milliseconds of the server

@@ -35,6 +35,7 @@ func InitDatabaseConnection(initIndexes bool) {
 
 	//hookup to mongo
 	clientOptions := options.Client().ApplyURI(serverurls.Env.DataDBServer).SetAuth(options.Credential{AuthSource: "extremeworkload", Username: name, Password: pass})
+
 	clientOptions.SetMaxPoolSize(dbPoolCount)
 	clientOptions.SetMinPoolSize(dbPoolCount)
 
@@ -251,7 +252,6 @@ func UpdateStockAndCents(commandID string, stock string, amount int, cents int) 
 
 	// If nothing was updated, return an error
 	if result.MatchedCount == 0 || result.ModifiedCount == 0 {
-		fmt.Println("Either the user doesn't exist or they do not have sufficient funds or stock")
 		return ErrNotFound
 	}
 
@@ -282,7 +282,6 @@ func UpdateCents(commandID string, amount int) error {
 	}
 
 	if result.MatchedCount == 0 || result.ModifiedCount == 0 {
-		fmt.Println("The specified user either does not exist or does not have sufficient funds to remove " + string(amount) + " cents")
 		return ErrNotFound
 	}
 
