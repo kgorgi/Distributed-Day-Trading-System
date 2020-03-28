@@ -20,11 +20,7 @@ func buyTrigger(trigger data.Trigger, stockPrice uint64, auditClient *auditclien
 	}
 
 	_, deleteErr := data.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
-	if deleteErr != nil {
-		return deleteErr
-	}
-
-	return nil
+	return deleteErr
 }
 
 func sellTrigger(trigger data.Trigger, stockPrice uint64, auditClient *auditclient.AuditClient) error {
@@ -37,11 +33,7 @@ func sellTrigger(trigger data.Trigger, stockPrice uint64, auditClient *auditclie
 	}
 
 	_, deleteErr := data.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
-	if deleteErr != nil {
-		return deleteErr
-	}
-
-	return nil
+	return deleteErr
 }
 
 func checkTriggers(auditClient *auditclient.AuditClient) {
@@ -65,16 +57,21 @@ func checkTriggers(auditClient *auditclient.AuditClient) {
 				auditClient.Command = "SET_BUY_TRIGGER"
 			}
 
-			stockPrice := GetQuote(trigger.Stock, trigger.User_Command_ID, false, auditClient)
+			stockPrice, err := GetQuote(trigger.Stock, trigger.User_Command_ID, false, auditClient)
+			if err != nil {
+				auditClient.LogErrorEvent(err.Error())
+				continue
+			}
+
 			if trigger.Price_Cents != 0 {
 				if trigger.Is_Sell && stockPrice >= trigger.Price_Cents {
 					if err := sellTrigger(trigger, stockPrice, auditClient); err != nil {
-						fmt.Println(err)
+						auditClient.LogErrorEvent("Sell trigger failed: " + err.Error())
 						continue
 					}
 				} else if !trigger.Is_Sell && stockPrice <= trigger.Price_Cents {
 					if err := buyTrigger(trigger, stockPrice, auditClient); err != nil {
-						fmt.Println(err)
+						auditClient.LogErrorEvent("Buy trigger failed: " + err.Error())
 						continue
 					}
 				}

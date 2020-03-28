@@ -14,6 +14,7 @@ import (
 	"extremeWorkload.com/daytrader/lib"
 )
 
+// CommandJSON is the format the web server sends the request to the data server
 type CommandJSON struct {
 	TransactionNum string
 	Command        string
@@ -100,19 +101,6 @@ func main() {
 		conn, err := ln.Accept()
 		if err == nil {
 			queue <- perftools.NewPerfConn(conn)
-		}
-	}
-}
-
-// ServerSendResponseNoError sends a response to a client and logs all error messages
-func serverSendResponseNoError(conn net.Conn, status int, message string, auditClient *auditclient.AuditClient) {
-	err := lib.ServerSendResponse(conn, status, message)
-	if err != nil {
-		errorMessage := fmt.Sprintf("Failed to send response to %s. %d: %s", conn.RemoteAddr().String(), status, message)
-		lib.Errorln(errorMessage)
-
-		if auditClient != nil {
-			auditClient.LogErrorEvent(errorMessage)
 		}
 	}
 }
