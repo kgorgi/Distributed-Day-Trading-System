@@ -2,6 +2,7 @@ package auditclient
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"net"
@@ -153,9 +154,15 @@ func (client *AuditClient) LogErrorEvent(errorMessage string) {
 
 // SendServerResponseWithErrorEvent sends a log of ErrorEventType to the audit server
 // and sends the error response to the client
-func (client *AuditClient) SendServerResponseWithErrorEvent(conn net.Conn, status int, errorMessage string) {
-	client.LogErrorEvent(errorMessage)
-	lib.ServerSendResponse(conn, status, errorMessage)
+func (client *AuditClient) SendServerResponseWithErrorEvent(conn net.Conn, status int, message string) {
+	err := lib.ServerSendResponse(conn, status, message)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to send response to %s. %d: %s", conn.RemoteAddr().String(), status, message)
+		client.LogErrorEvent(errorMessage)
+	}
+
+	auditErrorMessage := fmt.Sprintf("Response is error %d: %s", status, message)
+	client.LogErrorEvent(auditErrorMessage)
 }
 
 // LogDebugEvent sends a log of DebugEventType to the audit server

@@ -8,7 +8,7 @@ all: build
 
 # Build Commands
 .phony build:
-build: build-web build-transaction build-data build-audit build-generator build-quote-mock build-quote-cache
+build: build-web build-transaction build-audit build-generator build-quote-mock build-quote-cache
 
 .phony build-web:
 build-web: 
@@ -17,10 +17,6 @@ build-web:
 .phony build-transaction:
 build-transaction: 
 	cd $(SRC)/transaction && go build -o $(OUTPUT)/transaction.exe
-
-.phony build-data:
-build-data: 
-	cd $(SRC)/data && go build -o $(OUTPUT)/data.exe
 
 .phony build-audit:
 build-audit: 
@@ -44,16 +40,16 @@ format:
 
 .phony test-e2e:
 test-e2e:
-	cd $(SRC)/test/end-to-end && CLIENT_SSL_CERT_LOCATION=../../../ssl/cert.pem go test -v
+	cd $(SRC)/test/end-to-end && CLIENT_SSL_CERT_LOCATION=../../../ssl/cert.pem URLS_FILE=../../urls.yml go test -v
 
 # Docker Local Deployment Commands
 # set shortcut: doskey dcdev=docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility $*
 
 .phony reset-mongo:
 reset-mongo:
-	docker exec audit-mongodb /bin/sh -c "mongo audit --eval 'db.logs.drop()'"  && \
-	docker exec data-mongodb /bin/sh -c "mongo extremeworkload --eval 'db.users.drop();db.triggers.drop()'" && \
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --force-recreate --no-deps -d audit data
+	docker exec audit-mongodb /bin/sh -c "mongo audit -u user -p user --eval 'db.logs.drop()'"  && \
+	docker exec data-mongodb /bin/sh -c "mongo extremeworkload -u user -p user --eval 'db.users.drop();db.triggers.drop()'" && \
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --force-recreate --no-deps -d audit transaction
 
 .phony docker-deploy-dev:
 docker-deploy-dev:
@@ -84,7 +80,7 @@ docker-deploy-lab-web: build
 
 .phony docker-deploy-lab-transaction:
 docker-deploy-lab-transaction: build
-	$(LAB_DEPLOY) transaction data dataDB quote-cache
+	$(LAB_DEPLOY) transaction dataDB quote-cache
 
 .phony docker-deploy-lab-audit:
 docker-deploy-lab-audit: build
@@ -103,7 +99,7 @@ docker-deploy-dev-lab-web: build
 
 .phony docker-deploy-dev-lab-transaction:
 docker-deploy-dev-lab-transaction: build
-	$(LAB_DEV_DEPLOY) transaction data dataDB quote-cache
+	$(LAB_DEV_DEPLOY) transaction dataDB quote-cache
 
 .phony docker-deploy-dev-lab-audit:
 docker-deploy-dev-lab-audit: build
@@ -128,6 +124,10 @@ docker-list:
 .phony docker-shell:
 docker-shell:
 	docker exec -it $(c) bash
+
+.phony mongo-shell:
+mongo-shell:
+	docker exec -it $(c)-mongodb bash -c "mongo -u admin -p admin"
 
 .phony docker-stop:
 docker-stop:

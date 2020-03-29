@@ -1,16 +1,16 @@
 version: "3"
 services:
-  web:
-    container_name: "web-server"
-    build:
-      context: .
-      dockerfile: docker-files/local/Dockerfile.web
-    environment:
-      - ENV=DOCKER
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
+    web:
+        container_name: "web-server"
+        build:
+            context: .
+            dockerfile: docker-files/local/Dockerfile.web
+        environment:
+            - ENV=DOCKER
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
 
   web2:
     container_name: "web-server2"
@@ -57,48 +57,48 @@ services:
         soft: 65536
         hard: 65536
 
-  quote-cache:
-    container_name: "quote-cache-server"
-    build:
-      context: .
-      dockerfile: docker-files/local/Dockerfile.quote-cache
-    environment:
-      - ENV=DOCKER
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
+    quote-cache:
+        container_name: "quote-cache-server"
+        build:
+            context: .
+            dockerfile: docker-files/local/Dockerfile.quote-cache
+        environment:
+            - ENV=DOCKER
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
 
-  data:
-    container_name: "data-server"
-    depends_on:
-      - dataDB
-    build:
-      context: .
-      dockerfile: docker-files/local/Dockerfile.data
-    environment:
-      - ENV=DOCKER
-      - USER_PASS=user
-      - USER_NAME=user
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
+    dataDB:
+        image: mongo:latest
+        container_name: "data-mongodb"
+        command: mongod --auth
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: admin
+            MONGO_INITDB_ROOT_PASSWORD: admin
+            MONGO_INITDB_DATABASE: extremeworkload
+        volumes:
+            - ./data-mongo-init.js:/docker-entrypoint-initdb.d/data-mongo-init.js:ro
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
 
-  dataDB:
-    image: mongo:latest
-    container_name: "data-mongodb"
-    command: mongod --auth
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: admin
-      MONGO_INITDB_DATABASE: extremeworkload
-    volumes:
-      - ./data-mongo-init.js:/docker-entrypoint-initdb.d/data-mongo-init.js:ro
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
+    audit:
+        container_name: "audit-server"
+        depends_on:
+            - auditDB
+        build:
+            context: .
+            dockerfile: docker-files/local/Dockerfile.audit
+        environment:
+            - ENV=DOCKER
+            - USER_PASS=user
+            - USER_NAME=user
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
 
   audit:
     container_name: "audit-server"
@@ -119,6 +119,7 @@ services:
   auditDB:
     image: mongo:latest
     container_name: "audit-mongodb"
+    command: mongod --auth
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: admin

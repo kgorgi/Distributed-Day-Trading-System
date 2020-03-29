@@ -1,4 +1,4 @@
-package modelsdata
+package data
 
 type Investment struct {
 	Stock  string `json:"stock" bson:"stock" `

@@ -10,10 +10,12 @@ import (
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 	"extremeWorkload.com/daytrader/lib/perftools"
 	"extremeWorkload.com/daytrader/lib/security"
+	"extremeWorkload.com/daytrader/transaction/data"
 
 	"extremeWorkload.com/daytrader/lib"
 )
 
+// CommandJSON is the format the web server sends the request to the data server
 type CommandJSON struct {
 	TransactionNum string
 	Command        string
@@ -30,24 +32,36 @@ func handleWebConnection(queue chan *perftools.PerfConn) {
 
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
+			lib.Errorln("Failed to receive request: " + err.Error())
 			conn.Close()
-			return
+			continue
 		}
 
 		var commandJSON CommandJSON
 		err = json.Unmarshal([]byte(payload), &commandJSON)
 		if err != nil {
+			errorMessage := "Failed to unmarshal JSON: " + err.Error()
+			lib.Errorln(errorMessage)
+			serverSendResponseNoError(conn, lib.StatusSystemError, errorMessage, nil)
 			conn.Close()
-			return
+			continue
 		}
 
-		transactionNum, _ := strconv.ParseUint(commandJSON.TransactionNum, 10, 64)
+		transactionNum, err := strconv.ParseUint(commandJSON.TransactionNum, 10, 64)
+		if err != nil {
+			errorMessage := "Failed to parse transaction number: " + err.Error()
+			lib.Errorln(errorMessage)
+			serverSendResponseNoError(conn, lib.StatusSystemError, errorMessage, nil)
+			conn.Close()
+			continue
+		}
 
 		var auditClient = auditclient.AuditClient{
 			Server:         "transaction",
 			Command:        commandJSON.Command,
 			TransactionNum: transactionNum,
 		}
+
 		conn.SetAuditClient(&auditClient)
 
 		processCommand(conn, commandJSON, auditClient)
@@ -60,6 +74,8 @@ func handleWebConnection(queue chan *perftools.PerfConn) {
 func main() {
 	fmt.Println("Starting transaction server...")
 	security.InitCryptoKey()
+
+	data.InitDatabaseConnection(true)
 
 	var auditclient = auditclient.AuditClient{
 		Server:         "transaction",

@@ -67,6 +67,7 @@ services:
       - ENV=DEV
 
   dataDB:
+    command: mongod --auth --profile 2
     ports:
       - "27017:27017"
 

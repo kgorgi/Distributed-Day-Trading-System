@@ -1,8 +1,8 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"strconv"
 
 	"extremeWorkload.com/daytrader/lib"
@@ -15,7 +15,7 @@ func GetQuote(
 	stockSymbol string,
 	userID string,
 	noCache bool,
-	auditClient *auditclient.AuditClient) uint64 {
+	auditClient *auditclient.AuditClient) (uint64, error) {
 
 	var cacheSwitch string
 	if noCache {
@@ -27,21 +27,18 @@ func GetQuote(
 
 	status, body, err := lib.ClientSendRequest(serverurls.Env.QuoteCacheServer, payload)
 	if err != nil {
-		log.Fatalln("Connection Error: " + err.Error())
-		return 0
+		return 0, errors.New("Failed to get quote: " + err.Error())
 	}
 
 	if status != lib.StatusOk {
-		log.Fatalln("Response Error: Status " + strconv.Itoa(status) + " " + body)
-		return 0
+		return 0, errors.New("Failed to get quote: Response Error: Status " + strconv.Itoa(status) + " " + body)
 	}
 
 	// Process Data
 	quote, err := strconv.ParseUint(body, 10, 64)
 	if err != nil {
-		log.Fatalln("Received invalid data from quote cache server")
-		return 0
+		return 0, errors.New("Failed to get quote: " + err.Error())
 	}
 
-	return quote
+	return quote, nil
 }

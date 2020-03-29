@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"extremeWorkload.com/daytrader/lib"
-	modelsdata "extremeWorkload.com/daytrader/lib/models/data"
 	user "extremeWorkload.com/daytrader/lib/user"
+	"extremeWorkload.com/daytrader/transaction/data"
 )
 
 const userid = "quoteMock"
@@ -19,10 +19,10 @@ const sellAmount = uint64(1000)
 const buyTriggerPrice = uint64(500)
 const sellTriggerPrice = uint64(10)
 
-func getUserSummary(userClient *user.UserClient, userid string, t *testing.T) modelsdata.UserDisplayInfo {
+func getUserSummary(userClient *user.UserClient, userid string, t *testing.T) data.UserDisplayInfo {
 	status, body, err := userClient.DisplaySummaryRequest(userid)
 	handleErrors("Display summary failed", status, body, err, t)
-	var summary modelsdata.UserDisplayInfo
+	var summary data.UserDisplayInfo
 	err = json.Unmarshal([]byte(body), &summary)
 
 	if err != nil {
@@ -68,7 +68,7 @@ func isEqual(a uint64, b uint64, errMessage string, t *testing.T) {
 	}
 }
 
-func getTestStockCount(summary modelsdata.UserDisplayInfo) uint64 {
+func getTestStockCount(summary data.UserDisplayInfo) uint64 {
 	var stockNum = uint64(0)
 	for _, investment := range summary.Investments {
 		if investment.Stock == stockSymbol {
@@ -80,7 +80,7 @@ func getTestStockCount(summary modelsdata.UserDisplayInfo) uint64 {
 	return stockNum
 }
 
-func getTestStockTrigger(summary modelsdata.UserDisplayInfo, isSell bool) *modelsdata.TriggerDisplayInfo {
+func getTestStockTrigger(summary data.UserDisplayInfo, isSell bool) *data.TriggerDisplayInfo {
 	for _, trigger := range summary.Triggers {
 		if trigger.Is_Sell == isSell && trigger.Stock == stockSymbol {
 			return &trigger
