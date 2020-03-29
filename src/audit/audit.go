@@ -65,7 +65,7 @@ func handleConnection(queue chan net.Conn) {
 		if err != nil {
 			lib.Errorln("Failed to receive request: " + err.Error())
 			conn.Close()
-			return
+			continue
 		}
 
 		data := strings.Split(payload, "|")

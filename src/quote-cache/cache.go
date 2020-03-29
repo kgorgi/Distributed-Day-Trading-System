@@ -121,12 +121,14 @@ func (q *quote) updateQuote(
 	payload := q.stockSymbol + "," + userID + "\n"
 	_, err = conn.Write([]byte(payload))
 	if err != nil {
+		conn.Close()
 		return 0, errors.New("Failed to send request to quote server " + err.Error())
 	}
 
 	// Receive Response
 	rawResponse, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
+		conn.Close()
 		return 0, errors.New("Failed to recieve response to quote server " + err.Error())
 	}
 

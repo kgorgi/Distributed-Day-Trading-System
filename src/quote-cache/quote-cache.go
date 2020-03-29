@@ -22,7 +22,7 @@ func handleConnection(queue chan *perftools.PerfConn) {
 		if err != nil {
 			lib.Errorln("Failed to receive request: " + err.Error())
 			conn.Close()
-			return
+			continue
 		}
 
 		// <transaction number>,<command>,<stock symbol>,<userid>,<c,n|cache or no-cache>
@@ -48,10 +48,11 @@ func handleConnection(queue chan *perftools.PerfConn) {
 		if err != nil {
 			auditClient.LogErrorEvent(err.Error())
 			serverSendResponseNoError(conn, lib.StatusSystemError, err.Error(), &auditClient)
+			conn.Close()
+			continue
 		}
 
 		serverSendResponseNoError(conn, lib.StatusOk, strconv.FormatUint(quoteVal, 10), &auditClient)
-
 		conn.Close()
 	}
 }
