@@ -72,6 +72,7 @@ services:
     auditDB:
         image: mongo:latest
         container_name: "audit-mongodb"
+        command: mongod --auth
         environment:
             MONGO_INITDB_ROOT_USERNAME: admin
             MONGO_INITDB_ROOT_PASSWORD: admin

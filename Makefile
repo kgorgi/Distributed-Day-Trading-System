@@ -47,9 +47,9 @@ test-e2e:
 
 .phony reset-mongo:
 reset-mongo:
-	docker exec audit-mongodb /bin/sh -c "mongo audit --eval 'db.logs.drop()'"  && \
-	docker exec data-mongodb /bin/sh -c "mongo extremeworkload --eval 'db.users.drop();db.triggers.drop()'" && \
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --force-recreate --no-deps -d audit data
+	docker exec audit-mongodb /bin/sh -c "mongo audit -u user -p user --eval 'db.logs.drop()'"  && \
+	docker exec data-mongodb /bin/sh -c "mongo extremeworkload -u user -p user --eval 'db.users.drop();db.triggers.drop()'" && \
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --force-recreate --no-deps -d audit transaction
 
 .phony docker-deploy-dev:
 docker-deploy-dev:
@@ -124,6 +124,10 @@ docker-list:
 .phony docker-shell:
 docker-shell:
 	docker exec -it $(c) bash
+
+.phony mongo-shell:
+mongo-shell:
+	docker exec -it $(c)-mongodb bash -c "mongo -u admin -p admin"
 
 .phony docker-stop:
 docker-stop:
