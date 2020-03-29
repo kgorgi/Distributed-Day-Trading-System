@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"extremeWorkload.com/daytrader/lib/quote"
+
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 	"extremeWorkload.com/daytrader/lib/serverurls"
@@ -26,12 +28,19 @@ func GetQuote(
 	payload := fmt.Sprintf("%d,%s,%s,%s,%s", auditClient.TransactionNum, auditClient.Command, stockSymbol, userID, cacheSwitch)
 
 	status, body, err := lib.ClientSendRequest(serverurls.Env.QuoteCacheServer, payload)
+
 	if err != nil {
-		return 0, errors.New("Failed to get quote: " + err.Error())
+		errorMessage := fmt.Sprintf("Failed to contact quote cache server %s. Bypassing...", err.Error())
+		auditClient.LogErrorEvent(errorMessage)
+		cents, _, err := quote.Request(stockSymbol, userID, auditClient)
+		return cents, err
 	}
 
 	if status != lib.StatusOk {
-		return 0, errors.New("Failed to get quote: Response Error: Status " + strconv.Itoa(status) + " " + body)
+		errorMessage := fmt.Sprintf("Quote cache server did not return OK: %d. Error: %s Bypassing...", status, body)
+		auditClient.LogErrorEvent(errorMessage)
+		cents, _, err := quote.Request(stockSymbol, userID, auditClient)
+		return cents, err
 	}
 
 	// Process Data

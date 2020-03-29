@@ -15,10 +15,11 @@ import (
 var quoteServerAddress = serverurls.Env.LegacyQuoteServer
 
 // Request makes a request and processes responses from the quote server
+// Returns the amount of cents and the cryptokey
 func Request(
 	stockSymbol string,
 	userID string,
-	auditClient *auditclient.AuditClient) (uint64, error) {
+	auditClient *auditclient.AuditClient) (uint64, string, error) {
 	// Establish Connection to Quote Server
 	conn, err := net.Dial("tcp", quoteServerAddress)
 	if err != nil {
@@ -30,7 +31,7 @@ func Request(
 	payload := stockSymbol + "," + userID + "\n"
 	_, err = conn.Write([]byte(payload))
 	if err != nil {
-		return 0, errors.New("Failed to send request to quote server " + err.Error())
+		return 0, "", errors.New("Failed to send request to quote server " + err.Error())
 	}
 
 	// Receive Response
@@ -47,26 +48,27 @@ func Request(
 	data := strings.Split(rawResponse, ",")
 
 	if len(data) < 4 {
-		return 0, errors.New("Quote server response is incorrect")
+		return 0, "", errors.New("Quote server response is incorrect")
 	}
 
 	if lib.IsLab {
 		if data[1] != stockSymbol {
-			return 0, errors.New("Response's stock symbol is incorrect")
+			return 0, "", errors.New("Response's stock symbol is incorrect")
 		}
 
 		if data[2] != userID {
-			return 0, errors.New("Response's userid is incorrect")
+			return 0, "", errors.New("Response's userid is incorrect")
 		}
 	}
 
 	timestamp, err := strconv.ParseUint(data[3], 10, 64)
 	if err != nil {
-		return 0, errors.New("Failed to parse timestamp from quote server " + err.Error())
+		return 0, "", errors.New("Failed to parse timestamp from quote server " + err.Error())
 	}
 
 	cents := lib.DollarsToCents(data[0])
-	auditClient.LogQuoteServerResponse(cents, stockSymbol, userID, timestamp, data[4])
+	cyptokey := data[4]
+	auditClient.LogQuoteServerResponse(cents, stockSymbol, userID, timestamp, cyptokey)
 
-	return cents, nil
+	return cents, cyptokey, nil
 }

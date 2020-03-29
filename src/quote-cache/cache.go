@@ -7,23 +7,25 @@ import (
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
+	"extremeWorkload.com/daytrader/lib/quote"
 	"extremeWorkload.com/daytrader/lib/serverurls"
 )
 
-type quote struct {
+type quoteValue struct {
 	amount      uint64
 	stockSymbol string
 	timestamp   uint64
+	cryptokey   string
 	mutex       sync.RWMutex
 }
 
 type quoteCache struct {
-	quotes map[string]*quote
+	quotes map[string]*quoteValue
 	mutex  sync.RWMutex
 }
 
 var cache = quoteCache{
-	quotes: make(map[string]*quote),
+	quotes: make(map[string]*quoteValue),
 }
 
 var quoteServerAddress = serverurls.Env.LegacyQuoteServer
@@ -42,7 +44,7 @@ func GetQuote(
 }
 
 func (qc *quoteCache) createQuote(stockSymbol string) {
-	q := new(quote)
+	q := new(quoteValue)
 	q.stockSymbol = stockSymbol
 
 	cache.mutex.Lock()
@@ -55,7 +57,7 @@ func (qc *quoteCache) createQuote(stockSymbol string) {
 	cache.mutex.Unlock()
 }
 
-func (qc *quoteCache) getQuote(stockSymbol string) *quote {
+func (qc *quoteCache) getQuote(stockSymbol string) *quoteValue {
 	qc.mutex.RLock()
 	q := cache.quotes[stockSymbol]
 	cache.mutex.RUnlock()
@@ -71,11 +73,11 @@ func (qc *quoteCache) getQuote(stockSymbol string) *quote {
 	return q
 }
 
-func (q *quote) valid() bool {
+func (q *quoteValue) valid() bool {
 	return (lib.GetUnixTimestamp() - q.timestamp) < sixtySecondsInMs
 }
 
-func (q *quote) getCents(
+func (q *quoteValue) getCents(
 	userID string,
 	noCache bool,
 	auditClient *auditclient.AuditClient) (uint64, error) {
@@ -102,15 +104,19 @@ func (q *quote) getCents(
 	return amount, err
 }
 
-func (q *quote) updateQuote(
+func (q *quoteValue) updateQuote(
 	userID string,
 	auditClient *auditclient.AuditClient) (uint64, error) {
 
-	cents, err := quote.Request(q.stockSymbol, userID, auditClient)
+	cents, cryptokey, err := quote.Request(q.stockSymbol, userID, auditClient)
+	if err != nil {
+		return 0, err
+	}
 
 	q.mutex.Lock()
 	q.amount = cents
 	q.timestamp = lib.GetUnixTimestamp()
+	q.cryptokey = cryptokey
 	q.mutex.Unlock()
 
 	return cents, nil
