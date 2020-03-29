@@ -20,7 +20,7 @@ func handleConnection(queue chan *perftools.PerfConn) {
 
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+			lib.Errorln("Failed to receive request: " + err.Error())
 			conn.Close()
 			return
 		}
@@ -44,8 +44,13 @@ func handleConnection(queue chan *perftools.PerfConn) {
 			noCache = false
 		}
 
-		quoteVal := GetQuote(data[2], data[3], noCache, &auditClient)
-		lib.ServerSendResponse(conn, lib.StatusOk, strconv.FormatUint(quoteVal, 10))
+		quoteVal, err := GetQuote(data[2], data[3], noCache, &auditClient)
+		if err != nil {
+			auditClient.LogErrorEvent(err.Error())
+			serverSendResponseNoError(conn, lib.StatusSystemError, err.Error(), &auditClient)
+		}
+
+		serverSendResponseNoError(conn, lib.StatusOk, strconv.FormatUint(quoteVal, 10), &auditClient)
 
 		conn.Close()
 	}
@@ -70,6 +75,18 @@ func main() {
 		conn, err := ln.Accept()
 		if err == nil {
 			queue <- perftools.NewPerfConn(conn)
+		}
+	}
+}
+
+func serverSendResponseNoError(conn net.Conn, status int, message string, auditClient *auditclient.AuditClient) {
+	err := lib.ServerSendResponse(conn, status, message)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to send response to %s. %d: %s", conn.RemoteAddr().String(), status, message)
+		lib.Errorln(errorMessage)
+
+		if auditClient != nil {
+			auditClient.LogErrorEvent(errorMessage)
 		}
 	}
 }
