@@ -23,14 +23,14 @@ func Request(
 	// Establish Connection to Quote Server
 	conn, err := net.Dial("tcp", quoteServerAddress)
 	if err != nil {
-		conn.Close()
-		return 0, errors.New("Failed to contact quote server " + err.Error())
+		return 0, "", errors.New("Failed to contact quote server " + err.Error())
 	}
 
 	// Send Request
 	payload := stockSymbol + "," + userID + "\n"
 	_, err = conn.Write([]byte(payload))
 	if err != nil {
+		conn.Close()
 		return 0, "", errors.New("Failed to send request to quote server " + err.Error())
 	}
 
@@ -38,7 +38,7 @@ func Request(
 	rawResponse, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		conn.Close()
-		return 0, errors.New("Failed to recieve response to quote server " + err.Error())
+		return 0, "", errors.New("Failed to recieve response to quote server " + err.Error())
 	}
 
 	conn.Close()
