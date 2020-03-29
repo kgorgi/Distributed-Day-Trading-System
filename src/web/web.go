@@ -63,7 +63,6 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 	err = validateParameters(command)
 
 	if err != nil {
-		auditClient.LogErrorEvent("Invalid parameters for user")
 		status = lib.StatusUserError
 	} else {
 		if command["command"] == "DUMPLOG" {
