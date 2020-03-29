@@ -75,7 +75,7 @@ func main() {
 	fmt.Println("Starting transaction server...")
 	security.InitCryptoKey()
 
-	data.InitDatabaseConnection(true)
+	data.InitDatabaseConnection()
 
 	var auditclient = auditclient.AuditClient{
 		Server:         "transaction",
