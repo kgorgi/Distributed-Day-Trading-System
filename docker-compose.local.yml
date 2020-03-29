@@ -1,40 +1,36 @@
 version: "3"
 services:
-  quote-mock:
-    container_name: "quote-mock-server"
-    build:
-      context: .
-      dockerfile: docker-files/local/Dockerfile.quote-mock
-    ulimits:
-      nofile:
-        soft: 65536
-        hard: 65536
-  web:
-    depends_on:
-      - load-transaction
-      - audit
+    quote-mock:
+        container_name: "quote-mock-server"
+        build:
+            context: .
+            dockerfile: docker-files/local/Dockerfile.quote-mock
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
+    web:
+        depends_on:
+            - load-transaction
+            - audit
 
-  web2:
-    depends_on:
-      - load-transaction
-      - audit
+    web2:
+        depends_on:
+            - load-transaction
+            - audit
 
-  transaction:
-    depends_on:
-      - data
-      - audit
-      - quote-cache
+    transaction:
+        depends_on:
+            - dataDB
+            - audit
+            - quote-cache
 
-  transaction2:
-    depends_on:
-      - data
-      - audit
-      - quote-cache
+    transaction2:
+        depends_on:
+            - dataDB
+            - audit
+            - quote-cache
 
-  quote-cache:
-    depends_on:
-      - audit
-
-  data:
-    depends_on:
-      - audit
+    quote-cache:
+        depends_on:
+            - audit
