@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -142,7 +143,7 @@ func readMessage(conn net.Conn) (string, error) {
 
 	// Get message
 	rawPayload := make([]byte, messageLength)
-	_, err = r.Read(rawPayload)
+	_, err = io.ReadFull(r, rawPayload)
 	if err != nil {
 		return "", err
 	}

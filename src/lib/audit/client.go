@@ -231,7 +231,7 @@ func (client *AuditClient) sendRequest(payload string) (int, string, error) {
 	status, message, err := lib.ClientSendRequest(serverurls.Env.AuditServer, payload)
 	if err != nil {
 		log.Println("Connection Error: " + err.Error())
-		return -1, "", err
+		return lib.StatusSystemError, "", err
 	}
 	return status, message, nil
 }
