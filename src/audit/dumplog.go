@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"strings"
 
@@ -24,16 +23,24 @@ func handleDumpLog(conn *net.Conn, userID string) {
 	}
 
 	collection := client.Database("audit").Collection("logs")
-	cursor, _ := collection.Find(context.TODO(), query)
-
-	response := createLog(cursor)
-	err := lib.ServerSendResponse(*conn, lib.StatusOk, response)
+	cursor, err := collection.Find(context.TODO(), query)
 	if err != nil {
-		fmt.Println("Communication Error: " + err.Error())
+		errorMessage := "Failed to find logs: " + err.Error()
+		serverSendResponseNoError(*conn, lib.StatusSystemError, errorMessage)
+		return
 	}
+
+	response, err := createLog(cursor)
+	if err != nil {
+		errorMessage := "Failed to generate logs: " + err.Error()
+		serverSendResponseNoError(*conn, lib.StatusSystemError, errorMessage)
+		return
+	}
+
+	serverSendResponseNoError(*conn, lib.StatusOk, response)
 }
 
-func createLog(cursor *mongo.Cursor) string {
+func createLog(cursor *mongo.Cursor) (string, error) {
 	var str strings.Builder
 
 	str.WriteString("<?xml version=\"1.0\"?>\n")
@@ -41,7 +48,10 @@ func createLog(cursor *mongo.Cursor) string {
 
 	for cursor.Next(context.TODO()) {
 		var internalInfo auditclient.InternalLogInfo
-		cursor.Decode(&internalInfo)
+		err := cursor.Decode(&internalInfo)
+		if err != nil {
+			return "", err
+		}
 
 		str.WriteString("\t")
 		writeTagHead(&str, internalInfo.LogType)
@@ -52,27 +62,45 @@ func createLog(cursor *mongo.Cursor) string {
 		switch internalInfo.LogType {
 		case "userCommand":
 			var userLog auditclient.UserCommandInfo
-			cursor.Decode(&userLog)
+			err := cursor.Decode(&userLog)
+			if err != nil {
+				return "", err
+			}
 			writeUserCommandTags(&str, userLog)
 		case "quoteServer":
 			var quoteLog auditclient.QuoteServerResponseInfo
-			cursor.Decode(&quoteLog)
+			err := cursor.Decode(&quoteLog)
+			if err != nil {
+				return "", err
+			}
 			writeQuoteServerTags(&str, quoteLog)
 		case "accountTransaction":
 			var accountLog auditclient.AccountTransactionInfo
-			cursor.Decode(&accountLog)
+			err := cursor.Decode(&accountLog)
+			if err != nil {
+				return "", err
+			}
 			writeAccountTransactionTags(&str, accountLog)
 		case "errorEvent":
 			var errorEvent auditclient.ErrorEventInfo
-			cursor.Decode(&errorEvent)
+			err := cursor.Decode(&errorEvent)
+			if err != nil {
+				return "", err
+			}
 			writeErrorEventTags(&str, errorEvent)
 		case "debugEvent":
 			var debugEvent auditclient.DebugEventInfo
-			cursor.Decode(&debugEvent)
+			err := cursor.Decode(&debugEvent)
+			if err != nil {
+				return "", err
+			}
 			writeDebugEventTags(&str, debugEvent)
 		case "perfMetric":
 			var perfLog auditclient.PerformanceMetricInfo
-			cursor.Decode(&perfLog)
+			err := cursor.Decode(&perfLog)
+			if err != nil {
+				return "", err
+			}
 			writePerfMetricTags(&str, perfLog)
 		}
 
@@ -82,5 +110,5 @@ func createLog(cursor *mongo.Cursor) string {
 	}
 
 	str.WriteString("</log>")
-	return str.String()
+	return str.String(), nil
 }

@@ -63,7 +63,7 @@ func handleConnection(queue chan net.Conn) {
 
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
-			lib.ServerSendResponse(conn, lib.StatusSystemError, err.Error())
+			lib.Errorln("Failed to receive request: " + err.Error())
 			conn.Close()
 			return
 		}
@@ -78,7 +78,7 @@ func handleConnection(queue chan net.Conn) {
 		case "DUMPLOG":
 			handleDumpLog(&conn, data[1])
 		default:
-			lib.ServerSendResponse(conn, lib.StatusUserError, "Invalid Audit Command")
+			serverSendResponseNoError(conn, lib.StatusUserError, "Invalid Audit Command")
 		}
 
 		conn.Close()
@@ -125,4 +125,12 @@ func connectToMongo() (*mongo.Client, error) {
 	fmt.Println("Connected to MongoDB")
 
 	return client, nil
+}
+
+func serverSendResponseNoError(conn net.Conn, status int, message string) {
+	err := lib.ServerSendResponse(conn, status, message)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Failed to send response to %s. %d: %s", conn.RemoteAddr().String(), status, message)
+		lib.Errorln(errorMessage)
+	}
 }

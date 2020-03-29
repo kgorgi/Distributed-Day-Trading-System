@@ -19,19 +19,23 @@ func handleLog(conn *net.Conn, payload string) {
 	err := json.Unmarshal([]byte(payload), &result)
 
 	if err != nil {
-		lib.ServerSendResponse(*conn, lib.StatusSystemError, err.Error())
+		errorMessage := "Unable to unmarshal JSON: " + err.Error()
+		lib.Errorln(errorMessage)
+		serverSendResponseNoError(*conn, lib.StatusSystemError, errorMessage)
 		return
 	}
 
-	logToConsole(result)
+	logToDebug(result)
 
 	err = writeToDatabase(result)
 	if err != nil {
-		lib.ServerSendResponse(*conn, lib.StatusSystemError, err.Error())
+		errorMessage := "Unable to write logs to database " + err.Error()
+		logToError(result, errorMessage)
+		serverSendResponseNoError(*conn, lib.StatusSystemError, errorMessage)
 		return
 	}
 
-	lib.ServerSendOKResponse(*conn)
+	serverSendResponseNoError(*conn, lib.StatusOk, "")
 }
 
 func handleUserCommand(conn *net.Conn, payload string) {
@@ -39,14 +43,18 @@ func handleUserCommand(conn *net.Conn, payload string) {
 	var internalInfo auditclient.InternalLogInfo
 	err := json.Unmarshal([]byte(payload), &internalInfo)
 	if err != nil {
-		lib.ServerSendResponse(*conn, lib.StatusSystemError, err.Error())
+		errorMessage := "Unable to unmarshal internal log info JSON: " + err.Error()
+		lib.Errorln(errorMessage)
+		serverSendResponseNoError(*conn, lib.StatusSystemError, errorMessage)
 		return
 	}
 
 	var userCommandInfo auditclient.UserCommandInfo
 	err = json.Unmarshal([]byte(payload), &userCommandInfo)
 	if err != nil {
-		lib.ServerSendResponse(*conn, lib.StatusSystemError, err.Error())
+		errorMessage := "Unable to unmarshal user command info JSON: " + err.Error()
+		lib.Errorln(errorMessage)
+		serverSendResponseNoError(*conn, lib.StatusSystemError, errorMessage)
 		return
 	}
 
@@ -61,26 +69,39 @@ func handleUserCommand(conn *net.Conn, payload string) {
 		&userCommandInfo,
 	}
 
-	logToConsole(result)
+	logToDebug(result)
 
 	err = writeToDatabase(result)
 	if err != nil {
-		lib.ServerSendResponse(*conn, lib.StatusSystemError, err.Error())
+		errorMessage := "Failed to write logs to database: " + err.Error()
+		logToError(result, errorMessage)
+		serverSendResponseNoError(*conn, lib.StatusSystemError, errorMessage)
 		return
 	}
 
 	// Send TransactionNumber to Web Server
-	lib.ServerSendResponse(*conn, lib.StatusOk, strconv.FormatUint(nextNum, 10))
+	serverSendResponseNoError(*conn, lib.StatusOk, strconv.FormatUint(nextNum, 10))
 }
 
-func logToConsole(data interface{}) {
+func logToDebug(data interface{}) {
 	output, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
-		lib.Debugln("Unable to output audit message to console: " + err.Error())
+		lib.Errorln("Unable to output audit message to console: " + err.Error())
 		return
 	}
 
 	lib.Debugln(string(output))
+}
+
+func logToError(data interface{}, errMessage string) {
+	output, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		lib.Errorln("Unable to output audit message to error: " + err.Error())
+		return
+	}
+
+	fullErrorMessage := "Error: " + errMessage + " Logs: " + string(output)
+	lib.Errorln(fullErrorMessage)
 }
 
 func writeToDatabase(data interface{}) error {
