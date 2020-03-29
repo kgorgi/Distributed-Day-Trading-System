@@ -12,6 +12,10 @@ services:
         environment:
             - ENV=DEV-LAB
 
+    transaction2:
+        environment:
+            - ENV=DEV-LAB
+
     audit:
         environment:
             - ENV=DEV-LAB

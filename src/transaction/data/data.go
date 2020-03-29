@@ -26,7 +26,7 @@ var (
 
 var client *mongo.Client
 
-func InitDatabaseConnection(initIndexes bool) {
+func InitDatabaseConnection() {
 	name, nameOk := os.LookupEnv("USER_NAME")
 	pass, passOk := os.LookupEnv("USER_PASS")
 	if !nameOk || !passOk {
@@ -51,40 +51,6 @@ func InitDatabaseConnection(initIndexes bool) {
 		log.Fatal(err)
 	}
 	fmt.Println("Connected to MongoDB")
-
-	if initIndexes {
-		setupIndexes()
-	}
-}
-
-func setupIndexes() {
-	// User Collection
-	userCol := client.Database("extremeworkload").Collection("users")
-	mod := mongo.IndexModel{
-		Keys: bson.M{
-			"command_id": 1, // index in ascending order
-		}, Options: nil,
-	}
-
-	_, err := userCol.Indexes().CreateOne(context.TODO(), mod)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Trigger Indexes
-	triggerCol := client.Database("extremeworkload").Collection("triggers")
-	mod = mongo.IndexModel{
-		Keys: bson.M{
-			"user_command_id": 1,
-			"stock":           1,
-			"is_sell":         1,
-		}, Options: nil,
-	}
-
-	_, err = triggerCol.Indexes().CreateOne(context.TODO(), mod)
-	if err != nil {
-		log.Fatal(err)
-	}
 }
 
 func queryTriggers(query bson.M) ([]Trigger, error) {

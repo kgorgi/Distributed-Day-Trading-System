@@ -11,6 +11,12 @@ services:
                 hard: 65536
     web:
         depends_on:
+            - load-transaction
+            - audit
+
+    web2:
+        depends_on:
+            - load-transaction
             - audit
 
     transaction:
@@ -19,12 +25,11 @@ services:
             - audit
             - quote-cache
 
-    web:
-        ports:
-            - "8080:8080"
+    transaction2:
         depends_on:
-            - transaction
+            - dataDB
             - audit
+            - quote-cache
 
     quote-cache:
         depends_on:

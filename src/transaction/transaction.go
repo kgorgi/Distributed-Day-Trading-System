@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
@@ -24,6 +25,8 @@ type CommandJSON struct {
 }
 
 const threadCount = 1000
+
+var serverName = os.Getenv("NAME")
 
 func handleWebConnection(queue chan *perftools.PerfConn) {
 	for {
@@ -56,7 +59,7 @@ func handleWebConnection(queue chan *perftools.PerfConn) {
 		}
 
 		var auditClient = auditclient.AuditClient{
-			Server:         "transaction",
+			Server:         serverName,
 			Command:        commandJSON.Command,
 			TransactionNum: transactionNum,
 		}
@@ -74,7 +77,7 @@ func main() {
 	fmt.Println("Starting transaction server...")
 	security.InitCryptoKey()
 
-	data.InitDatabaseConnection(true)
+	data.InitDatabaseConnection()
 
 	var auditclient = auditclient.AuditClient{
 		Server:         "transaction",
@@ -82,7 +85,10 @@ func main() {
 		Command:        "",
 	}
 
-	go checkTriggers(&auditclient)
+	_, check := os.LookupEnv("CHECK_TRIGGERS")
+	if check {
+		go checkTriggers(&auditclient)
+	}
 
 	ln, err := net.Listen("tcp", ":5000")
 	if err != nil {

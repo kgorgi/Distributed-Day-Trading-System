@@ -18,7 +18,7 @@ docker:
     web: "localhost:8080"
     audit: "audit-server:5002"
     data: "data-server:5001"
-    transaction: "transaction-server:5000"
+    transaction: "load-transaction:5000"
     quoteCache: "quote-cache-server:5004"
     auditDB: "mongodb://audit-mongodb:27017"
     dataDB: "mongodb://data-mongodb:27017"
@@ -41,10 +41,10 @@ dev:
 # Note: Data server, quote cache server, and mongodbs
 # uses internal docker network
 lab:
-    web: "localhost:44410"
-    audit: "192.168.1.167:44412"
+    web: "localhost:8080"
+    audit: "192.168.1.167:5002"
     data: "data-server:5001"
-    transaction: "192.168.1.246:44411"
+    transaction: "192.168.1.246:5000"
     quoteCache: "quote-cache-server:5004"
     auditDB: "mongodb://audit-mongodb:27017"
     dataDB: "mongodb://data-mongodb:27017"
@@ -53,10 +53,10 @@ lab:
 # Servers are distrbuted among multiple computers
 # Everything is bound to local ports except mongo databases
 dev-lab:
-    web: "localhost:44410"
-    audit: "192.168.1.167:44412"
+    web: "localhost:8080"
+    audit: "192.168.1.167:5002"
     data: "localhost:44413"
-    transaction: "192.168.1.246:44411"
+    transaction: "192.168.1.246:5000"
     quoteCache: "quote-cache-server:5004"
     auditDB: "mongodb://audit-mongodb:27017"
     dataDB: "mongodb://data-mongodb:27017"
