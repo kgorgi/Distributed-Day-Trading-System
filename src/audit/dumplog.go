@@ -110,5 +110,6 @@ func createLog(cursor *mongo.Cursor) (string, error) {
 	}
 
 	str.WriteString("</log>")
+	cursor.Close(context.TODO())
 	return str.String(), nil
 }
