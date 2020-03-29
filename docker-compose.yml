@@ -35,9 +35,10 @@ services:
             dockerfile: docker-files/local/Dockerfile.transaction
         environment:
             - ENV=DOCKER
-            - CHECK_TRIGGERS=YES
             - USER_NAME=user
             - USER_PASS=user
+            - CHECK_TRIGGERS=YES
+            - NAME=transaction
         ulimits:
             nofile:
                 soft: 65536
@@ -53,9 +54,9 @@ services:
             dockerfile: docker-files/local/Dockerfile.transaction
         environment:
             - ENV=DOCKER
-            - NAME=transaction2
             - USER_NAME=user
             - USER_PASS=user
+            - NAME=transaction2
         ulimits:
             nofile:
                 soft: 65536

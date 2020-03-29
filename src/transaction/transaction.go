@@ -26,6 +26,8 @@ type CommandJSON struct {
 
 const threadCount = 1000
 
+var serverName = os.Getenv("NAME")
+
 func handleWebConnection(queue chan *perftools.PerfConn) {
 	for {
 		conn := <-queue
@@ -57,7 +59,7 @@ func handleWebConnection(queue chan *perftools.PerfConn) {
 		}
 
 		var auditClient = auditclient.AuditClient{
-			Server:         "transaction",
+			Server:         serverName,
 			Command:        commandJSON.Command,
 			TransactionNum: transactionNum,
 		}
