@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"log"
+	"errors"
 	"net"
 	"strconv"
 	"strings"
@@ -40,7 +40,7 @@ func GetQuote(
 	stockSymbol string,
 	userID string,
 	noCache bool,
-	auditClient *auditclient.AuditClient) uint64 {
+	auditClient *auditclient.AuditClient) (uint64, error) {
 
 	q := cache.getQuote(stockSymbol)
 	return q.getCents(userID, noCache, auditClient)
@@ -83,7 +83,7 @@ func (q *quote) valid() bool {
 func (q *quote) getCents(
 	userID string,
 	noCache bool,
-	auditClient *auditclient.AuditClient) uint64 {
+	auditClient *auditclient.AuditClient) (uint64, error) {
 
 	q.mutex.RLock()
 	if q.valid() && !noCache {
@@ -98,38 +98,38 @@ func (q *quote) getCents(
 
 		auditClient.LogDebugEvent(message)
 
-		return amount
+		return amount, nil
 	}
 	q.mutex.RUnlock()
 
 	// Update Cache
-	amount := q.updateQuote(userID, auditClient)
-	return amount
+	amount, err := q.updateQuote(userID, auditClient)
+	return amount, err
 }
 
 func (q *quote) updateQuote(
 	userID string,
-	auditClient *auditclient.AuditClient) uint64 {
+	auditClient *auditclient.AuditClient) (uint64, error) {
 
 	// Establish Connection to Quote Server
 	conn, err := net.Dial("tcp", quoteServerAddress)
 	if err != nil {
-		log.Fatalln("Could not connect to quote server")
-		return 0
+		return 0, errors.New("Failed to contact quote server " + err.Error())
 	}
 
 	// Send Request
 	payload := q.stockSymbol + "," + userID + "\n"
 	_, err = conn.Write([]byte(payload))
 	if err != nil {
-		log.Fatalln("Failed to send request to quote server")
+		conn.Close()
+		return 0, errors.New("Failed to send request to quote server " + err.Error())
 	}
 
 	// Receive Response
 	rawResponse, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
-		log.Fatalln("Failed to recieve response to quote server")
-		return 0
+		conn.Close()
+		return 0, errors.New("Failed to recieve response to quote server " + err.Error())
 	}
 
 	conn.Close()
@@ -139,26 +139,22 @@ func (q *quote) updateQuote(
 	data := strings.Split(rawResponse, ",")
 
 	if len(data) < 4 {
-		log.Fatalln("Quote server response is incorrect")
-		return 0
+		return 0, errors.New("Quote server response is incorrect")
 	}
 
 	if lib.IsLab {
 		if data[1] != q.stockSymbol {
-			log.Fatalln("Response's stock symbol is incorrect")
-			return 0
+			return 0, errors.New("Response's stock symbol is incorrect")
 		}
 
 		if data[2] != userID {
-			log.Fatalln("Response's userid is incorrect")
-			return 0
+			return 0, errors.New("Response's userid is incorrect")
 		}
 	}
 
 	timestamp, err := strconv.ParseUint(data[3], 10, 64)
 	if err != nil {
-		log.Fatalln("Failed to parse timestamp from quote server")
-		return 0
+		return 0, errors.New("Failed to parse timestamp from quote server " + err.Error())
 	}
 
 	cents := lib.DollarsToCents(data[0])
@@ -170,5 +166,5 @@ func (q *quote) updateQuote(
 	q.cryptokey = data[4]
 	q.mutex.Unlock()
 
-	return cents
+	return cents, nil
 }
