@@ -66,7 +66,11 @@ func Request(
 		return 0, "", errors.New("Failed to parse timestamp from quote server " + err.Error())
 	}
 
-	cents := lib.DollarsToCents(data[0])
+	cents, err := lib.DollarsToCents(data[0])
+	if err != nil {
+		return 0, "", errors.New("Failed to convert dollar amount to cents " + err.Error())
+	}
+
 	cyptokey := data[4]
 	auditClient.LogQuoteServerResponse(cents, stockSymbol, userID, timestamp, cyptokey)
 

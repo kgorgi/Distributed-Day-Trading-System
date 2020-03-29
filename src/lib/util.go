@@ -17,12 +17,20 @@ var DebuggingEnabled = env == "" || env == "DEV" || env == "DEV-LAB"
 var IsLab = env == "LAB" || env == "DEV-LAB"
 
 // DollarsToCents converts a dollar string to uint cents
-func DollarsToCents(dollars string) uint64 {
+func DollarsToCents(dollars string) (uint64, error) {
 	data := strings.Split(dollars, ".")
-	dollarsNum, _ := strconv.ParseUint(data[0], 10, 64)
-	centsNum, _ := strconv.ParseUint(data[1], 10, 64)
+	dollarsNum, err := strconv.ParseUint(data[0], 10, 64)
+	if err != nil {
+		return 0, err
+	}
 
-	return dollarsNum*uint64(100) + centsNum
+	centsNum, err := strconv.ParseUint(data[1], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	results := dollarsNum*uint64(100) + centsNum
+	return results, nil
 }
 
 // CentsToDollars converts uint cents to a dollar string
