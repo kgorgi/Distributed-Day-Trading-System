@@ -1,11 +1,7 @@
 package main
 
 import (
-	"bufio"
-	"errors"
-	"net"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -18,7 +14,6 @@ type quote struct {
 	amount      uint64
 	stockSymbol string
 	timestamp   uint64
-	cryptokey   string
 	mutex       sync.RWMutex
 }
 
@@ -111,59 +106,11 @@ func (q *quote) updateQuote(
 	userID string,
 	auditClient *auditclient.AuditClient) (uint64, error) {
 
-	// Establish Connection to Quote Server
-	conn, err := net.Dial("tcp", quoteServerAddress)
-	if err != nil {
-		return 0, errors.New("Failed to contact quote server " + err.Error())
-	}
-
-	// Send Request
-	payload := q.stockSymbol + "," + userID + "\n"
-	_, err = conn.Write([]byte(payload))
-	if err != nil {
-		conn.Close()
-		return 0, errors.New("Failed to send request to quote server " + err.Error())
-	}
-
-	// Receive Response
-	rawResponse, err := bufio.NewReader(conn).ReadString('\n')
-	if err != nil {
-		conn.Close()
-		return 0, errors.New("Failed to recieve response to quote server " + err.Error())
-	}
-
-	conn.Close()
-
-	// Process Data
-	rawResponse = strings.TrimRight(rawResponse, "\n")
-	data := strings.Split(rawResponse, ",")
-
-	if len(data) < 4 {
-		return 0, errors.New("Quote server response is incorrect")
-	}
-
-	if lib.IsLab {
-		if data[1] != q.stockSymbol {
-			return 0, errors.New("Response's stock symbol is incorrect")
-		}
-
-		if data[2] != userID {
-			return 0, errors.New("Response's userid is incorrect")
-		}
-	}
-
-	timestamp, err := strconv.ParseUint(data[3], 10, 64)
-	if err != nil {
-		return 0, errors.New("Failed to parse timestamp from quote server " + err.Error())
-	}
-
-	cents := lib.DollarsToCents(data[0])
-	auditClient.LogQuoteServerResponse(cents, q.stockSymbol, userID, timestamp, data[4])
+	cents, err := quote.Request(q.stockSymbol, userID, auditClient)
 
 	q.mutex.Lock()
 	q.amount = cents
 	q.timestamp = lib.GetUnixTimestamp()
-	q.cryptokey = data[4]
 	q.mutex.Unlock()
 
 	return cents, nil
