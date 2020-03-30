@@ -96,15 +96,11 @@ func CreateTrigger(trigger Trigger) error {
 // CheckTriggersIterator returns an iterator function.
 // The iterator function returns one trigger from the DB everytime it is
 //  called, it returns false when all triggers have been returned.
-// Note only triggers that have a price set are returned and the triggers
-// are returned sorted by their stockSymbol
+// Note only triggers that have a price set are returned
 func CheckTriggersIterator() (func() (bool, Trigger, error), error) {
-	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"stock": -1})
-
 	query := bson.M{"price_cents": bson.M{"$gt": 0}}
 	collection := client.Database("extremeworkload").Collection("triggers")
-	cursor, err := collection.Find(context.TODO(), query, findOptions)
+	cursor, err := collection.Find(context.TODO(), query)
 	if err != nil {
 		return nil, err
 	}

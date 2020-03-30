@@ -49,10 +49,6 @@ func checkTriggers(auditClient *auditclient.AuditClient) {
 		}
 
 		var triggersChecked = 0
-		var currentStockSymbol = ""
-		var stockPrice uint64 = 0
-		var stockPriceTimestamp uint64 = 0
-
 		for {
 			validTrigger, trigger, err := triggerIterator()
 
@@ -65,18 +61,10 @@ func checkTriggers(auditClient *auditclient.AuditClient) {
 				break
 			}
 
-			elaspedTime := lib.GetUnixTimestamp() - stockPriceTimestamp
-			if currentStockSymbol != trigger.Stock ||
-				elaspedTime > quoteThreshold {
-				// Get new quote
-				stockPrice, err = GetQuote(trigger.Stock, trigger.User_Command_ID, false, auditClient)
-				if err != nil {
-					auditClient.LogErrorEvent(err.Error())
-					continue
-				}
-
-				currentStockSymbol = trigger.Stock
-				stockPriceTimestamp = lib.GetUnixTimestamp()
+			stockPrice, err := GetQuote(trigger.Stock, trigger.User_Command_ID, false, auditClient)
+			if err != nil {
+				auditClient.LogErrorEvent(err.Error())
+				continue
 			}
 
 			auditClient.TransactionNum = trigger.Transaction_Number
