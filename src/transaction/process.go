@@ -82,7 +82,7 @@ func processCommand(conn net.Conn, jsonCommand CommandJSON, auditClient auditcli
 }
 
 func handleAdd(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	amount := lib.DollarsToCents(jsonCommand.Amount)
+	amount, _ := lib.DollarsToCents(jsonCommand.Amount)
 	addErr := data.UpdateUser(jsonCommand.Userid, "", 0, int(amount), auditClient)
 	if addErr != nil {
 		errorMessage := "Failed to add user " + addErr.Error()
@@ -111,7 +111,7 @@ func handleBuy(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.
 		return
 	}
 
-	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
+	amountInCents, _ := lib.DollarsToCents(jsonCommand.Amount)
 	if quoteInCents > amountInCents {
 		errorMessage := "Quote price is higher than buy amount"
 		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusUserError, errorMessage)
@@ -183,7 +183,7 @@ func handleSell(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient
 		auditClient.SendServerResponseWithErrorEvent(conn, lib.StatusSystemError, err.Error())
 		return
 	}
-	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
+	amountInCents, _ := lib.DollarsToCents(jsonCommand.Amount)
 
 	if quoteInCents > amountInCents {
 		errorMessage := "Quote price is higher than sell amount"
@@ -257,7 +257,7 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 		return
 	}
 
-	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
+	amountInCents, _ := lib.DollarsToCents(jsonCommand.Amount)
 	balanceInCents := user.Cents
 	if amountInCents > balanceInCents {
 		errorMessage := "Account balance is less than trigger amount"
@@ -323,7 +323,7 @@ func handleSetBuyAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *aud
 }
 
 func handleSetBuyTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *auditclient.AuditClient) {
-	triggerPriceInCents := lib.DollarsToCents(jsonCommand.Amount)
+	triggerPriceInCents, _ := lib.DollarsToCents(jsonCommand.Amount)
 	updateErr := data.UpdateTriggerPrice(jsonCommand.Userid, jsonCommand.StockSymbol, false, triggerPriceInCents)
 	if updateErr == data.ErrNotFound {
 		errorMessage := "Either the trigger doesn't exist or the specified price is too high. No stocks will be able to be bought with current amount."
@@ -375,7 +375,7 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 		return
 	}
 
-	amountInCents := lib.DollarsToCents(jsonCommand.Amount)
+	amountInCents, _ := lib.DollarsToCents(jsonCommand.Amount)
 	if getTriggerErr == data.ErrNotFound {
 		newTrigger := data.Trigger{
 			User_Command_ID:    jsonCommand.Userid,
@@ -452,7 +452,7 @@ func handleSetSellTrigger(conn net.Conn, jsonCommand CommandJSON, auditClient *a
 	}
 
 	numOfStocksOwn := findStockAmount(user.Investments, jsonCommand.StockSymbol)
-	priceInCents := lib.DollarsToCents(jsonCommand.Amount)
+	priceInCents, _ := lib.DollarsToCents(jsonCommand.Amount)
 	numOfStocks := trigger.Amount_Cents / priceInCents
 
 	if numOfStocks > numOfStocksOwn {
