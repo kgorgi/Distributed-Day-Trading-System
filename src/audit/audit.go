@@ -57,6 +57,15 @@ func handleConnection(queue chan net.Conn) {
 	for {
 		conn := <-queue
 
+		isHealthCheck, err := lib.ServerReceiveHealthCheck(conn)
+		if isHealthCheck || err != nil {
+			if err != nil {
+				lib.Errorln("Healthcheck Failed: " + err.Error())
+			}
+			conn.Close()
+			continue
+		}
+
 		payload, err := lib.ServerReceiveRequest(conn)
 		if err != nil {
 			lib.Errorln("Failed to receive request: " + err.Error())

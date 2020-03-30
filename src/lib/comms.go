@@ -44,6 +44,27 @@ func ServerReceiveRequest(conn net.Conn) (string, error) {
 	return readMessage(conn)
 }
 
+// ServerReceiveHealthCheck Check for and responds to health check
+func ServerReceiveHealthCheck(conn net.Conn) (bool, error) {
+	r := bufio.NewReader(conn)
+	if r.Buffered() > 1 {
+		return false, nil
+	}
+
+	healthCheck, err := r.ReadByte()
+	if err != nil {
+		return true, err
+	}
+	if string(healthCheck) == "?" {
+		_, err = conn.Write([]byte("T"))
+		if err != nil {
+			return true, err
+		}
+	}
+	return true, nil
+
+}
+
 // ServerSendOKResponse sends an OK response
 func ServerSendOKResponse(conn net.Conn) error {
 	return sendMessage(conn, strconv.Itoa(StatusOk)+seperatorChar)
