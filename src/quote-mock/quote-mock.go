@@ -3,11 +3,15 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"net"
 	"strings"
+	"time"
 
 	"extremeWorkload.com/daytrader/lib"
 )
+
+const maxRandomCents = 5000
 
 func main() {
 	fmt.Println("Starting mocked legacy quote server...")
@@ -16,6 +20,7 @@ func main() {
 
 	fmt.Println("Started mocked legacy quote server on port: 4443")
 
+	rand.Seed(time.Now().UnixNano())
 	for {
 		conn, _ := ln.Accept()
 		go handleConnection(conn)
@@ -39,7 +44,12 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
-	amount := 5.00
+	var amount = 5.00
+
+	if !lib.DebuggingEnabled {
+		amount = float64(rand.Int31n(maxRandomCents+1)) / float64(100)
+	}
+
 	stockSymbol := data[0]
 	userID := data[1]
 	timestamp := lib.GetUnixTimestamp()
