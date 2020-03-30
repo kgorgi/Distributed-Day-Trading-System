@@ -8,9 +8,6 @@ import (
 	"extremeWorkload.com/daytrader/transaction/data"
 )
 
-// How long a quote is valid for when checking triggers
-var quoteThreshold uint64 = 45 * 1000
-
 func buyTrigger(trigger data.Trigger, stockPrice uint64, auditClient *auditclient.AuditClient) error {
 	numOfStocks := trigger.Amount_Cents / stockPrice
 	moneyToAdd := trigger.Amount_Cents - (stockPrice * numOfStocks)
