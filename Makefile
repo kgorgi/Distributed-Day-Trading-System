@@ -34,6 +34,10 @@ build-quote-mock:
 build-quote-cache: 
 	cd $(SRC)/quote-cache && go build -o $(OUTPUT)/quote-cache.exe
 
+.phony build-watchdog:
+build-watchdog:
+	cd $(SRC)/watchdog && go build -o $(OUTPUT)/watchdog.exe
+
 .phony format:
 format:
 	gofmt -w ./src

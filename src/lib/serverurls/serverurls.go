@@ -20,15 +20,22 @@ type ServerUrls struct {
 	DataDBServer      string `yaml:"dataDB"`
 }
 
+// Urls contains the parsed urls in urls.yml
+type Urls struct {
+	Serve map[string]ServerUrls `yaml:"urls"`
+	Watch map[string][]string   `yaml:"watchdog"`
+}
+
 const defaultConfigFilePath = "urls.yml"
 
-func getUrlsConfig() ServerUrls {
+// GetUrlsConfig Obtains the data from urls.yml
+func GetUrlsConfig() Urls {
 	var urlFilePath = os.Getenv("URLS_FILE")
 	if urlFilePath == "" {
 		urlFilePath = defaultConfigFilePath
 	}
 
-	urls := make(map[string]ServerUrls)
+	var urls Urls
 
 	yamlFile, err := ioutil.ReadFile(urlFilePath)
 	if err != nil {
@@ -39,22 +46,26 @@ func getUrlsConfig() ServerUrls {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	return urls
+}
 
+func getServerUrls() ServerUrls {
+	urls := GetUrlsConfig()
 	var env = os.Getenv("ENV")
 
 	switch env {
 	case "DOCKER":
-		return urls["docker"]
+		return urls.Serve["docker"]
 	case "DEV":
-		return urls["dev"]
+		return urls.Serve["dev"]
 	case "DEV-LAB":
-		return urls["dev-lab"]
+		return urls.Serve["dev-lab"]
 	case "LAB":
-		return urls["lab"]
+		return urls.Serve["lab"]
 	default:
-		return urls["local"]
+		return urls.Serve["local"]
 	}
 }
 
 // Env used to access the current execution environment Urls
-var Env = getUrlsConfig()
+var Env = getServerUrls()
