@@ -1,14 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
 	"time"
 
 	"extremeWorkload.com/daytrader/lib"
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 	"extremeWorkload.com/daytrader/transaction/data"
 )
+
+// How long a quote is valid for when checking triggers
+var quoteThreshold uint64 = 45 * 1000
 
 func buyTrigger(trigger data.Trigger, stockPrice uint64, auditClient *auditclient.AuditClient) error {
 	numOfStocks := trigger.Amount_Cents / stockPrice
@@ -40,16 +41,44 @@ func checkTriggers(auditClient *auditclient.AuditClient) {
 	for {
 		lib.Debugln("Checking Triggers")
 
-		triggers, err := data.ReadTriggers()
-		for err != nil {
-			fmt.Println("Something went wrong, trying again in 10 seconds")
+		triggerIterator, readErr := data.CheckTriggersIterator()
+		for readErr != nil {
+			lib.Errorln("Something went wrong, trying again in 10 seconds " + readErr.Error())
 			time.Sleep(10 * time.Second)
-			triggers, err = data.ReadTriggers()
+			triggerIterator, readErr = data.CheckTriggersIterator()
 		}
 
-		lib.Debugln(strconv.Itoa(len(triggers)) + " Triggers have been fetched, analysing")
+		var triggersChecked = 0
+		var currentStockSymbol = ""
+		var stockPrice uint64 = 0
+		var stockPriceTimestamp uint64 = 0
 
-		for _, trigger := range triggers {
+		for {
+			validTrigger, trigger, err := triggerIterator()
+
+			if err != nil {
+				lib.Errorln("Failed to check trigger " + err.Error())
+				continue
+			}
+
+			if !validTrigger {
+				break
+			}
+
+			elaspedTime := lib.GetUnixTimestamp() - stockPriceTimestamp
+			if currentStockSymbol != trigger.Stock ||
+				elaspedTime > quoteThreshold {
+				// Get new quote
+				stockPrice, err = GetQuote(trigger.Stock, trigger.User_Command_ID, false, auditClient)
+				if err != nil {
+					auditClient.LogErrorEvent(err.Error())
+					continue
+				}
+
+				currentStockSymbol = trigger.Stock
+				stockPriceTimestamp = lib.GetUnixTimestamp()
+			}
+
 			auditClient.TransactionNum = trigger.Transaction_Number
 			if trigger.Is_Sell {
 				auditClient.Command = "SET_SELL_TRIGGER"
@@ -57,26 +86,22 @@ func checkTriggers(auditClient *auditclient.AuditClient) {
 				auditClient.Command = "SET_BUY_TRIGGER"
 			}
 
-			stockPrice, err := GetQuote(trigger.Stock, trigger.User_Command_ID, false, auditClient)
-			if err != nil {
-				auditClient.LogErrorEvent(err.Error())
-				continue
-			}
-
-			if trigger.Price_Cents != 0 {
-				if trigger.Is_Sell && stockPrice >= trigger.Price_Cents {
-					if err := sellTrigger(trigger, stockPrice, auditClient); err != nil {
-						auditClient.LogErrorEvent("Sell trigger failed: " + err.Error())
-						continue
-					}
-				} else if !trigger.Is_Sell && stockPrice <= trigger.Price_Cents {
-					if err := buyTrigger(trigger, stockPrice, auditClient); err != nil {
-						auditClient.LogErrorEvent("Buy trigger failed: " + err.Error())
-						continue
-					}
+			if trigger.Is_Sell && stockPrice >= trigger.Price_Cents {
+				err := sellTrigger(trigger, stockPrice, auditClient)
+				if err != nil {
+					auditClient.LogErrorEvent("Sell trigger failed: " + err.Error())
+				}
+			} else if !trigger.Is_Sell && stockPrice <= trigger.Price_Cents {
+				err := buyTrigger(trigger, stockPrice, auditClient)
+				if err != nil {
+					auditClient.LogErrorEvent("Buy trigger failed: " + err.Error())
 				}
 			}
+
+			triggersChecked++
 		}
+
+		lib.Debug("Checked %d triggers.\n", triggersChecked)
 
 		time.Sleep(60 * time.Second)
 	}

@@ -87,43 +87,43 @@ func setupIndexes() {
 	}
 }
 
-func queryTriggers(query bson.M) ([]Trigger, error) {
-	collection := client.Database("extremeworkload").Collection("triggers")
-	cursor, err := collection.Find(context.TODO(), query)
-	if err != nil {
-		return nil, err
-	}
-
-	//copy over users
-	var triggers []Trigger
-	defer cursor.Close(context.TODO())
-	for cursor.Next(context.TODO()) {
-		var trigger Trigger
-		cursor.Decode(&trigger)
-		triggers = append(triggers, trigger)
-	}
-
-	return triggers, nil
-}
-
 func CreateTrigger(trigger Trigger) error {
 	collection := client.Database("extremeworkload").Collection("triggers")
 	_, err := collection.InsertOne(context.TODO(), trigger)
 	return err
 }
 
-func ReadTriggers() ([]Trigger, error) {
-	triggers, err := queryTriggers(bson.M{})
+func CheckTriggersIterator() (func() (bool, Trigger, error), error) {
+	findOptions := options.Find()
+	findOptions.SetSort(bson.M{"stock": -1})
+
+	query := bson.M{"price_cents": bson.M{"$gt": 0}}
+	collection := client.Database("extremeworkload").Collection("triggers")
+	cursor, err := collection.Find(context.TODO(), query, findOptions)
 	if err != nil {
-		return []Trigger{}, err
+		return nil, err
 	}
 
-	return triggers, nil
+	return func() (bool, Trigger, error) {
+		if cursor.Next(context.TODO()) {
+			var trigger Trigger
+			err := cursor.Decode(&trigger)
+			if err != nil {
+				return false, Trigger{}, err
+			}
+
+			return true, trigger, nil
+		}
+
+		cursor.Close(context.TODO())
+		return false, Trigger{}, nil
+	}, nil
 }
 
 func ReadTriggersByUser(commandID string) ([]Trigger, error) {
-	triggers, err := queryTriggers(bson.M{"user_command_id": commandID})
-
+	query := bson.M{"user_command_id": commandID}
+	collection := client.Database("extremeworkload").Collection("triggers")
+	cursor, err := collection.Find(context.TODO(), query)
 	if err == mongo.ErrNoDocuments {
 		return []Trigger{}, ErrNotFound
 	}
@@ -132,6 +132,19 @@ func ReadTriggersByUser(commandID string) ([]Trigger, error) {
 		return []Trigger{}, err
 	}
 
+	// copy over triggers
+	var triggers []Trigger
+	for cursor.Next(context.TODO()) {
+		var trigger Trigger
+		err := cursor.Decode(&trigger)
+		if err != nil {
+			return []Trigger{}, err
+		}
+
+		triggers = append(triggers, trigger)
+	}
+
+	cursor.Close(context.TODO())
 	return triggers, nil
 }
 
@@ -176,13 +189,17 @@ func ReadUsers() ([]User, error) {
 
 	//copy over users
 	var users []User
-	defer cursor.Close(context.TODO())
 	for cursor.Next(context.TODO()) {
 		var user User
-		cursor.Decode(&user)
+		err := cursor.Decode(&user)
+		if err != nil {
+			return nil, err
+		}
+
 		users = append(users, user)
 	}
 
+	cursor.Close(context.TODO())
 	return users, nil
 }
 
