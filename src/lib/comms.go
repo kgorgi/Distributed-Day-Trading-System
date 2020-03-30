@@ -3,7 +3,6 @@ package lib
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"net"
 	"strconv"
@@ -18,7 +17,7 @@ const retries = 3
 // In milliseconds
 const backoff = 1000
 
-const socketTimeout = time.Duration(5) * time.Second
+const socketTimeout = time.Duration(60) * time.Second
 
 const seperatorChar = "|"
 
@@ -37,39 +36,7 @@ const StatusNotFound = 404
 // ClientSendRequest sends a request to a server and then returns
 // the response from the server (status, message/error, exception)
 func ClientSendRequest(address string, payload string) (int, string, error) {
-	var status int
-	var message string
-	var err error
-	var conn net.Conn
-
-	currentAttempt := 0
-	for currentAttempt < retries {
-		if err != nil {
-			Debugln(fmt.Sprintf("Failed request (%d): %s %s\n Err: %s\n", currentAttempt, address, payload, err.Error()))
-		}
-		time.Sleep(time.Duration(currentAttempt*backoff) * time.Millisecond)
-
-		conn, err = net.Dial("tcp", address)
-		if err != nil {
-			status = StatusSystemError
-			message = ""
-			currentAttempt++
-			continue
-		}
-
-		status, message, err = clientSendRequestNoRetry(conn, payload)
-		conn.Close()
-
-		if err != nil {
-			currentAttempt++
-			continue
-		}
-
-		// Successful request if it reaches here
-		break
-	}
-
-	return status, message, err
+	return clientSendRequestRetry(address, payload, 1, StatusSystemError, "", nil)
 }
 
 // ServerReceiveRequest processes a request from a client
@@ -87,13 +54,32 @@ func ServerSendResponse(conn net.Conn, status int, message string) error {
 	return sendMessage(conn, strconv.Itoa(status)+seperatorChar+message)
 }
 
-func clientSendRequestNoRetry(conn net.Conn, payload string) (int, string, error) {
-	err := sendMessage(conn, payload)
+func clientSendRequestRetry(address string, payload string, currentAttempt int, status int, message string, err error) (int, string, error) {
+	if currentAttempt >= retries {
+		return status, message, err
+	}
+
+	if currentAttempt > 1 {
+		Debug("Failed request (%d): %s %s\n Err: %s\n", currentAttempt, address, payload, err.Error())
+	}
+
+	time.Sleep(time.Duration(currentAttempt-1*backoff) * time.Millisecond)
+
+	conn, err := net.Dial("tcp", address)
 	if err != nil {
-		return StatusSystemError, "", err
+		currentAttempt++
+		return clientSendRequestRetry(address, payload, currentAttempt, StatusSystemError, "", err)
+	}
+
+	err = sendMessage(conn, payload)
+	if err != nil {
+		conn.Close()
+		currentAttempt++
+		return clientSendRequestRetry(address, payload, currentAttempt, StatusSystemError, "", err)
 	}
 
 	respPayload, err := readMessage(conn)
+	conn.Close()
 	if err != nil {
 		return StatusSystemError, "", err
 	}
