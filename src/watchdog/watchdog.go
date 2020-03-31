@@ -18,6 +18,8 @@ import (
 
 type healthChecker func(string) error
 
+const timeInterval = 60
+
 var sslCertLocation string
 
 // TCPHealthCheck send a health check to a tcp server
@@ -101,6 +103,6 @@ func main() {
 		checkHelper(watchUrls, HTTPHealthCheck, "web-load")
 		checkHelper(watchUrls, MongoHealthCheck, "dbs")
 		fmt.Printf("Round complete. waiting\n\n")
-		time.Sleep(5 * time.Second)
+		time.Sleep(timeInterval * time.Second)
 	}
 }
