@@ -8,7 +8,7 @@ all: build
 
 # Build Commands
 .phony build:
-build: build-web build-transaction build-audit build-generator build-quote-mock build-quote-cache
+build: build-web build-transaction build-audit build-generator build-quote-mock build-quote-cache build-watchdog
 
 .phony build-web:
 build-web: 
@@ -33,6 +33,10 @@ build-quote-mock:
 .phony build-quote-cache:
 build-quote-cache: 
 	cd $(SRC)/quote-cache && go build -o $(OUTPUT)/quote-cache.exe
+
+.phony build-watchdog:
+build-watchdog:
+	cd $(SRC)/watchdog && go build -o $(OUTPUT)/watchdog.exe
 
 .phony format:
 format:
