@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
 	"time"
 
 	"extremeWorkload.com/daytrader/lib"
@@ -40,21 +38,24 @@ func checkTriggers(auditClient *auditclient.AuditClient) {
 	for {
 		lib.Debugln("Checking Triggers")
 
-		triggers, err := data.ReadTriggers()
-		for err != nil {
-			fmt.Println("Something went wrong, trying again in 10 seconds")
+		triggerIterator, readErr := data.CheckTriggersIterator()
+		for readErr != nil {
+			lib.Errorln("Something went wrong, trying again in 10 seconds " + readErr.Error())
 			time.Sleep(10 * time.Second)
-			triggers, err = data.ReadTriggers()
+			triggerIterator, readErr = data.CheckTriggersIterator()
 		}
 
-		lib.Debugln(strconv.Itoa(len(triggers)) + " Triggers have been fetched, analysing")
+		var triggersChecked = 0
+		for {
+			validTrigger, trigger, err := triggerIterator()
 
-		for _, trigger := range triggers {
-			auditClient.TransactionNum = trigger.Transaction_Number
-			if trigger.Is_Sell {
-				auditClient.Command = "SET_SELL_TRIGGER"
-			} else {
-				auditClient.Command = "SET_BUY_TRIGGER"
+			if err != nil {
+				lib.Errorln("Failed to check trigger " + err.Error())
+				continue
+			}
+
+			if !validTrigger {
+				break
 			}
 
 			stockPrice, err := GetQuote(trigger.Stock, trigger.User_Command_ID, false, auditClient)
@@ -63,20 +64,29 @@ func checkTriggers(auditClient *auditclient.AuditClient) {
 				continue
 			}
 
-			if trigger.Price_Cents != 0 {
-				if trigger.Is_Sell && stockPrice >= trigger.Price_Cents {
-					if err := sellTrigger(trigger, stockPrice, auditClient); err != nil {
-						auditClient.LogErrorEvent("Sell trigger failed: " + err.Error())
-						continue
-					}
-				} else if !trigger.Is_Sell && stockPrice <= trigger.Price_Cents {
-					if err := buyTrigger(trigger, stockPrice, auditClient); err != nil {
-						auditClient.LogErrorEvent("Buy trigger failed: " + err.Error())
-						continue
-					}
+			auditClient.TransactionNum = trigger.Transaction_Number
+			if trigger.Is_Sell {
+				auditClient.Command = "SET_SELL_TRIGGER"
+			} else {
+				auditClient.Command = "SET_BUY_TRIGGER"
+			}
+
+			if trigger.Is_Sell && stockPrice >= trigger.Price_Cents {
+				err := sellTrigger(trigger, stockPrice, auditClient)
+				if err != nil {
+					auditClient.LogErrorEvent("Sell trigger failed: " + err.Error())
+				}
+			} else if !trigger.Is_Sell && stockPrice <= trigger.Price_Cents {
+				err := buyTrigger(trigger, stockPrice, auditClient)
+				if err != nil {
+					auditClient.LogErrorEvent("Buy trigger failed: " + err.Error())
 				}
 			}
+
+			triggersChecked++
 		}
+
+		lib.Debug("Checked %d triggers.\n", triggersChecked)
 
 		time.Sleep(60 * time.Second)
 	}
