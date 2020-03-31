@@ -28,7 +28,6 @@ func TCPHealthCheck(url string) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
 
 	conn.SetDeadline(time.Now().Add(5 * time.Second))
 	conn.Write([]byte("?"))
@@ -37,11 +36,14 @@ func TCPHealthCheck(url string) error {
 	conn.SetDeadline(time.Time{})
 
 	if err != nil {
+		conn.Close()
 		return err
 	}
 	if n != 1 && string(readBuf) != "T" {
+		conn.Close()
 		return errors.New("Health service did not send correct response")
 	}
+	conn.Close()
 	return nil
 }
 
@@ -66,12 +68,14 @@ func MongoHealthCheck(url string) error {
 	if err != nil {
 		return err
 	}
-	defer client.Disconnect(context.TODO())
 
 	err = client.Ping(context.TODO(), nil)
 	if err != nil {
+		client.Disconnect(context.TODO())
 		return err
 	}
+
+	client.Disconnect(context.TODO())
 	return nil
 }
 

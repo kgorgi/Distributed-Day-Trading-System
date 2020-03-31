@@ -8,7 +8,7 @@ all: build
 
 # Build Commands
 .phony build:
-build: build-web build-transaction build-audit build-generator build-quote-mock build-quote-cache
+build: build-web build-transaction build-audit build-generator build-quote-mock build-quote-cache build-watchdog
 
 .phony build-web:
 build-web: 
