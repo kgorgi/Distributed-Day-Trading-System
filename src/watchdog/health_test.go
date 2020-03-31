@@ -2,13 +2,16 @@ package main
 
 import (
 	"net"
+	"os"
 	"sync"
 	"testing"
 
 	"extremeWorkload.com/daytrader/lib"
+	"extremeWorkload.com/daytrader/lib/security"
 )
 
 func TestHealthLocal(t *testing.T) {
+	security.InitCryptoKey()
 	listener, err := net.Listen("tcp", ":9999")
 	if err != nil {
 		t.Error("Failed to setup test listener")
@@ -17,21 +20,26 @@ func TestHealthLocal(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
+		os.Setenv("CHECK_TRIGGERS", "yes")
 		server, _ := listener.Accept()
-		isHealthCheck, err := lib.ServerReceiveHealthCheck(server)
+		payload, err := lib.ServerReceiveRequest(server)
 		if err != nil {
 			t.Error("Server read failed: " + err.Error())
 		}
-		if !isHealthCheck {
-			t.Errorf("Unexpected output: %t", isHealthCheck)
+		if payload != lib.HealthCheck {
+			t.Errorf("Unexpected output: %s", payload)
 		}
+		lib.ServerSendHealthResponse(server, lib.HealthStatusTrigger)
 		server.Close()
 		wg.Done()
 	}()
 
-	err = TCPHealthCheck(":9999")
+	message, err := TCPHealthCheck(":9999")
 	if err != nil {
-		t.Error("Error: " + err.Error())
+		t.Error("Health Check failed: " + err.Error())
+	}
+	if message != lib.HealthStatusTrigger {
+		t.Error("Recieved unexpected response: " + message)
 	}
 	wg.Wait()
 

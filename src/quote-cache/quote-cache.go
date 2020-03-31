@@ -26,7 +26,7 @@ func handleConnection(queue chan *perftools.PerfConn) {
 		}
 
 		if payload == lib.HealthCheck {
-			lib.ServerSendHealthResponse(conn)
+			lib.ServerSendHealthResponse(conn, lib.HealthStatusUp)
 			conn.Close()
 			continue
 		}

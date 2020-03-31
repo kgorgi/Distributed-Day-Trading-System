@@ -40,7 +40,11 @@ func handleWebConnection(queue chan *perftools.PerfConn) {
 		}
 
 		if payload == lib.HealthCheck {
-			lib.ServerSendHealthResponse(conn)
+			healthStatus := lib.HealthStatusUp
+			if _, ok := os.LookupEnv("CHECK_TRIGGERS"); ok {
+				healthStatus := lib.HealthStatusTrigger
+			}
+			lib.ServerSendHealthResponse(conn, healthStatus)
 			conn.Close()
 			continue
 		}

@@ -65,7 +65,7 @@ func handleConnection(queue chan net.Conn) {
 		}
 
 		if payload == lib.HealthCheck {
-			lib.ServerSendHealthResponse(conn)
+			lib.ServerSendHealthResponse(conn, lib.HealthStatusUp)
 			conn.Close()
 			continue
 		}

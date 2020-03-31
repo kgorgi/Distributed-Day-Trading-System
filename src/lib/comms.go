@@ -36,6 +36,12 @@ const StatusNotFound = 404
 // HealthCheck signal for health check
 const HealthCheck = "HEALTH"
 
+// HealthStatusUp healthy status
+const HealthStatusUp = "UP"
+
+// HealthStatusTrigger healthy status and trigger
+const HealthStatusTrigger = "TRIGGER"
+
 // ClientSendRequest sends a request to a server and then returns
 // the response from the server (status, message/error, exception)
 func ClientSendRequest(address string, payload string) (int, string, error) {
@@ -58,8 +64,8 @@ func ServerSendResponse(conn net.Conn, status int, message string) error {
 }
 
 // ServerSendHealthResponse sends a healthy response
-func ServerSendHealthResponse(conn net.Conn) error {
-	return sendMessage(conn, strconv.Itoa(StatusOk)+seperatorChar+"UP")
+func ServerSendHealthResponse(conn net.Conn, healthStatus string) error {
+	return sendMessage(conn, strconv.Itoa(StatusOk)+seperatorChar+healthStatus)
 }
 
 func clientSendRequestRetry(address string, payload string, currentAttempt int, status int, message string, err error) (int, string, error) {
