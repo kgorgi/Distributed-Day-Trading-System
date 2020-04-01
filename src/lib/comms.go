@@ -33,6 +33,9 @@ const StatusSystemError = 500
 // StatusNotFound (HTTP 404)
 const StatusNotFound = 404
 
+// HealthCheck signal for health check
+const HealthCheck = "HEALTH"
+
 // ClientSendRequest sends a request to a server and then returns
 // the response from the server (status, message/error, exception)
 func ClientSendRequest(address string, payload string) (int, string, error) {
@@ -44,27 +47,6 @@ func ServerReceiveRequest(conn net.Conn) (string, error) {
 	return readMessage(conn)
 }
 
-// ServerReceiveHealthCheck Check for and responds to health check
-func ServerReceiveHealthCheck(conn net.Conn) (bool, error) {
-	r := bufio.NewReader(conn)
-	if r.Buffered() > 1 {
-		return false, nil
-	}
-
-	healthCheck, err := r.ReadByte()
-	if err != nil {
-		return true, err
-	}
-	if string(healthCheck) == "?" {
-		_, err = conn.Write([]byte("T"))
-		if err != nil {
-			return true, err
-		}
-	}
-	return true, nil
-
-}
-
 // ServerSendOKResponse sends an OK response
 func ServerSendOKResponse(conn net.Conn) error {
 	return sendMessage(conn, strconv.Itoa(StatusOk)+seperatorChar)
@@ -73,6 +55,11 @@ func ServerSendOKResponse(conn net.Conn) error {
 // ServerSendResponse sends a response to a client
 func ServerSendResponse(conn net.Conn, status int, message string) error {
 	return sendMessage(conn, strconv.Itoa(status)+seperatorChar+message)
+}
+
+// ServerSendHealthResponse sends a healthy response
+func ServerSendHealthResponse(conn net.Conn) error {
+	return sendMessage(conn, strconv.Itoa(StatusOk)+seperatorChar+"UP")
 }
 
 func clientSendRequestRetry(address string, payload string, currentAttempt int, status int, message string, err error) (int, string, error) {

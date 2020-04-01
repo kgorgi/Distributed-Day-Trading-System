@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"strconv"
 	"time"
 
 	"extremeWorkload.com/daytrader/lib"
+	"extremeWorkload.com/daytrader/lib/security"
 	"extremeWorkload.com/daytrader/lib/serverurls"
 	"extremeWorkload.com/daytrader/lib/user"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -24,26 +24,13 @@ var sslCertLocation string
 
 // TCPHealthCheck send a health check to a tcp server
 func TCPHealthCheck(url string) error {
-	conn, err := net.Dial("tcp", url)
+	status, _, err := lib.ClientSendRequest(url, lib.HealthCheck)
 	if err != nil {
 		return err
 	}
-
-	conn.SetDeadline(time.Now().Add(5 * time.Second))
-	conn.Write([]byte("?"))
-	readBuf := make([]byte, 1)
-	n, err := conn.Read(readBuf)
-	conn.SetDeadline(time.Time{})
-
-	if err != nil {
-		conn.Close()
-		return err
+	if status != lib.StatusOk {
+		return fmt.Errorf("Expected 200, got %d", status)
 	}
-	if n != 1 && string(readBuf) != "T" {
-		conn.Close()
-		return errors.New("Health service did not send correct response")
-	}
-	conn.Close()
 	return nil
 }
 
@@ -94,7 +81,7 @@ func checkHelper(watchUrls map[string][]string, check healthChecker, servertype 
 
 func main() {
 	sslCertLocation = os.Getenv("CLIENT_SSL_CERT_LOCATION")
-
+	security.InitCryptoKey()
 	watchUrls := serverurls.GetUrlsConfig().Watch
 
 	fmt.Println("Starting Watch")
