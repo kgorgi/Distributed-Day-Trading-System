@@ -53,9 +53,9 @@ func InitDatabaseConnection() {
 	fmt.Println("Connected to MongoDB")
 }
 
-func CreateTrigger(trigger Trigger) error {
+func CreateTrigger(trigger Trigger, ctx context.Context) error {
 	collection := client.Database("extremeworkload").Collection("triggers")
-	_, err := collection.InsertOne(context.TODO(), trigger)
+	_, err := collection.InsertOne(ctx, trigger)
 	return err
 }
 
@@ -115,7 +115,7 @@ func ReadTriggersByUser(commandID string) ([]Trigger, error) {
 	return triggers, nil
 }
 
-func ReadTrigger(commandID string, stock string, isSell bool) (Trigger, error) {
+func ReadTrigger(commandID string, stock string, isSell bool, ctx context.Context) (Trigger, error) {
 	collection := client.Database("extremeworkload").Collection("triggers")
 
 	var trigger Trigger
@@ -127,12 +127,12 @@ func ReadTrigger(commandID string, stock string, isSell bool) (Trigger, error) {
 	return trigger, err
 }
 
-func DeleteTrigger(commandID string, stock string, isSell bool) (Trigger, error) {
+func DeleteTrigger(commandID string, stock string, isSell bool, ctx context.Context) (Trigger, error) {
 	collection := client.Database("extremeworkload").Collection("triggers")
 	filter := bson.M{"user_command_id": commandID, "stock": stock, "is_sell": isSell}
 
 	var deletedTrigger Trigger
-	err := collection.FindOneAndDelete(context.TODO(), filter).Decode(&deletedTrigger)
+	err := collection.FindOneAndDelete(ctx, filter).Decode(&deletedTrigger)
 
 	if err == mongo.ErrNoDocuments {
 		return deletedTrigger, ErrNotFound
@@ -170,7 +170,7 @@ func ReadUsers() ([]User, error) {
 	return users, nil
 }
 
-func ReadUser(commandID string) (User, error) {
+func ReadUser(commandID string, ctx context.Context) (User, error) {
 	collection := client.Database("extremeworkload").Collection("users")
 
 	var user User
@@ -183,10 +183,10 @@ func ReadUser(commandID string) (User, error) {
 	return user, err
 }
 
-func UpdateUser(userID string, stock string, amount int, cents int, auditClient *auditclient.AuditClient) error {
+func UpdateUser(userID string, stock string, amount int, cents int, ctx context.Context, auditClient *auditclient.AuditClient) error {
 	// If no stock should be added or removed
 	if stock == "" || amount == 0 {
-		updateErr := UpdateCents(userID, cents)
+		updateErr := UpdateCents(userID, cents, ctx)
 		if updateErr != nil {
 			return updateErr
 		}
@@ -194,7 +194,7 @@ func UpdateUser(userID string, stock string, amount int, cents int, auditClient 
 		return nil
 	}
 
-	updateErr := UpdateStockAndCents(userID, stock, amount, cents)
+	updateErr := UpdateStockAndCents(userID, stock, amount, cents, ctx)
 	if updateErr != nil {
 		return updateErr
 	}
@@ -204,7 +204,7 @@ func UpdateUser(userID string, stock string, amount int, cents int, auditClient 
 
 // Add a specified amount of stock, and remove a specified amount of cents to a user.
 // If a user cannot be found, or they lack sufficent funds or stock, ErrNotFound is returned.
-func UpdateStockAndCents(commandID string, stock string, amount int, cents int) error {
+func UpdateStockAndCents(commandID string, stock string, amount int, cents int, ctx context.Context) error {
 	collection := client.Database("extremeworkload").Collection("users")
 
 	var filter bson.M
@@ -220,7 +220,7 @@ func UpdateStockAndCents(commandID string, stock string, amount int, cents int) 
 		emptyInvestment := Investment{Stock: stock, Amount: 0}
 		filter := bson.M{"command_id": commandID, "investments.stock": bson.M{"$ne": stock}}
 		update := bson.M{"$push": bson.M{"investments": emptyInvestment}}
-		_, err := collection.UpdateOne(context.TODO(), filter, update)
+		_, err := collection.UpdateOne(ctx, filter, update)
 		if err != nil {
 			return err
 		}
@@ -229,7 +229,7 @@ func UpdateStockAndCents(commandID string, stock string, amount int, cents int) 
 	// Next, increment the stock by the specified amount making sure the user has enough money and stock
 	filter = bson.M{"command_id": commandID, "cents": bson.M{"$gte": -cents}, "investments.stock": stock, "investments.amount": bson.M{"$gte": -amount}}
 	update = bson.M{"$inc": bson.M{"investments.$.amount": amount, "cents": cents}}
-	result, err := collection.UpdateOne(context.TODO(), filter, update)
+	result, err := collection.UpdateOne(ctx, filter, update)
 	if err != nil {
 		return err
 	}
@@ -245,7 +245,7 @@ func UpdateStockAndCents(commandID string, stock string, amount int, cents int) 
 		emptyInvestment := Investment{Stock: stock, Amount: 0}
 		filter = bson.M{"command_id": commandID, "investments.stock": stock, "investments.amount": 0}
 		update = bson.M{"$pull": bson.M{"investments": emptyInvestment}}
-		_, err = collection.UpdateOne(context.TODO(), filter, update)
+		_, err = collection.UpdateOne(ctx, filter, update)
 		if err != nil {
 			return err
 		}
@@ -254,12 +254,12 @@ func UpdateStockAndCents(commandID string, stock string, amount int, cents int) 
 	return nil
 }
 
-func UpdateCents(commandID string, amount int) error {
+func UpdateCents(commandID string, amount int, ctx context.Context) error {
 	collection := client.Database("extremeworkload").Collection("users")
 
 	filter := bson.M{"command_id": commandID, "cents": bson.M{"$gte": -amount}}
 	update := bson.M{"$inc": bson.M{"cents": amount}}
-	result, err := collection.UpdateOne(context.TODO(), filter, update)
+	result, err := collection.UpdateOne(ctx, filter, update)
 
 	if err != nil {
 		return err
@@ -272,12 +272,12 @@ func UpdateCents(commandID string, amount int) error {
 	return nil
 }
 
-func UpdateTriggerPrice(commandID string, stock string, isSell bool, price uint64) error {
+func UpdateTriggerPrice(commandID string, stock string, isSell bool, price uint64, ctx context.Context) error {
 	collection := client.Database("extremeworkload").Collection("triggers")
 
 	filter := bson.M{"user_command_id": commandID, "stock": stock, "is_sell": isSell, "amount_cents": bson.M{"$gte": price}}
 	update := bson.M{"$set": bson.M{"price_cents": price}}
-	result, err := collection.UpdateOne(context.TODO(), filter, update)
+	result, err := collection.UpdateOne(ctx, filter, update)
 
 	if err != nil {
 		return err
@@ -290,12 +290,12 @@ func UpdateTriggerPrice(commandID string, stock string, isSell bool, price uint6
 	return nil
 }
 
-func UpdateTriggerAmount(commandID string, stock string, isSell bool, amount uint64) error {
+func UpdateTriggerAmount(commandID string, stock string, isSell bool, amount uint64, ctx context.Context) error {
 	collection := client.Database("extremeworkload").Collection("triggers")
 
 	filter := bson.M{"user_command_id": commandID, "stock": stock, "is_sell": isSell}
 	update := bson.M{"$set": bson.M{"amount_cents": amount}}
-	result, err := collection.UpdateOne(context.TODO(), filter, update)
+	result, err := collection.UpdateOne(ctx, filter, update)
 
 	if err != nil {
 		return err
@@ -380,4 +380,31 @@ func PopUserReserve(commandID string, isSell bool) (Reserve, error) {
 	}
 
 	return reserves[0], nil
+}
+
+func ExecuteTransaction(transactions func(context.Context) (error, int)) (error, int) {
+	var transactionError error
+	var status int = lib.StatusOk
+	transactionError = client.UseSession(context.TODO(), func(sessionContext mongo.SessionContext) error {
+		err := sessionContext.StartTransaction()
+		if err != nil {
+			return err
+		}
+
+		err, status = transactions(sessionContext)
+		if err != nil {
+			sessionContext.AbortTransaction(context.TODO())
+			return err
+		}
+
+		err = sessionContext.CommitTransaction(context.TODO())
+		return err
+	})
+
+	if transactionError != nil && status == lib.StatusOk {
+		transactionError = errors.New("Transaction error " + transactionError.Error())
+		status = lib.StatusSystemError
+	}
+
+	return transactionError, status
 }

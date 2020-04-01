@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"time"
 
 	"extremeWorkload.com/daytrader/lib"
@@ -14,26 +15,34 @@ func buyTrigger(trigger data.Trigger, stockPrice uint64, auditClient *auditclien
 	numOfStocks := trigger.Amount_Cents / stockPrice
 	moneyToAdd := trigger.Amount_Cents - (stockPrice * numOfStocks)
 
-	updateErr := data.UpdateUser(trigger.User_Command_ID, trigger.Stock, int(numOfStocks), int(moneyToAdd), auditClient)
-	if updateErr != nil {
-		return updateErr
-	}
+	err, _ := data.ExecuteTransaction(func(ctx context.Context) (error, int) {
+		updateErr := data.UpdateUser(trigger.User_Command_ID, trigger.Stock, int(numOfStocks), int(moneyToAdd), ctx, auditClient)
+		if updateErr != nil {
+			return updateErr, lib.StatusSystemError
+		}
 
-	_, deleteErr := data.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
-	return deleteErr
+		_, deleteErr := data.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell, ctx)
+		return deleteErr, lib.StatusSystemError
+	})
+
+	return err
 }
 
 func sellTrigger(trigger data.Trigger, stockPrice uint64, auditClient *auditclient.AuditClient) error {
 	stocksInReserve := trigger.Amount_Cents / trigger.Price_Cents
 	moneyToAdd := stockPrice * stocksInReserve
 
-	updateErr := data.UpdateUser(trigger.User_Command_ID, "", 0, int(moneyToAdd), auditClient)
-	if updateErr != nil {
-		return updateErr
-	}
+	err, _ := data.ExecuteTransaction(func(ctx context.Context) (error, int) {
+		updateErr := data.UpdateUser(trigger.User_Command_ID, "", 0, int(moneyToAdd), ctx, auditClient)
+		if updateErr != nil {
+			return updateErr, lib.StatusSystemError
+		}
 
-	_, deleteErr := data.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell)
-	return deleteErr
+		_, deleteErr := data.DeleteTrigger(trigger.User_Command_ID, trigger.Stock, trigger.Is_Sell, ctx)
+		return deleteErr, lib.StatusSystemError
+	})
+
+	return err
 }
 
 func checkTriggers(auditClient *auditclient.AuditClient) {
