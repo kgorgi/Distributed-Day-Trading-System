@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strconv"
+	"strings"
 
 	auditclient "extremeWorkload.com/daytrader/lib/audit"
 	"extremeWorkload.com/daytrader/lib/perftools"
@@ -39,10 +40,14 @@ func handleWebConnection(queue chan *perftools.PerfConn) {
 			continue
 		}
 
-		if payload == lib.HealthCheck {
+		healthPayload := strings.Split(payload, lib.SeperatorChar)
+		if healthPayload[0] == lib.HealthCheck {
+			if len(healthPayload) > 1 && healthPayload[1] == "START" {
+				isTriggerCheckingActive = true
+			}
 			healthStatus := lib.HealthStatusUp
-			if _, ok := os.LookupEnv("CHECK_TRIGGERS"); ok {
-				healthStatus := lib.HealthStatusTrigger
+			if isTriggerCheckingActive {
+				healthStatus = "ACTIVE"
 			}
 			lib.ServerSendHealthResponse(conn, healthStatus)
 			conn.Close()
@@ -95,10 +100,9 @@ func main() {
 		Command:        "",
 	}
 
-	_, check := os.LookupEnv("CHECK_TRIGGERS")
-	if check {
-		go checkTriggers(&auditclient)
-	}
+	_, isTriggerCheckingActive = os.LookupEnv("CHECK_TRIGGERS")
+
+	go checkTriggers(&auditclient)
 
 	ln, err := net.Listen("tcp", ":5000")
 	if err != nil {

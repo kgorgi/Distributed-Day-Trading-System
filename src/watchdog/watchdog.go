@@ -12,37 +12,69 @@ import (
 
 type healthChecker func(string) (string, error)
 
-const timeInterval = 60
+const waitInterval = 5
 
 var sslCertLocation string
 
-func checkHelper(watchUrls map[string][]string, check healthChecker, servertype string) []string {
-	var replies []string
-
-	fmt.Printf("%s:\n", servertype)
+func checkHelper(watchUrls map[string][]string, check healthChecker, servertype string) {
 
 	for _, url := range watchUrls[servertype] {
-		fmt.Printf("Checking %s... ", url)
-		reply, err := check(url)
+		_, err := check(url)
 
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Bad \n%s\n\n", err.Error())
+			lib.Error("Bad - %s(%s) - Bad \n%s\n\n", servertype, url, err.Error())
 		} else {
-			fmt.Println("Good")
-			replies = append(replies, reply)
+			fmt.Printf("Good - %s(%s) \n", servertype, url)
 		}
 	}
-	return replies
 }
 
-func find(query string, list []string) int {
-	c := 0
-	for _, element := range list {
-		if query == element {
-			c++
+func countActiveTriggers(urls []string) int {
+	triggersActive := 0
+	for _, url := range urls {
+		_, message, err := lib.ClientSendRequest(url, lib.HealthCheck)
+		if err == nil && message == "ACTIVE" {
+			triggersActive++
 		}
 	}
-	return c
+	return triggersActive
+}
+
+func triggerWatch(watchUrls map[string][]string) {
+	transactionUrls := watchUrls["transaction"]
+
+	for {
+		fmt.Println("Checking triggers")
+		triggersActive := countActiveTriggers(transactionUrls)
+		if triggersActive == 1 {
+			time.Sleep(waitInterval * time.Second)
+			continue
+		}
+		lib.Error("%d trigger servers found. Counting again\n", triggersActive)
+		time.Sleep(5 * time.Second)
+		triggersActive = countActiveTriggers(transactionUrls)
+		if triggersActive == 1 {
+			time.Sleep(waitInterval * time.Second)
+			continue
+		}
+
+		lib.Error("%d trigger servers found.\n", triggersActive)
+
+		triggerActivated := false
+		for !triggerActivated {
+			lib.Errorln("Attempting to start a trigger sever...")
+
+			for _, url := range transactionUrls {
+				_, message, err := lib.ClientSendRequest(url, lib.HealthCheck+"|START")
+				if err == nil && message == "ACTIVE" {
+					fmt.Println("Trigger server activated")
+					triggerActivated = true
+					break
+				}
+			}
+			time.Sleep(5 * time.Second)
+		}
+	}
 }
 
 func main() {
@@ -50,20 +82,20 @@ func main() {
 	security.InitCryptoKey()
 	watchUrls := serverurls.GetUrlsConfig().Watch
 
+	lib.DebuggingEnabled = false
+
+	fmt.Println("Starting trigger watch")
+	go triggerWatch(watchUrls)
+
 	fmt.Println("Starting Watch")
 	for {
-		replies := checkHelper(watchUrls, TCPHealthCheck, "transaction")
-		triggerServerCount := find(lib.HealthStatusTrigger, replies)
-		if triggerServerCount != 1 {
-			fmt.Fprintf(os.Stderr, "%d trigger servers found\n", triggerServerCount)
-		}
+		checkHelper(watchUrls, TCPHealthCheck, "transaction")
 		checkHelper(watchUrls, TCPHealthCheck, "quote-cache")
 		checkHelper(watchUrls, TCPHealthCheck, "audit")
 		checkHelper(watchUrls, TCPHealthCheck, "transaction-load")
 		checkHelper(watchUrls, HTTPHealthCheck, "web")
 		checkHelper(watchUrls, HTTPHealthCheck, "web-load")
 		checkHelper(watchUrls, MongoHealthCheck, "dbs")
-		fmt.Printf("--Round complete. waiting %d seconds --\n\n", timeInterval)
-		time.Sleep(timeInterval * time.Second)
+		time.Sleep(waitInterval * time.Second)
 	}
 }

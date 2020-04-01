@@ -19,7 +19,8 @@ const backoff = 1000
 
 const socketTimeout = time.Duration(60) * time.Second
 
-const seperatorChar = "|"
+// SeperatorChar used as a separator in request payload
+const SeperatorChar = "|"
 
 // StatusOk (HTTP 200)
 const StatusOk = 200
@@ -39,9 +40,6 @@ const HealthCheck = "HEALTH"
 // HealthStatusUp healthy status
 const HealthStatusUp = "UP"
 
-// HealthStatusTrigger healthy status and trigger
-const HealthStatusTrigger = "TRIGGER"
-
 // ClientSendRequest sends a request to a server and then returns
 // the response from the server (status, message/error, exception)
 func ClientSendRequest(address string, payload string) (int, string, error) {
@@ -55,17 +53,17 @@ func ServerReceiveRequest(conn net.Conn) (string, error) {
 
 // ServerSendOKResponse sends an OK response
 func ServerSendOKResponse(conn net.Conn) error {
-	return sendMessage(conn, strconv.Itoa(StatusOk)+seperatorChar)
+	return sendMessage(conn, strconv.Itoa(StatusOk)+SeperatorChar)
 }
 
 // ServerSendResponse sends a response to a client
 func ServerSendResponse(conn net.Conn, status int, message string) error {
-	return sendMessage(conn, strconv.Itoa(status)+seperatorChar+message)
+	return sendMessage(conn, strconv.Itoa(status)+SeperatorChar+message)
 }
 
 // ServerSendHealthResponse sends a healthy response
 func ServerSendHealthResponse(conn net.Conn, healthStatus string) error {
-	return sendMessage(conn, strconv.Itoa(StatusOk)+seperatorChar+healthStatus)
+	return sendMessage(conn, strconv.Itoa(StatusOk)+SeperatorChar+healthStatus)
 }
 
 func clientSendRequestRetry(address string, payload string, currentAttempt int, status int, message string, err error) (int, string, error) {
@@ -97,7 +95,7 @@ func clientSendRequestRetry(address string, payload string, currentAttempt int, 
 	if err != nil {
 		return StatusSystemError, "", err
 	}
-	data := strings.Split(respPayload, seperatorChar)
+	data := strings.Split(respPayload, SeperatorChar)
 
 	statusCode, err := strconv.Atoi(data[0])
 	if err != nil {
