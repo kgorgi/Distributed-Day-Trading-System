@@ -100,7 +100,10 @@ func main() {
 		Command:        "",
 	}
 
-	_, isTriggerCheckingActive = os.LookupEnv("CHECK_TRIGGERS")
+	_, useTrigger := os.LookupEnv("CHECK_TRIGGERS")
+	if useTrigger && lib.DebuggingEnabled {
+		isTriggerCheckingActive = true
+	}
 
 	go checkTriggers(&auditclient)
 

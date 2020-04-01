@@ -29,7 +29,7 @@ func TestHealthLocal(t *testing.T) {
 		if payload != lib.HealthCheck {
 			t.Errorf("Unexpected output: %s", payload)
 		}
-		lib.ServerSendHealthResponse(server, lib.HealthStatusTrigger)
+		lib.ServerSendHealthResponse(server, lib.HealthStatusUp)
 		server.Close()
 		wg.Done()
 	}()
@@ -38,7 +38,7 @@ func TestHealthLocal(t *testing.T) {
 	if err != nil {
 		t.Error("Health Check failed: " + err.Error())
 	}
-	if message != lib.HealthStatusTrigger {
+	if message != lib.HealthStatusUp {
 		t.Error("Recieved unexpected response: " + message)
 	}
 	wg.Wait()
