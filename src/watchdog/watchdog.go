@@ -58,19 +58,26 @@ func triggerWatch(watchUrls map[string][]string) {
 			continue
 		}
 
-		lib.Error("%d trigger servers found.\n", triggersActive)
-
-		triggerActivated := false
-		for !triggerActivated {
-			lib.Errorln("Attempting to start a trigger sever...")
+		for triggersActive != 1 {
+			lib.Error("%d trigger servers found.Attempting to fix trigger service...\n", triggersActive)
 
 			for _, url := range transactionUrls {
-				_, message, err := lib.ClientSendRequest(url, lib.HealthCheck+"|START")
-				if err == nil && message == "ACTIVE" {
-					fmt.Println("Trigger server activated")
-					triggerActivated = true
-					break
+				if triggersActive < 1 {
+					_, message, err := lib.ClientSendRequest(url, lib.HealthCheck+"|START")
+					if err == nil && message == "STARTED" {
+						fmt.Println("Trigger server activated")
+						triggersActive++
+						break
+					}
+				} else if triggersActive > 1 {
+					_, message, err := lib.ClientSendRequest(url, lib.HealthCheck+"|STOP")
+					if err == nil && message == "STOPPED" {
+						fmt.Println("Trigger server stopped")
+						triggersActive--
+						break
+					}
 				}
+
 			}
 			time.Sleep(5 * time.Second)
 		}

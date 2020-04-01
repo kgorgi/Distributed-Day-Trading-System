@@ -42,12 +42,18 @@ func handleWebConnection(queue chan *perftools.PerfConn) {
 
 		healthPayload := strings.Split(payload, lib.SeperatorChar)
 		if healthPayload[0] == lib.HealthCheck {
-			if len(healthPayload) > 1 && healthPayload[1] == "START" {
-				isTriggerCheckingActive = true
-			}
 			healthStatus := lib.HealthStatusUp
 			if isTriggerCheckingActive {
 				healthStatus = "ACTIVE"
+			}
+			if len(healthPayload) > 1 {
+				if !isTriggerCheckingActive && healthPayload[1] == "START" {
+					isTriggerCheckingActive = true
+					healthStatus = "STARTED"
+				} else if isTriggerCheckingActive && healthPayload[1] == "STOP" {
+					isTriggerCheckingActive = false
+					healthStatus = "STOPPED"
+				}
 			}
 			lib.ServerSendHealthResponse(conn, healthStatus)
 			conn.Close()
