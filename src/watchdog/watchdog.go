@@ -89,8 +89,6 @@ func main() {
 	security.InitCryptoKey()
 	watchUrls := serverurls.GetUrlsConfig().Watch
 
-	lib.DebuggingEnabled = false
-
 	fmt.Println("Starting trigger watch")
 	go triggerWatch(watchUrls)
 
