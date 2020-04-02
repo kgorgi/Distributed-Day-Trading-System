@@ -55,7 +55,10 @@ func handleWebConnection(queue chan *perftools.PerfConn) {
 					healthStatus = "STOPPED"
 				}
 			}
-			lib.ServerSendHealthResponse(conn, healthStatus)
+			err = lib.ServerSendHealthResponse(conn, healthStatus)
+			if err != nil {
+				lib.Errorln("Failed to send health response: " + err.Error())
+			}
 			conn.Close()
 			continue
 		}
