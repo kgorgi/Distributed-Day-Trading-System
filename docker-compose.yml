@@ -77,13 +77,47 @@ services:
     dataDB:
         image: mongo:latest
         container_name: "data-mongodb"
-        command: mongod --auth
+        command: mongod --auth --profile 2 --replSet rs0 --keyFile /opt/keyfile
+        depends_on:
+            - dataDB2
+            - dataDB3
         environment:
             MONGO_INITDB_ROOT_USERNAME: admin
             MONGO_INITDB_ROOT_PASSWORD: admin
             MONGO_INITDB_DATABASE: extremeworkload
         volumes:
+            - ./data-keyfile:/opt/keyfile:ro
             - ./data-mongo-init.js:/docker-entrypoint-initdb.d/data-mongo-init.js:ro
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
+
+    dataDB2:
+        image: mongo:latest
+        container_name: "data-mongodb2"
+        command: mongod --auth --profile 2 --replSet rs0 --keyFile /opt/keyfile
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: admin
+            MONGO_INITDB_ROOT_PASSWORD: admin
+            MONGO_INITDB_DATABASE: extremeworkload
+        volumes:
+            - ./data-keyfile:/opt/keyfile
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
+
+    dataDB3:
+        image: mongo:latest
+        container_name: "data-mongodb3"
+        command: mongod --auth --profile 2 --replSet rs0 --keyFile /opt/keyfile
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: admin
+            MONGO_INITDB_ROOT_PASSWORD: admin
+            MONGO_INITDB_DATABASE: extremeworkload
+        volumes:
+            - ./data-keyfile:/opt/keyfile
         ulimits:
             nofile:
                 soft: 65536
@@ -108,13 +142,50 @@ services:
     auditDB:
         image: mongo:latest
         container_name: "audit-mongodb"
-        command: mongod --auth
+        command: mongod --auth  --replSet rs0 --keyFile /opt/keyfile
+        depends_on:
+            - auditDB2
+            - auditDB3
         environment:
             MONGO_INITDB_ROOT_USERNAME: admin
             MONGO_INITDB_ROOT_PASSWORD: admin
             MONGO_INITDB_DATABASE: audit
         volumes:
+            - ./data-keyfile:/opt/keyfile:ro
             - ./audit-mongo-init.js:/docker-entrypoint-initdb.d/audit-mongo-init.js:ro
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
+
+    auditDB2:
+        image: mongo:latest
+        container_name: "audit-mongodb2"
+        command: mongod --auth  --replSet rs0 --keyFile /opt/keyfile
+        depends_on:
+            - dataDB2
+            - dataDB3
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: admin
+            MONGO_INITDB_ROOT_PASSWORD: admin
+            MONGO_INITDB_DATABASE: audit
+        volumes:
+            - ./data-keyfile:/opt/keyfile:ro
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
+
+    auditDB3:
+        image: mongo:latest
+        container_name: "audit-mongodb3"
+        command: mongod --auth  --replSet rs0 --keyFile /opt/keyfile
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: admin
+            MONGO_INITDB_ROOT_PASSWORD: admin
+            MONGO_INITDB_DATABASE: audit
+        volumes:
+            - ./data-keyfile:/opt/keyfile:ro
         ulimits:
             nofile:
                 soft: 65536
