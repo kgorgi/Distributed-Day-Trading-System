@@ -2,7 +2,7 @@ version: "3"
 services:
     quote-mock:
         container_name: "quote-mock-server"
-    build:
+        build:
             context: .
             dockerfile: docker-files/local/Dockerfile.quote-mock
         ulimits:
