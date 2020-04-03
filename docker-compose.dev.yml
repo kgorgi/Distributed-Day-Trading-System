@@ -39,6 +39,7 @@ services:
     transaction:
         environment:
             - ENV=DEV
+            - CHECK_TRIGGERS=YES
         depends_on:
             - dataDB
             - audit
