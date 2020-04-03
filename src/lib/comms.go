@@ -138,6 +138,9 @@ func readMessage(conn net.Conn) (string, error) {
 		return "", err
 	}
 	messageLength := int64(binary.LittleEndian.Uint64(b))
+	if messageLength == 0 {
+		return "", nil
+	}
 
 	// Get message
 	rawPayload := make([]byte, messageLength)

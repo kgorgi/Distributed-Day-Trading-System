@@ -40,6 +40,15 @@ func handleWebConnection(queue chan *perftools.PerfConn) {
 			continue
 		}
 
+		if payload == "" {
+			_, err = conn.Write([]byte{1})
+			if err != nil {
+				lib.Errorln("Failed to send load balancer status response: " + err.Error())
+			}
+			conn.Close()
+			continue
+		}
+
 		healthPayload := strings.Split(payload, lib.SeperatorChar)
 		if healthPayload[0] == lib.HealthCheck {
 			healthStatus := lib.HealthStatusUp
