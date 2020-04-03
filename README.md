@@ -63,3 +63,33 @@
 -   Database MongoDB: N/A (Docker Address)
 -   Web Server: N/A (Docker Address)
 -   Web Server 2: N/A (Docker Address)
+
+## How to run
+
+- Build and run normally
+`make docker-teardown`
+`make docker-deploy-dev`
+- In the mongo shell for both the data and audit databases
+`use admin`
+`db.auth("admin", "xxx")`
+- in the data mongo shell run
+`rs.initiate({
+    _id: "rs0",
+    members: [
+        { _id: 0, host: "data-mongodb:27017" },
+        { _id: 1, host: "data-mongodb2:27017" },
+        { _id: 2, host: "data-mongodb3:27017" }
+    ]
+});`
+- In the audit mongo shell run
+`rs.initiate({
+    _id: "rs0",
+    members: [
+        { _id: 0, host: "audit-mongodb:27017" },
+        { _id: 1, host: "audit-mongodb2:27017" },
+        { _id: 2, host: "audit-mongodb3:27017" }
+    ]
+});
+`
+- Then on the docker host machine restart the transaction servers and the audit server
+`docker restart transaction-server transaction-server2 audit-server`
