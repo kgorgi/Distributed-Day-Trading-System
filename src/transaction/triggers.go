@@ -8,6 +8,8 @@ import (
 	"extremeWorkload.com/daytrader/transaction/data"
 )
 
+var isTriggerCheckingActive bool
+
 func buyTrigger(trigger data.Trigger, stockPrice uint64, auditClient *auditclient.AuditClient) error {
 	numOfStocks := trigger.Amount_Cents / stockPrice
 	moneyToAdd := trigger.Amount_Cents - (stockPrice * numOfStocks)
@@ -36,6 +38,10 @@ func sellTrigger(trigger data.Trigger, stockPrice uint64, auditClient *auditclie
 
 func checkTriggers(auditClient *auditclient.AuditClient) {
 	for {
+		if !isTriggerCheckingActive {
+			lib.Debugln("Trigger Checking is not active on this sever")
+			time.Sleep(15 * time.Second)
+		}
 		lib.Debugln("Checking Triggers")
 
 		triggerIterator, readErr := data.CheckTriggersIterator()

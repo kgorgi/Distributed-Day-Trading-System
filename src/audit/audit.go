@@ -65,7 +65,10 @@ func handleConnection(queue chan net.Conn) {
 		}
 
 		if payload == lib.HealthCheck {
-			lib.ServerSendHealthResponse(conn)
+			err = lib.ServerSendHealthResponse(conn, lib.HealthStatusUp)
+			if err != nil {
+				lib.Errorln("Failed to send health response: " + err.Error())
+			}
 			conn.Close()
 			continue
 		}

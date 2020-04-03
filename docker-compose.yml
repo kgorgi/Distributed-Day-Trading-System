@@ -37,7 +37,6 @@ services:
             - ENV=DOCKER
             - USER_NAME=user
             - USER_PASS=user
-            - CHECK_TRIGGERS=YES
             - NAME=transaction
         ulimits:
             nofile:

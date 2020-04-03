@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"time"
 )
 
 type UserClient struct {
@@ -14,8 +15,8 @@ type UserClient struct {
 	Client           *http.Client
 }
 
-
 var caCert []byte
+
 func CreateClient(webServerAddress string, envCaCertLocation string) (*UserClient, error) {
 	if len(caCert) == 0 {
 		var err error
@@ -24,7 +25,7 @@ func CreateClient(webServerAddress string, envCaCertLocation string) (*UserClien
 			return nil, err
 		}
 	}
-	
+
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 	client := &http.Client{
@@ -32,8 +33,9 @@ func CreateClient(webServerAddress string, envCaCertLocation string) (*UserClien
 			TLSClientConfig: &tls.Config{
 				RootCAs: caCertPool,
 			},
-			ForceAttemptHTTP2:     true,
+			ForceAttemptHTTP2: true,
 		},
+		Timeout: 120 * time.Second,
 	}
 
 	return &UserClient{webServerAddress, client}, nil
@@ -97,7 +99,7 @@ func SaveDumplog(body string, filename string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	_, err = dumpFile.WriteString(body)
 	if err != nil {
 		return err

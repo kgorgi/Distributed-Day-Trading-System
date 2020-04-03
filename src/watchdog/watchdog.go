@@ -1,80 +1,85 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"time"
 
 	"extremeWorkload.com/daytrader/lib"
 	"extremeWorkload.com/daytrader/lib/security"
 	"extremeWorkload.com/daytrader/lib/serverurls"
-	"extremeWorkload.com/daytrader/lib/user"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type healthChecker func(string) error
+type healthChecker func(string) (string, error)
 
-const timeInterval = 60
+const waitInterval = 60
 
 var sslCertLocation string
 
-// TCPHealthCheck send a health check to a tcp server
-func TCPHealthCheck(url string) error {
-	status, _, err := lib.ClientSendRequest(url, lib.HealthCheck)
-	if err != nil {
-		return err
-	}
-	if status != lib.StatusOk {
-		return fmt.Errorf("Expected 200, got %d", status)
-	}
-	return nil
-}
-
-// HTTPHealthCheck send a health check to an http server
-func HTTPHealthCheck(url string) error {
-	client, err := user.CreateClient("https://"+url+"/", sslCertLocation)
-	status, _, err := client.HeartRequest()
-	if err != nil {
-		return err
-	}
-	if status != lib.StatusOk {
-		return errors.New("Status not ok: " + strconv.Itoa(status))
-	}
-	return nil
-}
-
-// MongoHealthCheck send a health check to a mongo server
-func MongoHealthCheck(url string) error {
-	clientOptions := options.Client().ApplyURI(url)
-	var err error
-	client, err := mongo.Connect(context.TODO(), clientOptions)
-	if err != nil {
-		return err
-	}
-
-	err = client.Ping(context.TODO(), nil)
-	if err != nil {
-		client.Disconnect(context.TODO())
-		return err
-	}
-
-	client.Disconnect(context.TODO())
-	return nil
-}
-
 func checkHelper(watchUrls map[string][]string, check healthChecker, servertype string) {
-	fmt.Printf("--%s--\n", servertype)
+
 	for _, url := range watchUrls[servertype] {
-		fmt.Printf("Checking %s... ", url)
-		err := check(url)
+		_, err := check(url)
+
 		if err != nil {
-			fmt.Printf("Bad \n%s\n", err.Error())
+			lib.Error("Bad - %s(%s) - Bad \n%s\n\n", servertype, url, err.Error())
 		} else {
-			fmt.Println("Good")
+			fmt.Printf("Good - %s(%s) \n", servertype, url)
+		}
+	}
+}
+
+func countActiveTriggers(urls []string) int {
+	triggersActive := 0
+	for _, url := range urls {
+		_, message, err := lib.ClientSendRequest(url, lib.HealthCheck)
+		if err == nil && message == "ACTIVE" {
+			triggersActive++
+		}
+	}
+	return triggersActive
+}
+
+func triggerWatch(watchUrls map[string][]string) {
+	transactionUrls := watchUrls["transaction"]
+
+	for {
+		fmt.Println("Checking triggers")
+		triggersActive := countActiveTriggers(transactionUrls)
+		if triggersActive == 1 {
+			time.Sleep(waitInterval * time.Second)
+			continue
+		}
+		lib.Error("%d trigger servers found. Counting again\n", triggersActive)
+		time.Sleep(5 * time.Second)
+		triggersActive = countActiveTriggers(transactionUrls)
+		if triggersActive == 1 {
+			time.Sleep(waitInterval * time.Second)
+			continue
+		}
+
+		for triggersActive != 1 {
+			lib.Error("%d trigger servers found.Attempting to fix trigger service...\n", triggersActive)
+
+			for _, url := range transactionUrls {
+				if triggersActive < 1 {
+					_, message, err := lib.ClientSendRequest(url, lib.HealthCheck+"|START")
+					if err == nil && message == "STARTED" {
+						fmt.Println("Trigger server activated")
+						triggersActive++
+						break
+					}
+				} else if triggersActive > 1 {
+					_, message, err := lib.ClientSendRequest(url, lib.HealthCheck+"|STOP")
+					if err == nil && message == "STOPPED" {
+						fmt.Println("Trigger server stopped")
+						triggersActive--
+						break
+					}
+				}
+
+			}
+			time.Sleep(5 * time.Second)
 		}
 	}
 }
@@ -83,6 +88,9 @@ func main() {
 	sslCertLocation = os.Getenv("CLIENT_SSL_CERT_LOCATION")
 	security.InitCryptoKey()
 	watchUrls := serverurls.GetUrlsConfig().Watch
+
+	fmt.Println("Starting trigger watch")
+	go triggerWatch(watchUrls)
 
 	fmt.Println("Starting Watch")
 	for {
@@ -93,7 +101,6 @@ func main() {
 		checkHelper(watchUrls, HTTPHealthCheck, "web")
 		checkHelper(watchUrls, HTTPHealthCheck, "web-load")
 		checkHelper(watchUrls, MongoHealthCheck, "dbs")
-		fmt.Printf("Round complete. waiting\n\n")
-		time.Sleep(timeInterval * time.Second)
+		time.Sleep(waitInterval * time.Second)
 	}
 }
