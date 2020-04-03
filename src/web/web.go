@@ -87,7 +87,7 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 		auditClient.LogErrorEvent(err.Error())
 	}
 
-	if lib.DebuggingEnabled {
+	if lib.PerfLoggingEnabled {
 		auditClient.LogPerformanceMetric(auditclient.PerformanceMetricInfo{
 			AcceptTimestamp: acceptTime,
 			CloseTimestamp:  lib.GetUnixTimestamp() - acceptTime,

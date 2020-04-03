@@ -13,6 +13,9 @@ var env = os.Getenv("ENV")
 // DebuggingEnabled returns true if debugging should be on
 var DebuggingEnabled = env == "" || env == "DEV" || env == "DEV-LAB"
 
+// PerfLoggingEnabled should the system perform performacne logging
+var PerfLoggingEnabled = true
+
 // IsLab returns true if in the lab environment
 var IsLab = env == "LAB" || env == "DEV-LAB"
 

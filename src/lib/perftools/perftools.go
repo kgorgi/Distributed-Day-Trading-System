@@ -44,7 +44,7 @@ func (pconn *PerfConn) Write(b []byte) (n int, err error) {
 // Close adds timing
 func (pconn *PerfConn) Close() error {
 	pconn.CloseTime = lib.GetUnixTimestamp() - pconn.AcceptTime
-	if pconn.auditClient != nil && lib.DebuggingEnabled {
+	if pconn.auditClient != nil && lib.PerfLoggingEnabled {
 		var performanceInfo = audit.PerformanceMetricInfo{
 			AcceptTimestamp: pconn.AcceptTime,
 			ReadTimestamp:   pconn.ReadTime,
