@@ -7,6 +7,9 @@ services:
             dockerfile: docker-files/local/Dockerfile.web
         environment:
             - ENV=DOCKER
+            - NAME=web
+        ports:
+            - "5005:8080"
         ulimits:
             nofile:
                 soft: 65536
@@ -20,6 +23,8 @@ services:
         environment:
             - ENV=DOCKER
             - NAME=web2
+        ports:
+            - "5006:8080"
         ulimits:
             nofile:
                 soft: 65536
@@ -38,6 +43,8 @@ services:
             - USER_NAME=user
             - USER_PASS=user
             - NAME=transaction
+        ports:
+            - "5007:5000"
         ulimits:
             nofile:
                 soft: 65536
@@ -56,6 +63,8 @@ services:
             - USER_NAME=user
             - USER_PASS=user
             - NAME=transaction2
+        ports:
+            - "5008:5000"
         ulimits:
             nofile:
                 soft: 65536
@@ -217,3 +226,11 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+
+    watchdog:
+        container_name: "watchdog"
+        build:
+            context: .
+            dockerfile: docker-files/local/Dockerfile.watchdog
+        environment:
+            - ENV=DOCKER

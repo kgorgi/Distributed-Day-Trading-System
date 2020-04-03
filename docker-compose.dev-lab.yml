@@ -23,3 +23,7 @@ services:
     quote-cache:
         environment:
             - ENV=DEV-LAB
+
+    watchdog:
+        environment:
+            - ENV=DEV-LAB

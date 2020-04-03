@@ -46,14 +46,8 @@ format:
 test-e2e:
 	cd $(SRC)/test/end-to-end && CLIENT_SSL_CERT_LOCATION=../../../ssl/cert.pem URLS_FILE=../../urls.yml go test -v
 
-# Docker Local Deployment Commands
+# Docker Developer Deployment Commands
 # set shortcut: doskey dcdev=docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility $*
-
-.phony reset-mongo:
-reset-mongo:
-	docker exec audit-mongodb /bin/sh -c "mongo audit -u user -p user --eval 'db.logs.drop()'"  && \
-	docker exec data-mongodb /bin/sh -c "mongo extremeworkload -u user -p user --eval 'db.users.drop();db.triggers.drop()'" && \
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --force-recreate --no-deps -d audit transaction
 
 .phony docker-deploy-dev:
 docker-deploy-dev:
@@ -63,13 +57,27 @@ docker-deploy-dev:
 docker-deploy-dev-load-testing:
 	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --build -d
 
-.phony docker-deploy-local:
-docker-deploy-local:
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
-
 .phony docker-redeploy-dev:
 docker-redeploy:
 	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --build --force-recreate --no-deps -d $(c)
+
+# Docker Local Deployment Commands
+LOCAL_DEPLOY = docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
+.phony docker-deploy-local:
+docker-deploy-local-all:
+	$(LOCAL_DEPLOY)
+
+.phony docker-deploy-local-web:
+docker-deploy-local-web:
+	$(LOCAL_DEPLOY) load-web web web2
+
+.phony docker-deploy-local-transaction:
+docker-deploy-local-transaction:
+	$(LOCAL_DEPLOY) load-transaction transaction transaction2 quote-cache quote-mock
+
+.phony docker-deploy-local-databases:
+docker-deploy-local-data:
+	$(LOCAL_DEPLOY) audit data auditDB dataDB 
 
 # Docker Lab Deployment Commands 
 LAB_DEPLOY = docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build -d
@@ -146,6 +154,12 @@ docker-remove:
 	docker rm $(c)
 
 # Utility Commands
+.phony reset-mongo:
+reset-mongo:
+	docker exec audit-mongodb /bin/sh -c "mongo audit -u user -p user --eval 'db.logs.drop()'"  && \
+	docker exec data-mongodb /bin/sh -c "mongo extremeworkload -u user -p user --eval 'db.users.drop();db.triggers.drop()'" && \
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --force-recreate --no-deps -d audit transaction
+
 .phony exec-generator-local:
 exec-generator-local: build-generator
 	URLS_FILE=./src/urls.yml CLIENT_SSL_CERT_LOCATION=./ssl/cert.pem ./build/generator.exe -f $(f)

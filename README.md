@@ -3,6 +3,7 @@
 ## Deploy Developer Environment
 
 -   Deploy with `make docker-deploy-dev`
+-   All containers deployed on one machine
 -   Uses the mock quote server
 -   All containers are bound to ports on the host machine (hot-swappable)
 -   To hot-swap a deployed container with a local instance
@@ -13,13 +14,14 @@
 
 ## Deploy Local Environment
 
--   Deploy with `make docker-deploy-local`
+-   This deployment occures across 3 machines
+-   To deploy the web servers and load balancer `make docker-deploy-local-web`
+-   To deploy the transaction servers with load balancer, quote-cache, and quote-mock`make docker-deploy-local-transaction`
+-   To deploy the audit server, all databases, and watchdog `make docker-deploy-local-data`
 -   Uses the mocked quote server
--   Docker containers communicate using docker addresses
--   Only the web server is accessible locally from port 8080
 -   Logging is disabled from docker-compose
 
-## Deploy Lab Environment
+## Deploy Lab Environment (Deprecated Due to Lack of Lab Access)
 
 -   This deployment occures across 3 machines
 -   To deploy the web servers and load balancer `make docker-deploy-lab-web`
@@ -31,7 +33,7 @@
 -   Must be deployed on the SENG 468 lab's linux virtual machines
 -   Logging is disabled from docker-compose
 
-## Deploy Dev Lab Environment
+## Deploy Dev Lab Environment (Deprecated Due to Lack of Lab Access)
 
 -   This deployment occures across 3 machines
 -   To deploy the web servers and load balancer `make docker-deploy-dev-lab-web`
@@ -42,17 +44,39 @@
 -   Docker containers communicate using IP addresses (except mongoDB containers)
 -   Must be deployed on the SENG 468 lab's linux virtual machines
 
-## Local Deployment Ports
+## Developer Deployment Available Ports
 
--   Web Server: 8080
--   Transaction Server: 5000
--   Database Server: 5001
+-   Load Balancer for Web Servers: 8080
+-   Load Balancer Transaction Servers: 5000
+-   Web Server: 5005
+-   Web Server 2: 5006
+-   Transaction Server: 5007
+-   Transaction Server 2: 5008
+-   Audit Server: 5002
 -   Audit Server: 5002
 -   Audit MongoDB: 5003
 -   Quote Cache Server: 5004
 -   Database MongoDB: 27017
+-   Watchdog: N/A
+-   Mock Quote Server: 4443
 
-## Lab Deployment Ports
+## Local Deployment Available Ports:
+
+-   Load Balancer for Web Servers: 8080
+-   Load Balancer Transaction Servers: 5000
+-   Web Server: 5005
+-   Web Server 2: 5006
+-   Transaction Server: 5007
+-   Transaction Server 2: 5008
+-   Audit MongoDB: N/A (Docker Address)
+-   Quote Cache Server: N/A (Docker Address)
+-   Database MongoDB: N/A (Docker Address)
+-   Watchdog: N/A
+-   Mock Quote Server: N/A (Docker Address)
+
+## Lab Deployment Available Ports (Deprecated Due to Lack of Lab Access)
+
+Note: That these port mappings are out of date due to deprecation.
 
 -   Web Load Balancer: 44410
 -   Transaction Server: 44411
