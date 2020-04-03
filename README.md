@@ -65,7 +65,8 @@
 -   Web Server 2: N/A (Docker Address)
 
 ## How to run
-
+- Set the correct access for the replica set key.
+`chmod 400 data-keyfile`
 - Build and run normally
 `make docker-teardown`
 `make docker-deploy-dev`
