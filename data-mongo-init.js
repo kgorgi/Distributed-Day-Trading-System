@@ -1,3 +1,7 @@
+db = db.getSiblingDB("admin");
+db.auth("admin", "admin");
+db = db.getSiblingDB("extremeworkload");
+
 db.createUser({
     user: "user",
     pwd: "user",
