@@ -1,0 +1,3 @@
+FROM haproxy:2.0
+
+COPY ./src/load-balancers/haproxy.web.cfg /usr/local/etc/haproxy/haproxy.cfg

@@ -197,11 +197,13 @@ services:
             - web2
         build:
             context: .
-            dockerfile: ./loadbalancer/Dockerfile
+            dockerfile: docker-files/load-balancers/Dockerfile.web
         ulimits:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "8080:8080"
 
     load-transaction:
         container_name: "load-balancer-transaction"
@@ -210,7 +212,7 @@ services:
             - transaction2
         build:
             context: .
-            dockerfile: ./transaction-loadbalancer/Dockerfile
+            dockerfile: docker-files/load-balancers/Dockerfile.transaction
         ulimits:
             nofile:
                 soft: 65536

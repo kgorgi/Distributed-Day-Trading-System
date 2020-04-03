@@ -3,8 +3,6 @@ services:
     load-web:
         environment:
             - ENV=DEV
-        ports:
-            - "8080:8080"
 
     load-transaction:
         environment:
