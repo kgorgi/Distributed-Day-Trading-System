@@ -44,35 +44,24 @@
 -   Docker containers communicate using IP addresses (except mongoDB containers)
 -   Must be deployed on the SENG 468 lab's linux virtual machines
 
-## Developer Deployment Available Ports
-
--   Load Balancer for Web Servers: 8080
--   Load Balancer Transaction Servers: 5000
--   Web Server: 5005
--   Web Server 2: 5006
--   Transaction Server: 5007
--   Transaction Server 2: 5008
--   Audit Server: 5002
--   Audit Server: 5002
--   Audit MongoDB: 5003
--   Quote Cache Server: 5004
--   Database MongoDB: 27017
--   Watchdog: N/A
--   Mock Quote Server: 4443
-
 ## Local Deployment Available Ports:
 
 -   Load Balancer for Web Servers: 8080
--   Load Balancer Transaction Servers: 5000
 -   Web Server: 5005
 -   Web Server 2: 5006
+-   Load Balancer Transaction Servers: 5000
 -   Transaction Server: 5007
 -   Transaction Server 2: 5008
--   Audit MongoDB: N/A (Docker Address)
--   Quote Cache Server: N/A (Docker Address)
--   Database MongoDB: N/A (Docker Address)
--   Watchdog: N/A
--   Mock Quote Server: N/A (Docker Address)
+-   Audit Server: 5002
+-   Audit MongoDB: 5003
+-   Audit MongoDB2: 5098
+-   Audit MongoDB3: 5099
+-   Data MongoDB: 27017
+-   Data MongoDB2: 27018
+-   Data MongoDB3: 27019
+-   Quote Cache Server: 5004
+-   Mock Quote Server:
+-   Watchdog: 4443 (if dev)
 
 ## Lab Deployment Available Ports (Deprecated Due to Lack of Lab Access)
 
@@ -88,33 +77,19 @@ Note: That these port mappings are out of date due to deprecation.
 -   Web Server: N/A (Docker Address)
 -   Web Server 2: N/A (Docker Address)
 
-## How to run
-- Set the correct access for the replica set key.
-`chmod 400 data-keyfile`
-- Build and run normally
-`make docker-teardown`
-`make docker-deploy-dev`
-- In the mongo shell for both the data and audit databases
-`use admin`
-`db.auth("admin", "xxx")`
-- in the data mongo shell run
-`rs.initiate({
-    _id: "rs0",
-    members: [
-        { _id: 0, host: "data-mongodb:27017" },
-        { _id: 1, host: "data-mongodb2:27017" },
-        { _id: 2, host: "data-mongodb3:27017" }
-    ]
-});`
-- In the audit mongo shell run
-`rs.initiate({
-    _id: "rs0",
-    members: [
-        { _id: 0, host: "audit-mongodb:27017" },
-        { _id: 1, host: "audit-mongodb2:27017" },
-        { _id: 2, host: "audit-mongodb3:27017" }
-    ]
-});
-`
-- Then on the docker host machine restart the transaction servers and the audit server
-`docker restart transaction-server transaction-server2 audit-server`
+## How to Prototype Day Trading System
+
+-   Set the correct access for the replica set key.
+    `chmod 400 ./src/databases/data-keyfile`
+-   Build and run normally
+    `make docker-teardown`
+    `make docker-deploy-dev`
+-   In the mongo shell for both the data and audit databases
+    `use admin`
+    `db.auth("admin", "xxx")`
+-   In the data mongo shell run
+    `rs.initiate({ _id: "rs0", members: [ { _id: 0, host: "data-mongodb:27017" }, { _id: 1, host: "data-mongodb2:27017" }, { _id: 2, host: "data-mongodb3:27017" } ] });`
+-   In the audit mongo shell run
+    `rs.initiate({ _id: "rs0", members: [ { _id: 0, host: "audit-mongodb:27017" }, { _id: 1, host: "audit-mongodb2:27017" }, { _id: 2, host: "audit-mongodb3:27017" } ] });`
+-   Then on the docker host machine restart the transaction servers and the audit server
+    `docker restart transaction-server transaction-server2 audit-server`
