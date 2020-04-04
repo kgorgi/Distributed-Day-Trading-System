@@ -65,7 +65,11 @@ watchdog:
         - "localhost:5002"
     dbs:
         - mongodb://localhost:5003
+        - mongodb://localhost:5098
+        - mongodb://localhost:5099
         - mongodb://localhost:27017
+        - mongodb://localhost:27018
+        - mongodb://localhost:27019
     quote-cache:
         - "localhost:5004"
     web:
