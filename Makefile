@@ -62,22 +62,9 @@ docker-redeploy:
 	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --build --force-recreate --no-deps -d $(c)
 
 # Docker Local Deployment Commands
-LOCAL_DEPLOY = docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
 .phony docker-deploy-local:
-docker-deploy-local-all:
-	$(LOCAL_DEPLOY)
-
-.phony docker-deploy-local-web:
-docker-deploy-local-web:
-	$(LOCAL_DEPLOY) load-web web web2
-
-.phony docker-deploy-local-transaction:
-docker-deploy-local-transaction:
-	$(LOCAL_DEPLOY) load-transaction transaction transaction2 quote-cache quote-mock
-
-.phony docker-deploy-local-databases:
-docker-deploy-local-data:
-	$(LOCAL_DEPLOY) audit data auditDB dataDB 
+docker-deploy-local:
+	docker-compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
 
 # Docker Lab Deployment Commands 
 LAB_DEPLOY = docker-compose -f docker-compose.yml -f docker-compose.lab.yml up --build -d
