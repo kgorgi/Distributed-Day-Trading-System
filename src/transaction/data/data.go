@@ -64,9 +64,12 @@ func CreateTrigger(trigger Trigger) error {
 // called, it returns false when all triggers have been returned.
 // Note only triggers that have a price set are returned.
 func CheckTriggersIterator() (func() (bool, Trigger, error), error) {
+	options := options.Find()
+	options.SetSort(bson.D{{Key: "stock", Value: -1}, {Key: "_id", Value: -1}})
+
 	query := bson.M{"price_cents": bson.M{"$gt": 0}}
 	collection := client.Database("extremeworkload").Collection("triggers")
-	cursor, err := collection.Find(context.TODO(), query)
+	cursor, err := collection.Find(context.TODO(), query, options)
 	if err != nil {
 		return nil, err
 	}
