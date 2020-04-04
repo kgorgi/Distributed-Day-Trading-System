@@ -33,7 +33,6 @@ services:
     transaction:
         container_name: "transaction-server"
         depends_on:
-            - dataDB
             - quote-cache
         build:
             context: .
@@ -53,7 +52,6 @@ services:
     transaction2:
         container_name: "transaction-server2"
         depends_on:
-            - dataDB
             - quote-cache
         build:
             context: .
@@ -81,6 +79,8 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5004:5004"
 
     dataDB:
         image: mongo:latest
@@ -100,6 +100,8 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "27017:27017"
 
     dataDB2:
         image: mongo:latest
@@ -115,6 +117,8 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "27018:27017"
 
     dataDB3:
         image: mongo:latest
@@ -130,6 +134,8 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "27019:27017"
 
     audit:
         container_name: "audit-server"
@@ -146,6 +152,8 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5002:5002"
 
     auditDB:
         image: mongo:latest
@@ -165,14 +173,13 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5003:27017"
 
     auditDB2:
         image: mongo:latest
         container_name: "audit-mongodb2"
         command: mongod --auth  --replSet rs0 --keyFile /opt/keyfile
-        depends_on:
-            - dataDB2
-            - dataDB3
         environment:
             MONGO_INITDB_ROOT_USERNAME: admin
             MONGO_INITDB_ROOT_PASSWORD: admin
@@ -183,6 +190,8 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5098:27017"
 
     auditDB3:
         image: mongo:latest
@@ -198,6 +207,8 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5099:27017"
 
     load-web:
         container_name: "load-balancer-web"
@@ -226,6 +237,8 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5000:5000"
 
     watchdog:
         container_name: "watchdog"

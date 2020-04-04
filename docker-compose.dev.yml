@@ -1,21 +1,8 @@
 version: "3"
 services:
-    load-web:
-        environment:
-            - ENV=DEV
-
-    load-transaction:
-        environment:
-            - ENV=DEV
-        ports:
-            - "5000:5000"
-
     web:
         environment:
             - ENV=DEV
-        depends_on:
-            - load-transaction
-            - audit
         # These limits only apply when 'docker-compose --compatibility' flag is used
         deploy:
             resources:
@@ -26,9 +13,6 @@ services:
     web2:
         environment:
             - ENV=DEV
-        depends_on:
-            - load-transaction
-            - audit
         # These limits only apply when 'docker-compose --compatibility' flag is used
         deploy:
             resources:
@@ -40,56 +24,18 @@ services:
         environment:
             - ENV=DEV
             - CHECK_TRIGGERS=YES
-        depends_on:
-            - dataDB
-            - audit
-            - quote-cache
 
     transaction2:
         environment:
             - ENV=DEV
-        depends_on:
-            - dataDB
-            - audit
-            - quote-cache
 
     audit:
-        ports:
-            - "5002:5002"
         environment:
             - ENV=DEV
 
     quote-cache:
-        ports:
-            - "5004:5004"
         environment:
             - ENV=DEV
-        depends_on:
-            - audit
-
-    dataDB:
-        ports:
-            - "27017:27017"
-
-    dataDB2:
-        ports:
-            - "27018:27017"
-
-    dataDB3:
-        ports:
-            - "27019:27017"
-
-    auditDB:
-        ports:
-            - "5003:27017"
-
-    auditDB2:
-        ports:
-            - "5098:27017"
-
-    auditDB3:
-        ports:
-            - "5099:27017"
 
     quote-mock:
         environment:
