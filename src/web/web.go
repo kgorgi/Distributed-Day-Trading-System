@@ -76,7 +76,7 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(status)
 	var bytes []byte
 	if err != nil {
-		auditClient.LogErrorEvent(strconv.Itoa(status) + err.Error())
+		auditClient.LogErrorEvent(strconv.Itoa(status) + " " + err.Error())
 		bytes = []byte(err.Error())
 	} else {
 		bytes = []byte(message)
