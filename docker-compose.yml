@@ -32,8 +32,6 @@ services:
 
     transaction:
         container_name: "transaction-server"
-        depends_on:
-            - quote-cache
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.transaction
@@ -51,8 +49,6 @@ services:
 
     transaction2:
         container_name: "transaction-server2"
-        depends_on:
-            - quote-cache
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.transaction

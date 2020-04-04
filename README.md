@@ -14,10 +14,8 @@
 
 ## Deploy Local Environment
 
--   This deployment occures across 3 machines
--   To deploy the web servers and load balancer `make docker-deploy-local-web`
--   To deploy the transaction servers with load balancer, quote-cache, and quote-mock`make docker-deploy-local-transaction`
--   To deploy the audit server, all databases, and watchdog `make docker-deploy-local-data`
+-   Deploy with `make docker-deploy-local`
+-   Docker containers communicate using docker addresses
 -   Uses the mocked quote server
 -   Logging is disabled from docker-compose
 

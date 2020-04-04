@@ -22,11 +22,13 @@ services:
 
     transaction:
         depends_on:
+            - quote-cache
             - audit
             - dataDB
 
     transaction2:
         depends_on:
+            - quote-cache
             - audit
             - dataDB
 
