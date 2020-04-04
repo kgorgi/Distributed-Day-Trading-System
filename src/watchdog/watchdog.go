@@ -59,7 +59,7 @@ func triggerWatch(watchUrls map[string][]string) {
 		}
 
 		for triggersActive != 1 {
-			lib.Error("%d trigger servers found.Attempting to fix trigger service...\n", triggersActive)
+			lib.Error("%d trigger servers found. Attempting to fix trigger service...\n", triggersActive)
 
 			for _, url := range transactionUrls {
 				if triggersActive < 1 {
@@ -86,6 +86,10 @@ func triggerWatch(watchUrls map[string][]string) {
 
 func main() {
 	sslCertLocation = os.Getenv("CLIENT_SSL_CERT_LOCATION")
+	if sslCertLocation == "" {
+		sslCertLocation = "./ssl/cert.pem"
+	}
+
 	security.InitCryptoKey()
 	watchUrls := serverurls.GetUrlsConfig().Watch
 

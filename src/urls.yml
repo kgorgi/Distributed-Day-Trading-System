@@ -60,23 +60,23 @@ urls:
 
 watchdog:
     transaction-load:
-        - "localhost:5000"
+        - "host.docker.internal:5000"
     audit:
-        - "localhost:5002"
+        - "host.docker.internal:5002"
     dbs:
-        - mongodb://localhost:5003
-        - mongodb://localhost:5098
-        - mongodb://localhost:5099
-        - mongodb://localhost:27017
-        - mongodb://localhost:27018
-        - mongodb://localhost:27019
+        - mongodb://host.docker.internal:5003
+        - mongodb://host.docker.internal:5098
+        - mongodb://host.docker.internal:5099
+        - mongodb://host.docker.internal:27017
+        - mongodb://host.docker.internal:27018
+        - mongodb://host.docker.internal:27019
     quote-cache:
-        - "localhost:5004"
+        - "host.docker.internal:5004"
     web:
-        - "localhost:5005"
-        - "localhost:5006"
+        - "host.docker.internal:5005"
+        - "host.docker.internal:5006"
     transaction:
-        - "localhost:5007"
-        - "localhost:5008"
+        - "host.docker.internal:5007"
+        - "host.docker.internal:5008"
     web-load:
-        - "localhost:8080"
+        - "host.docker.internal:8080"

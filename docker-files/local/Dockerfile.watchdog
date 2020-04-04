@@ -8,6 +8,8 @@ COPY ./src/dev_key.key ./dev_key.key
 COPY ./src/go.mod .
 COPY ./src/go.sum .
 
+COPY ./ssl/cert.pem ./ssl/cert.pem
+
 RUN go mod download
 
 RUN cd ./watchdog && go build
