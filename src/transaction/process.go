@@ -416,6 +416,23 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 				return errors.New(errorMessage), lib.StatusUserError
 			}
 
+			if existingTrigger.Price_Cents > 0 {
+				//Check that user has enough stock for update
+				user, readErr := data.ReadUser(jsonCommand.Userid, ctx)
+				if readErr != nil {
+					errorMessage := failedToReadUserMessage(readErr)
+					return errors.New(errorMessage), lib.StatusSystemError
+				}
+				numOfStocksOwn := findStockAmount(user.Investments, jsonCommand.StockSymbol)
+				reservedStock := existingTrigger.Amount_Cents / existingTrigger.Price_Cents
+				newStock := amountInCents / existingTrigger.Price_Cents
+
+				if newStock > reservedStock && (newStock-reservedStock) > numOfStocksOwn {
+					errorMessage := "User does not have enough stocks"
+					return errors.New(errorMessage), lib.StatusUserError
+				}
+			}
+
 			//Update the trigger and handle the case where the trigger is fired off
 			err := data.UpdateTriggerAmount(jsonCommand.Userid, jsonCommand.StockSymbol, true, amountInCents, ctx)
 			if err == data.ErrNotFound {
@@ -432,7 +449,6 @@ func handleSetSellAmount(conn net.Conn, jsonCommand CommandJSON, auditClient *au
 				//Now that we know the trigger was successfully updated we can update the user
 				reservedStock := existingTrigger.Amount_Cents / existingTrigger.Price_Cents
 				newStock := amountInCents / existingTrigger.Price_Cents
-
 				updateUserErr := data.UpdateUser(jsonCommand.Userid, jsonCommand.StockSymbol, int(reservedStock)-int(newStock), 0, ctx, auditClient)
 				if updateUserErr != nil {
 					errorMessage := failedToUpdateUserMessage(updateUserErr)
