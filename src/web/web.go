@@ -33,8 +33,25 @@ func parseCommandRequest(r *http.Request) map[string]string {
 
 // Creates a route method. Whenever the route is called, it always uses the same socket
 func commandRoute(w http.ResponseWriter, r *http.Request) {
+	var message string
+	var err error
+	var status int
+
 	acceptTime := lib.GetUnixTimestamp()
 	command := parseCommandRequest(r)
+
+	err = validateParameters(command)
+
+	if err != nil {
+		lib.Errorln("User sent invalid parameters " + err.Error())
+
+		w.WriteHeader(lib.StatusUserError)
+		_, err = w.Write([]byte(err.Error()))
+		if err != nil {
+			lib.Errorln("Failed to write invalid parameters response " + err.Error())
+		}
+		return
+	}
 
 	var auditClient = auditclient.AuditClient{
 		Command:        command["command"],
@@ -55,12 +72,6 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 
 	transactionNum := auditClient.LogUserCommandRequest(auditInfo)
 	command["transactionNum"] = strconv.FormatUint(transactionNum, 10)
-
-	var message string
-	var err error
-	var status int
-
-	err = validateParameters(command)
 
 	if err != nil {
 		status = lib.StatusUserError
