@@ -48,7 +48,7 @@ test-e2e-all:
 	cd $(SRC)/test/end-to-end && CLIENT_SSL_CERT_LOCATION=../../../ssl/cert.pem URLS_FILE=../../urls.yml go test -v
 
 # Test only a specific end to end test file
-# Example: 
+# Example: make f=data_validation_test.go test-e2e-indiv
 .phony test-e2e-indiv:
 test-e2e-indiv:
 	cd $(SRC)/test/end-to-end && CLIENT_SSL_CERT_LOCATION=../../../ssl/cert.pem URLS_FILE=../../urls.yml go test -v main_test.go util.go $(f)
