@@ -73,15 +73,11 @@ func commandRoute(w http.ResponseWriter, r *http.Request) {
 	transactionNum := auditClient.LogUserCommandRequest(auditInfo)
 	command["transactionNum"] = strconv.FormatUint(transactionNum, 10)
 
-	if err != nil {
-		status = lib.StatusUserError
+	if command["command"] == "DUMPLOG" {
+		status, message, err = auditClient.DumpLogAll()
 	} else {
-		if command["command"] == "DUMPLOG" {
-			status, message, err = auditClient.DumpLogAll()
-		} else {
-			var transactionClient TransactionClient
-			status, message, err = transactionClient.SendCommand(command)
-		}
+		var transactionClient TransactionClient
+		status, message, err = transactionClient.SendCommand(command)
 	}
 
 	w.WriteHeader(status)
