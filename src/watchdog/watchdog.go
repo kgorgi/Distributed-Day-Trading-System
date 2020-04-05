@@ -12,7 +12,7 @@ import (
 
 type healthChecker func(string) (string, error)
 
-const waitInterval = 60
+const waitInterval = 10
 
 var sslCertLocation string
 
