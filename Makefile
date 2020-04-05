@@ -126,7 +126,7 @@ docker-shell:
 
 .phony mongo-shell:
 mongo-shell:
-	docker exec -it $(c)-mongodb bash -c "mongo -u admin -p admin"
+	docker exec -it $(c) bash -c "mongo -u admin -p admin"
 
 .phony docker-stop:
 docker-stop:
@@ -145,8 +145,7 @@ docker-remove:
 reset-mongo:
 	docker exec audit-mongodb /bin/sh -c "mongo audit -u user -p user --eval 'db.logs.drop()'"  && \
 	docker exec data-mongodb /bin/sh -c "mongo extremeworkload -u user -p user --eval 'db.users.drop();db.triggers.drop()'" && \
-	docker-compose -f docker-compose.yml -f docker-compose.local.yml -f docker-compose.dev.yml --compatibility up --force-recreate --no-deps -d audit transaction
-
+	docker restart transaction-server transaction-server2 audit-server
 .phony exec-generator-local:
 exec-generator-local: build-generator
 	URLS_FILE=./src/urls.yml CLIENT_SSL_CERT_LOCATION=./ssl/cert.pem ./build/generator.exe -f $(f)

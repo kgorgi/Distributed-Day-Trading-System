@@ -154,7 +154,7 @@ services:
     auditDB:
         image: mongo:latest
         container_name: "audit-mongodb"
-        command: mongod --auth  --replSet rs0 --keyFile /opt/keyfile
+        command: mongod --auth --profile 2 --replSet rs0 --keyFile /opt/keyfile
         depends_on:
             - auditDB2
             - auditDB3
@@ -175,7 +175,7 @@ services:
     auditDB2:
         image: mongo:latest
         container_name: "audit-mongodb2"
-        command: mongod --auth  --replSet rs0 --keyFile /opt/keyfile
+        command: mongod --auth --profile 2 --replSet rs0 --keyFile /opt/keyfile
         environment:
             MONGO_INITDB_ROOT_USERNAME: admin
             MONGO_INITDB_ROOT_PASSWORD: admin
@@ -192,7 +192,7 @@ services:
     auditDB3:
         image: mongo:latest
         container_name: "audit-mongodb3"
-        command: mongod --auth  --replSet rs0 --keyFile /opt/keyfile
+        command: mongod --auth --profile 2 --replSet rs0 --keyFile /opt/keyfile
         environment:
             MONGO_INITDB_ROOT_USERNAME: admin
             MONGO_INITDB_ROOT_PASSWORD: admin
