@@ -9,28 +9,32 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+
     web:
         depends_on:
-            - load-transaction
             - audit
+            - load-transaction
 
     web2:
         depends_on:
-            - load-transaction
             - audit
+            - load-transaction
 
     transaction:
         depends_on:
-            - dataDB
-            - audit
+            - watchdog
             - quote-cache
+            - audit
+            - dataDB
 
     transaction2:
         depends_on:
-            - dataDB
-            - audit
+            - watchdog
             - quote-cache
+            - audit
+            - dataDB
 
     quote-cache:
         depends_on:
+            - quote-mock
             - audit

@@ -13,4 +13,5 @@ db.createUser({
     ]
 });
 
+db.createCollection("logs")
 db.logs.createIndex({ userID: 1, timestamp: 1, transactionNum: 1 });

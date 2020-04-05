@@ -1,0 +1,17 @@
+FROM golang:latest
+
+WORKDIR ./server
+COPY ./src/watchdog ./watchdog
+COPY ./src/lib ./lib
+COPY ./src/urls.yml ./urls.yml
+COPY ./src/dev_key.key ./dev_key.key
+COPY ./src/go.mod .
+COPY ./src/go.sum .
+
+COPY ./ssl/cert.pem ./ssl/cert.pem
+
+RUN go mod download
+
+RUN cd ./watchdog && go build
+
+CMD ["./watchdog/watchdog"]

@@ -7,8 +7,6 @@ services:
         environment:
             - ENV=LAB
             - NAME=web2
-        ports:
-            - "5005:8080"
         # These limits only apply when 'docker-compose --compatibility' flag is used
         deploy:
             resources:
@@ -23,8 +21,6 @@ services:
         environment:
             - ENV=LAB
             - NAME=web2
-        ports:
-            - "5006:8080"
         # These limits only apply when 'docker-compose --compatibility' flag is used
         deploy:
             resources:
@@ -36,8 +32,6 @@ services:
         build:
             context: .
             dockerfile: docker-files/lab/Dockerfile.transaction
-        ports:
-            - "5007:5000"
         environment:
             - ENV=LAB
             - NAME=transaction
@@ -46,8 +40,6 @@ services:
         build:
             context: .
             dockerfile: docker-files/lab/Dockerfile.transaction
-        ports:
-            - "5008:5000"
         environment:
             - ENV=LAB
             - NAME=transaction2
@@ -71,13 +63,16 @@ services:
             - ENV=LAB
 
     load-web:
-        environment:
-            - ENV=LAB
         ports:
             - "8080:8080"
 
     load-transaction:
-        environment:
-            - ENV=LAB
         ports:
             - "5000:5000"
+
+    watchdog:
+        build:
+            context: .
+            dockerfile: docker-files/lab/Dockerfile.watchdog
+        environment:
+            - ENV=LAB

@@ -1,0 +1,10 @@
+FROM golang:latest
+
+WORKDIR ./server
+COPY ./build/watchdog.exe .
+COPY ./src/urls.yml ./urls.yml
+COPY ./src/dev_key.key ./dev_key.key
+
+COPY ./ssl/cert.pem ./ssl/cert.pem
+
+CMD ["./watchdog.exe"]

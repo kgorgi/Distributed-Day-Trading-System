@@ -7,6 +7,9 @@ services:
             dockerfile: docker-files/local/Dockerfile.web
         environment:
             - ENV=DOCKER
+            - NAME=web
+        ports:
+            - "5005:8080"
         ulimits:
             nofile:
                 soft: 65536
@@ -20,6 +23,8 @@ services:
         environment:
             - ENV=DOCKER
             - NAME=web2
+        ports:
+            - "5006:8080"
         ulimits:
             nofile:
                 soft: 65536
@@ -27,9 +32,6 @@ services:
 
     transaction:
         container_name: "transaction-server"
-        depends_on:
-            - dataDB
-            - quote-cache
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.transaction
@@ -38,6 +40,8 @@ services:
             - USER_NAME=user
             - USER_PASS=user
             - NAME=transaction
+        ports:
+            - "5007:5000"
         ulimits:
             nofile:
                 soft: 65536
@@ -45,9 +49,6 @@ services:
 
     transaction2:
         container_name: "transaction-server2"
-        depends_on:
-            - dataDB
-            - quote-cache
         build:
             context: .
             dockerfile: docker-files/local/Dockerfile.transaction
@@ -56,6 +57,8 @@ services:
             - USER_NAME=user
             - USER_PASS=user
             - NAME=transaction2
+        ports:
+            - "5008:5000"
         ulimits:
             nofile:
                 soft: 65536
@@ -72,6 +75,8 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5004:5004"
 
     dataDB:
         image: mongo:latest
@@ -85,12 +90,14 @@ services:
             MONGO_INITDB_ROOT_PASSWORD: admin
             MONGO_INITDB_DATABASE: extremeworkload
         volumes:
-            - ./data-keyfile:/opt/keyfile:ro
-            - ./data-mongo-init.js:/docker-entrypoint-initdb.d/data-mongo-init.js:ro
+            - ./src/databases/data-keyfile:/opt/keyfile:ro
+            - ./src/databases/data-mongo-init.js:/docker-entrypoint-initdb.d/data-mongo-init.js:ro
         ulimits:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "27017:27017"
 
     dataDB2:
         image: mongo:latest
@@ -101,11 +108,13 @@ services:
             MONGO_INITDB_ROOT_PASSWORD: admin
             MONGO_INITDB_DATABASE: extremeworkload
         volumes:
-            - ./data-keyfile:/opt/keyfile
+            - ./src/databases/data-keyfile:/opt/keyfile
         ulimits:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "27018:27017"
 
     dataDB3:
         image: mongo:latest
@@ -116,11 +125,13 @@ services:
             MONGO_INITDB_ROOT_PASSWORD: admin
             MONGO_INITDB_DATABASE: extremeworkload
         volumes:
-            - ./data-keyfile:/opt/keyfile
+            - ./src/databases/data-keyfile:/opt/keyfile
         ulimits:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "27019:27017"
 
     audit:
         container_name: "audit-server"
@@ -137,11 +148,13 @@ services:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5002:5002"
 
     auditDB:
         image: mongo:latest
         container_name: "audit-mongodb"
-        command: mongod --auth  --replSet rs0 --keyFile /opt/keyfile
+        command: mongod --auth --profile 2 --replSet rs0 --keyFile /opt/keyfile
         depends_on:
             - auditDB2
             - auditDB3
@@ -150,45 +163,48 @@ services:
             MONGO_INITDB_ROOT_PASSWORD: admin
             MONGO_INITDB_DATABASE: audit
         volumes:
-            - ./data-keyfile:/opt/keyfile:ro
-            - ./audit-mongo-init.js:/docker-entrypoint-initdb.d/audit-mongo-init.js:ro
+            - ./src/databases/data-keyfile:/opt/keyfile:ro
+            - ./src/databases/audit-mongo-init.js:/docker-entrypoint-initdb.d/audit-mongo-init.js:ro
         ulimits:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5003:27017"
 
     auditDB2:
         image: mongo:latest
         container_name: "audit-mongodb2"
-        command: mongod --auth  --replSet rs0 --keyFile /opt/keyfile
-        depends_on:
-            - dataDB2
-            - dataDB3
+        command: mongod --auth --profile 2 --replSet rs0 --keyFile /opt/keyfile
         environment:
             MONGO_INITDB_ROOT_USERNAME: admin
             MONGO_INITDB_ROOT_PASSWORD: admin
             MONGO_INITDB_DATABASE: audit
         volumes:
-            - ./data-keyfile:/opt/keyfile:ro
+            - ./src/databases/data-keyfile:/opt/keyfile:ro
         ulimits:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5098:27017"
 
     auditDB3:
         image: mongo:latest
         container_name: "audit-mongodb3"
-        command: mongod --auth  --replSet rs0 --keyFile /opt/keyfile
+        command: mongod --auth --profile 2 --replSet rs0 --keyFile /opt/keyfile
         environment:
             MONGO_INITDB_ROOT_USERNAME: admin
             MONGO_INITDB_ROOT_PASSWORD: admin
             MONGO_INITDB_DATABASE: audit
         volumes:
-            - ./data-keyfile:/opt/keyfile:ro
+            - ./src/databases/data-keyfile:/opt/keyfile:ro
         ulimits:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5099:27017"
 
     load-web:
         container_name: "load-balancer-web"
@@ -197,11 +213,13 @@ services:
             - web2
         build:
             context: .
-            dockerfile: ./loadbalancer/Dockerfile
+            dockerfile: docker-files/load-balancers/Dockerfile.web
         ulimits:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "8080:8080"
 
     load-transaction:
         container_name: "load-balancer-transaction"
@@ -210,8 +228,18 @@ services:
             - transaction2
         build:
             context: .
-            dockerfile: ./transaction-loadbalancer/Dockerfile
+            dockerfile: docker-files/load-balancers/Dockerfile.transaction
         ulimits:
             nofile:
                 soft: 65536
                 hard: 65536
+        ports:
+            - "5000:5000"
+
+    watchdog:
+        container_name: "watchdog"
+        build:
+            context: .
+            dockerfile: docker-files/local/Dockerfile.watchdog
+        environment:
+            - ENV=DOCKER

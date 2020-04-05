@@ -13,7 +13,6 @@ type ServerUrls struct {
 	WebServer         string `yaml:"web"`
 	LegacyQuoteServer string `yaml:"legacyQuoteServer"`
 	AuditServer       string `yaml:"audit"`
-	DataServer        string `yaml:"data"`
 	TransactionServer string `yaml:"transaction"`
 	QuoteCacheServer  string `yaml:"quoteCache"`
 	AuditDBServer     string `yaml:"auditDB"`
