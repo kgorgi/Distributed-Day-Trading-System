@@ -8,15 +8,16 @@ import (
 )
 
 func setupSellTriggerTest(t *testing.T) {
-	status, body, err := userClient.CancelSetSellRequest(userid, stockSymbol)
+	const amountForSell = (sellAmount / sellTriggerPrice) * quoteValue
+	status, body, err := userClient.AddRequest(userid, lib.CentsToDollars(amountForSell))
+	handleErrors("Add failed", status, body, err, t)
+
+	status, body, err = userClient.CancelSetSellRequest(userid, stockSymbol)
 	checkSystemError("Cancel Sell failed", status, body, err, t)
 	summary := getUserSummary(userClient, userid, t)
 	if getTestStockTrigger(summary, true) != nil {
 		t.Error("Trigger was not cleared initially")
 	}
-	const amountForSell = (sellAmount / sellTriggerPrice) * quoteValue
-	status, body, err = userClient.AddRequest(userid, lib.CentsToDollars(amountForSell))
-	handleErrors("Add failed", status, body, err, t)
 
 	status, body, err = userClient.BuyRequest(userid, stockSymbol, lib.CentsToDollars(amountForSell))
 	handleErrors("Buy failed", status, body, err, t)
@@ -30,13 +31,42 @@ func setupSellTriggerTest(t *testing.T) {
 	}
 
 }
+
+func TestTriggerSellNotEnoughStocks(t *testing.T) {
+	setupSellTriggerTest(t)
+	summaryBefore := getUserSummary(userClient, userid, t)
+	stocksBefore := getTestStockCount(summaryBefore)
+
+	toManyToBuy := (stocksBefore + 1) * sellTriggerPrice
+	status, body, err := userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(toManyToBuy))
+	handleErrors("Set Sell AmountFailed", status, body, err, t)
+
+	status, body, err = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice))
+	checkUserCommandError("Should have denied selling more stocks than owned", status, body, err, t)
+
+	status, body, err = userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(stocksBefore))
+	handleErrors("Set Sell AmountFailed", status, body, err, t)
+
+	status, body, err = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(1))
+	handleErrors("Set sell trigger failed", status, body, err, t)
+
+	status, body, err = userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(stocksBefore+1))
+	checkUserCommandError("Should have denied setting amount to sell more stocks than owned", status, body, err, t)
+
+	status, body, err = userClient.CancelSetSellRequest(userid, stockSymbol)
+	checkSystemError("Cancel Sell failed", status, body, err, t)
+}
+
 func TestTriggerSell(t *testing.T) {
 
 	setupSellTriggerTest(t)
 
 	summaryBefore := getUserSummary(userClient, userid, t)
 
-	status, body, err := userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount))
+	status, body, err := userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice))
+	checkUserCommandError("Expected error for attempting to set trigger before amount", status, body, err, t)
+
+	status, body, err = userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount))
 	handleErrors("Set Sell AmountFailed", status, body, err, t)
 
 	status, body, err = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice))
@@ -105,6 +135,38 @@ func TestTriggerSellEditValues(t *testing.T) {
 
 	isEqual(triggerAfter.Amount_Cents, sellAmount*2, "Amount was not updated", t)
 	isEqual(triggerAfter.Price_Cents, sellTriggerPrice*2, "Triggerprice was not updated", t)
+
+	status, body, err = userClient.CancelSetSellRequest(userid, stockSymbol)
+	checkSystemError("Cancel Sell failed", status, body, err, t)
+}
+
+func TestTriggerSellCancel(t *testing.T) {
+	setupSellTriggerTest(t)
+
+	status, body, err := userClient.CancelSetSellRequest(userid, stockSymbol)
+	checkUserCommandError("Expected a user error response", status, body, err, t)
+
+	summaryBefore := getUserSummary(userClient, userid, t)
+	stocksBefore := getTestStockCount(summaryBefore)
+
+	status, body, err = userClient.SetSellAmountRequest(userid, stockSymbol, lib.CentsToDollars(sellAmount))
+	handleErrors("Set Sell AmountFailed", status, body, err, t)
+
+	status, body, err = userClient.SetSellTriggerRequest(userid, stockSymbol, lib.CentsToDollars(sellTriggerPrice))
+	handleErrors("Set Sell Trigger Failed", status, body, err, t)
+
+	summaryAfter := getUserSummary(userClient, userid, t)
+	stocksAfter := getTestStockCount(summaryAfter)
+
+	isEqual(stocksAfter+(sellAmount/sellTriggerPrice), stocksBefore, "Stocks were not witheld", t)
+
+	status, body, err = userClient.CancelSetSellRequest(userid, stockSymbol)
+	handleErrors("Cancel Sell failed", status, body, err, t)
+
+	summaryAfter = getUserSummary(userClient, userid, t)
+	stocksAfter = getTestStockCount(summaryAfter)
+
+	isEqual(stocksAfter, stocksBefore, "Stocks were not returned", t)
 
 	status, body, err = userClient.CancelSetSellRequest(userid, stockSymbol)
 	checkSystemError("Cancel Sell failed", status, body, err, t)
