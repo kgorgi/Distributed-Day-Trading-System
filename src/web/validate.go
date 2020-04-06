@@ -45,7 +45,7 @@ func validateParameters(commandMap map[string]string) error {
 	// Validate StockSymbol
 	if _, ok := noStockSymbolParameter[commandMap["command"]]; !ok {
 		if !isStockSymbol(commandMap["stockSymbol"]) {
-			return errors.New("Invalid stockSymbol")
+			return errors.New("Invalid stock symbol")
 		}
 	}
 
