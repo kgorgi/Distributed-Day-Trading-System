@@ -1,4 +1,4 @@
-# SENG 468
+# SENG 468 Project
 
 ## Deploy Developer Environment
 
@@ -75,7 +75,7 @@ Note: That these port mappings are out of date due to deprecation.
 -   Web Server: N/A (Docker Address)
 -   Web Server 2: N/A (Docker Address)
 
-## How to Prototype Day Trading System
+## How to Execute Prototype Day Trading System
 
 -   Set the correct access for the replica set key.
     `chmod 400 ./src/databases/data-keyfile`
