@@ -1,5 +1,7 @@
 # SENG 468 Project
 
+Group: Extreme Workload
+
 ## Deploy Developer Environment
 
 -   Deploy with `make docker-deploy-dev`
