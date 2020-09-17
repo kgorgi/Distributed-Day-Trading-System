@@ -1,6 +1,14 @@
-# SENG 468 Project
+# Distributed Day Trading System
 
-Group: Extreme Workload
+A distributed day trading system built with Docker, Golang, and MongoDB that supports over 1000 user transactions per second. Features of this system include: 
+- high performance
+- load balancing
+- auditing
+- data redunancy
+- server redundancy
+- caching
+
+This project was built for the University of Victoria's Software Systems Scalability (SENG 468) class. (Group: Extreme Workload)
 
 ## Deploy Developer Environment
 
